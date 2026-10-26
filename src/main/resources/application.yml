@@ -55,3 +55,12 @@ perola:
       refresh-expiration-seconds: ${JWT_REFRESH_EXPIRATION_SECONDS:604800}
   business:
     default-timezone: ${APP_TIMEZONE:Atlantic/Cape_Verde}
+
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+    tags-sorter: alpha
+    operations-sorter: method
+    try-it-out-enabled: true

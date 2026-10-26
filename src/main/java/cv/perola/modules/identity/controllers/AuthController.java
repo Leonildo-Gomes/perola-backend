@@ -10,6 +10,8 @@ import cv.perola.modules.identity.usecase.GoogleOAuth2UseCase;
 import cv.perola.modules.identity.usecase.LogoutUseCase;
 import cv.perola.modules.identity.usecase.RefreshTokenUseCase;
 import cv.perola.modules.identity.usecase.RegisterUserUseCase;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -21,6 +23,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequestMapping("/api/v1/auth")
+@Tag(name = "Authentication", description = "Authentication endpoints")
 @RequiredArgsConstructor
 public class AuthController {
 
@@ -30,6 +33,7 @@ public class AuthController {
     private final RefreshTokenUseCase refreshTokenUseCase;
     private final LogoutUseCase logoutUseCase;
 
+    @Operation(summary = "Register a new user", description = "Register a new user with  the provided data")
     @PostMapping("/register")
     public ResponseEntity<AuthResponse> register(@Valid @RequestBody RegisterRequest request) {
         AuthResponse response = registerUserUseCase.execute(request);
