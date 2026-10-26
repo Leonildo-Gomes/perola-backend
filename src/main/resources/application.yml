@@ -2,37 +2,37 @@ spring:
   application:
     name: perola-api
   profiles:
-    active: dev
+    active: ${SPRING_PROFILES_ACTIVE:dev}
   datasource:
-    url: jdbc:postgresql://localhost:5435/perola_db
-    username: perola_user
-    password: perola_pass
+    url: ${DB_URL:jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5435}/${DB_NAME:perola_db}}
+    username: ${DB_USER:perola_user}
+    password: ${DB_PASSWORD:perola_pass}
     driver-class-name: org.postgresql.Driver
     hikari:
-      maximum-pool-size: 10
-      minimum-idle: 2
+      maximum-pool-size: ${DB_POOL_MAX_SIZE:10}
+      minimum-idle: ${DB_POOL_MIN_IDLE:2}
       idle-timeout: 300000
       connection-timeout: 20000
   jpa:
     database-platform: org.hibernate.dialect.PostgreSQLDialect
     hibernate:
-      ddl-auto: validate
+      ddl-auto: ${JPA_DDL_AUTO:validate}
     open-in-view: false
-    show-sql: true
+    show-sql: ${JPA_SHOW_SQL:true}
     properties:
       hibernate:
         format_sql: true
         jdbc:
           time_zone: UTC
   flyway:
-    enabled: true
+    enabled: ${FLYWAY_ENABLED:true}
     baseline-on-migrate: true
     locations: classpath:db/migration
   jackson:
-    time-zone: Atlantic/Cape_Verde
+    time-zone: ${APP_TIMEZONE:Atlantic/Cape_Verde}
 
 server:
-  port: 8080
+  port: ${PORT:8080}
   shutdown: graceful
 
 management:
@@ -49,8 +49,8 @@ management:
 perola:
   security:
     jwt:
-      secret: "404E635266556A586E3272357538782F413F4428472B4B6250645367566B5970"
-      expiration-seconds: 86400
-      refresh-expiration-seconds: 604800
+      secret: ${JWT_SECRET:404E635266556A586E3272357538782F413F4428472B4B6250645367566B5970}
+      expiration-seconds: ${JWT_EXPIRATION_SECONDS:86400}
+      refresh-expiration-seconds: ${JWT_REFRESH_EXPIRATION_SECONDS:604800}
   business:
-    default-timezone: Atlantic/Cape_Verde
+    default-timezone: ${APP_TIMEZONE:Atlantic/Cape_Verde}

@@ -1,8 +1,8 @@
 spring:
   datasource:
-    url: jdbc:postgresql://localhost:5435/perola_db
-    username: perola_user
-    password: perola_pass
+    url: ${DB_URL:jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5435}/${DB_NAME:perola_db}}
+    username: ${DB_USER:perola_user}
+    password: ${DB_PASSWORD:perola_pass}
     driver-class-name: org.postgresql.Driver
     hikari:
       maximum-pool-size: 10
@@ -28,8 +28,8 @@ spring:
 perola:
   security:
     jwt:
-      secret: "404E635266556A586E3272357538782F413F4428472B4B6250645367566B5970"
-      expiration-seconds: 86400
-      refresh-expiration-seconds: 604800
+      secret: ${JWT_SECRET:404E635266556A586E3272357538782F413F4428472B4B6250645367566B5970}
+      expiration-seconds: ${JWT_EXPIRATION_SECONDS:86400}
+      refresh-expiration-seconds: ${JWT_REFRESH_EXPIRATION_SECONDS:604800}
   business:
-    default-timezone: Atlantic/Cape_Verde
+    default-timezone: ${APP_TIMEZONE:Atlantic/Cape_Verde}
