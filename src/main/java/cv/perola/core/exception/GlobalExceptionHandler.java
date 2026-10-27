@@ -38,6 +38,18 @@ public class GlobalExceptionHandler {
         return problem;
     }
 
+    @ExceptionHandler({ValidationException.class, IllegalArgumentException.class})
+    public ProblemDetail handleBusinessValidationException(RuntimeException ex) {
+        ProblemDetail problem = ProblemDetail.forStatusAndDetail(
+                HttpStatus.BAD_REQUEST,
+                ex.getMessage() != null ? ex.getMessage() : "Os dados fornecidos contêm erros de validação."
+        );
+        problem.setTitle("Erro de Validação");
+        problem.setType(URI.create("https://perola.cv/errors/validation-error"));
+        problem.setProperty("timestamp", Instant.now());
+        return problem;
+    }
+
     @ExceptionHandler({BadCredentialsException.class, AuthenticationFailedException.class})
     public ProblemDetail handleAuthenticationException(Exception ex) {
         ProblemDetail problem = ProblemDetail.forStatusAndDetail(
