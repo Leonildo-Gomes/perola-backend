@@ -51,4 +51,40 @@ public class BusinessMapper {
                 entity.getUpdatedAt()
         );
     }
+
+    public cv.perola.modules.business.dto.MarketplaceBusinessSummaryResponse toSummaryResponse(BusinessEntity entity, long servicesCount) {
+        if (entity == null) {
+            return null;
+        }
+        return new cv.perola.modules.business.dto.MarketplaceBusinessSummaryResponse(
+                entity.getId(),
+                entity.getName(),
+                entity.getIsland(),
+                entity.getCity(),
+                entity.getLocation(),
+                entity.getContactPhone(),
+                entity.getTimezone(),
+                servicesCount
+        );
+    }
+
+    public cv.perola.modules.business.dto.MarketplaceBusinessDetailResponse toDetailResponse(
+            BusinessEntity entity,
+            java.util.List<cv.perola.modules.business.dto.ServiceResponse> services,
+            java.util.List<cv.perola.modules.business.dto.EmployeeResponse> employees) {
+        if (entity == null) {
+            return null;
+        }
+        return new cv.perola.modules.business.dto.MarketplaceBusinessDetailResponse(
+                entity.getId(),
+                entity.getName(),
+                entity.getIsland(),
+                entity.getCity(),
+                entity.getLocation(),
+                entity.getContactPhone(),
+                entity.getTimezone(),
+                services,
+                employees
+        );
+    }
 }

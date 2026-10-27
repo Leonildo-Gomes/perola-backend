@@ -5,10 +5,17 @@ import cv.perola.core.security.JwtService;
 import cv.perola.core.security.TenantMembership;
 import cv.perola.modules.business.domain.BusinessEntity;
 import cv.perola.modules.business.domain.EmployeeEntity;
+import cv.perola.modules.business.domain.ServiceEntity;
+import cv.perola.modules.business.dto.AssignEmployeeServicesRequest;
 import cv.perola.modules.business.dto.CreateBusinessRequest;
+import cv.perola.modules.business.dto.CreateEmployeeRequest;
+import cv.perola.modules.business.dto.CreateServiceRequest;
 import cv.perola.modules.business.dto.UpdateBusinessRequest;
+import cv.perola.modules.business.dto.UpdateServiceRequest;
 import cv.perola.modules.business.repository.BusinessRepository;
 import cv.perola.modules.business.repository.EmployeeRepository;
+import cv.perola.modules.business.repository.EmployeeServiceRepository;
+import cv.perola.modules.business.repository.ServiceRepository;
 import cv.perola.modules.identity.domain.UserEntity;
 import cv.perola.modules.identity.domain.enums.UserRole;
 import cv.perola.modules.identity.repository.UserRepository;
@@ -26,6 +33,7 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.context.WebApplicationContext;
 
+import java.math.BigDecimal;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
@@ -33,9 +41,11 @@ import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.security.test.web.servlet.setup.SecurityMockMvcConfigurers.springSecurity;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -66,6 +76,12 @@ class BusinessIntegrationTest {
 
     @Autowired
     private EmployeeRepository employeeRepository;
+
+    @Autowired
+    private ServiceRepository serviceRepository;
+
+    @Autowired
+    private EmployeeServiceRepository employeeServiceRepository;
 
     @BeforeEach
     void setUp() {
@@ -361,4 +377,192 @@ class BusinessIntegrationTest {
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.type").value("https://perola.cv/errors/resource-not-found"));
     }
+
+    @Test
+    @DisplayName("BE-007: Deve criar, listar, atualizar e desativar serviço no salão com isolamento por business_id")
+    void shouldCreateListUpdateAndSoftDeleteServiceSuccessfully() throws Exception {
+        // Arrange
+        UserEntity owner = createTestUser("service.owner@perola.cv", "Owner Serviços");
+        BusinessEntity business = createTestBusiness(owner, "Salão Glamour", "São Vicente", "Mindelo");
+        String token = generateToken(owner, List.of(new TenantMembership(business.getId(), "OWNER")));
+
+        CreateServiceRequest createRequest = new CreateServiceRequest(
+                "Corte com Hidratação",
+                "Corte premium com tratamento reconstrutor",
+                60,
+                new BigDecimal("2500.00")
+        );
+
+        // Act 1: Criar serviço
+        MvcResult createResult = mockMvc.perform(post("/api/v1/businesses/" + business.getId() + "/services")
+                        .header("Authorization", "Bearer " + token)
+                        .header("X-Business-Id", business.getId().toString())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(createRequest)))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.id").isNotEmpty())
+                .andExpect(jsonPath("$.name").value("Corte com Hidratação"))
+                .andExpect(jsonPath("$.durationMinutes").value(60))
+                .andExpect(jsonPath("$.price").value(2500.00))
+                .andExpect(jsonPath("$.isActive").value(true))
+                .andReturn();
+
+        String serviceIdStr = objectMapper.readTree(createResult.getResponse().getContentAsString()).get("id").asText();
+        UUID serviceId = UUID.fromString(serviceIdStr);
+
+        // Act 2: Listar serviços do salão
+        mockMvc.perform(get("/api/v1/businesses/" + business.getId() + "/services")
+                        .header("Authorization", "Bearer " + token)
+                        .header("X-Business-Id", business.getId().toString()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$").isArray())
+                .andExpect(jsonPath("$.length()").value(1))
+                .andExpect(jsonPath("$[0].name").value("Corte com Hidratação"));
+
+        // Act 3: Atualizar serviço via PUT
+        UpdateServiceRequest updateRequest = new UpdateServiceRequest(
+                "Corte com Hidratação Profunda",
+                "Tratamento com queratina e corte moderno",
+                75,
+                new BigDecimal("3000.00"),
+                true
+        );
+
+        mockMvc.perform(put("/api/v1/businesses/" + business.getId() + "/services/" + serviceId)
+                        .header("Authorization", "Bearer " + token)
+                        .header("X-Business-Id", business.getId().toString())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(updateRequest)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.name").value("Corte com Hidratação Profunda"))
+                .andExpect(jsonPath("$.durationMinutes").value(75))
+                .andExpect(jsonPath("$.price").value(3000.00));
+
+        // Act 4: Desativar serviço (Soft Delete) via DELETE
+        mockMvc.perform(delete("/api/v1/businesses/" + business.getId() + "/services/" + serviceId)
+                        .header("Authorization", "Bearer " + token)
+                        .header("X-Business-Id", business.getId().toString()))
+                .andExpect(status().isNoContent());
+
+        // Assert no banco: serviço permanece persistido com is_active = false
+        ServiceEntity deactivatedInDb = serviceRepository.findById(serviceId).orElseThrow();
+        assertThat(deactivatedInDb.isActive()).isFalse();
+
+        // Act 5: Listar serviços ativos do salão não deve mais incluir o desativado
+        mockMvc.perform(get("/api/v1/businesses/" + business.getId() + "/services")
+                        .header("Authorization", "Bearer " + token)
+                        .header("X-Business-Id", business.getId().toString()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$").isArray())
+                .andExpect(jsonPath("$.length()").value(0));
+    }
+
+    @Test
+    @DisplayName("BE-007: Deve rejeitar criação de serviço com nome duplicado ativo no mesmo salão (HTTP 409 Conflict)")
+    void shouldRejectDuplicateServiceNameInSameSalon() throws Exception {
+        // Arrange
+        UserEntity owner = createTestUser("dup.owner@perola.cv", "Owner Duplicados");
+        BusinessEntity business = createTestBusiness(owner, "Salão Duplicados", "Santiago", "Praia");
+        String token = generateToken(owner, List.of(new TenantMembership(business.getId(), "OWNER")));
+
+        CreateServiceRequest req1 = new CreateServiceRequest("Escova Progressiva", "Desc", 90, new BigDecimal("4000.00"));
+        CreateServiceRequest req2 = new CreateServiceRequest("Escova Progressiva", "Outra desc", 60, new BigDecimal("3500.00"));
+
+        mockMvc.perform(post("/api/v1/businesses/" + business.getId() + "/services")
+                        .header("Authorization", "Bearer " + token)
+                        .header("X-Business-Id", business.getId().toString())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(req1)))
+                .andExpect(status().isCreated());
+
+        // Act & Assert: Segunda criação com mesmo nome deve falhar com 409
+        mockMvc.perform(post("/api/v1/businesses/" + business.getId() + "/services")
+                        .header("Authorization", "Bearer " + token)
+                        .header("X-Business-Id", business.getId().toString())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(req2)))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.type").value("https://perola.cv/errors/conflict"));
+    }
+
+    @Test
+    @DisplayName("BE-007: Deve adicionar profissional à equipa e atribuir serviços com sucesso")
+    void shouldAddEmployeeAndAssignServicesSuccessfully() throws Exception {
+        // Arrange
+        UserEntity owner = createTestUser("team.owner@perola.cv", "Owner Equipa");
+        BusinessEntity business = createTestBusiness(owner, "Salão Equipa", "Sal", "Santa Maria");
+        String ownerToken = generateToken(owner, List.of(new TenantMembership(business.getId(), "OWNER")));
+
+        // Criar 2 serviços
+        ServiceEntity s1 = serviceRepository.save(ServiceEntity.builder()
+                .businessId(business.getId())
+                .name("Unhas de Gel")
+                .durationMinutes(60)
+                .price(new BigDecimal("2200.00"))
+                .isActive(true)
+                .build());
+
+        ServiceEntity s2 = serviceRepository.save(ServiceEntity.builder()
+                .businessId(business.getId())
+                .name("Pedicure Spa")
+                .durationMinutes(45)
+                .price(new BigDecimal("1800.00"))
+                .isActive(true)
+                .build());
+
+        // Criar um novo utilizador para ser colaborador
+        UserEntity employeeUser = createTestUser("claudia.staff@perola.cv", "Cláudia Staff");
+
+        // Act 1: Adicionar colaborador à equipa
+        CreateEmployeeRequest empRequest = new CreateEmployeeRequest(employeeUser.getId(), "Cláudia Especialista em Unhas");
+        MvcResult empResult = mockMvc.perform(post("/api/v1/businesses/" + business.getId() + "/employees")
+                        .header("Authorization", "Bearer " + ownerToken)
+                        .header("X-Business-Id", business.getId().toString())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(empRequest)))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.id").isNotEmpty())
+                .andExpect(jsonPath("$.displayName").value("Cláudia Especialista em Unhas"))
+                .andExpect(jsonPath("$.userId").value(employeeUser.getId().toString()))
+                .andReturn();
+
+        UUID employeeId = UUID.fromString(objectMapper.readTree(empResult.getResponse().getContentAsString()).get("id").asText());
+
+        // Assert: Papel EMPLOYEE deve ter sido atribuído ao utilizador
+        assertThat(userRoleRepository.findAllByUserId(employeeUser.getId()))
+                .anyMatch(r -> r.getRole() == UserRole.EMPLOYEE);
+
+        // Act 2: Atribuir serviços ao colaborador
+        AssignEmployeeServicesRequest assignRequest = new AssignEmployeeServicesRequest(List.of(s1.getId(), s2.getId()));
+        mockMvc.perform(put("/api/v1/businesses/" + business.getId() + "/employees/" + employeeId + "/services")
+                        .header("Authorization", "Bearer " + ownerToken)
+                        .header("X-Business-Id", business.getId().toString())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(assignRequest)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.employeeId").value(employeeId.toString()))
+                .andExpect(jsonPath("$.services.length()").value(2));
+
+        // Act 3: Consultar serviços atribuídos
+        mockMvc.perform(get("/api/v1/businesses/" + business.getId() + "/employees/" + employeeId + "/services")
+                        .header("Authorization", "Bearer " + ownerToken)
+                        .header("X-Business-Id", business.getId().toString()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.services.length()").value(2));
+    }
+
+    private BusinessEntity createTestBusiness(UserEntity owner, String name, String island, String city) {
+        BusinessEntity business = BusinessEntity.builder()
+                .ownerId(owner.getId())
+                .name(name)
+                .island(island)
+                .city(city)
+                .location("Avenida Central")
+                .contactPhone("+2382601122")
+                .timezone("Atlantic/Cape_Verde")
+                .isActive(true)
+                .build();
+        return businessRepository.save(business);
+    }
 }
+

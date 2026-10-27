@@ -19,6 +19,10 @@ public interface EmployeeRepository extends JpaRepository<EmployeeEntity, UUID> 
 
     List<EmployeeEntity> findAllByBusinessIdAndIsActiveTrue(UUID businessId);
 
+    Optional<EmployeeEntity> findByIdAndBusinessId(UUID id, UUID businessId);
+
+    Optional<EmployeeEntity> findByIdAndBusinessIdAndIsActiveTrue(UUID id, UUID businessId);
+
     boolean existsByUserId(UUID userId);
 
     boolean existsByBusinessIdAndUserId(UUID businessId, UUID userId);
