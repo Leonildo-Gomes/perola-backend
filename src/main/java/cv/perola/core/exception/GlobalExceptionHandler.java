@@ -6,6 +6,8 @@ import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.DisabledException;
 import org.springframework.validation.FieldError;
+import org.springframework.web.accept.InvalidApiVersionException;
+import org.springframework.web.accept.MissingApiVersionException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -84,6 +86,22 @@ public class GlobalExceptionHandler {
         return problem;
     }
 
+    @ExceptionHandler(org.springframework.dao.DataIntegrityViolationException.class)
+    public ProblemDetail handleDataIntegrityViolationException(org.springframework.dao.DataIntegrityViolationException ex) {
+        String detail = "Conflito de integridade de dados.";
+        if (ex.getMessage() != null && ex.getMessage().contains("uk_businesses_owner_id")) {
+            detail = "O utilizador já possui um salão registado. No MVP é permitido apenas 1 negócio por proprietário.";
+        }
+        ProblemDetail problem = ProblemDetail.forStatusAndDetail(
+                HttpStatus.CONFLICT,
+                detail
+        );
+        problem.setTitle("Conflito de Dados");
+        problem.setType(URI.create("https://perola.cv/errors/conflict"));
+        problem.setProperty("timestamp", Instant.now());
+        return problem;
+    }
+
     @ExceptionHandler(ResourceNotFoundException.class)
     public ProblemDetail handleResourceNotFoundException(ResourceNotFoundException ex) {
         ProblemDetail problem = ProblemDetail.forStatusAndDetail(
@@ -104,6 +122,42 @@ public class GlobalExceptionHandler {
         );
         problem.setTitle("Acesso Não Autorizado");
         problem.setType(URI.create("https://perola.cv/errors/access-denied"));
+        problem.setProperty("timestamp", Instant.now());
+        return problem;
+    }
+
+    @ExceptionHandler(TenantAccessDeniedException.class)
+    public ProblemDetail handleTenantAccessDeniedException(TenantAccessDeniedException ex) {
+        ProblemDetail problem = ProblemDetail.forStatusAndDetail(
+                HttpStatus.FORBIDDEN,
+                ex.getMessage() != null ? ex.getMessage() : "Acesso não autorizado para o salão especificado."
+        );
+        problem.setTitle("Acesso ao Salão Negado");
+        problem.setType(URI.create("https://perola.cv/errors/tenant-access-denied"));
+        problem.setProperty("timestamp", Instant.now());
+        return problem;
+    }
+
+    @ExceptionHandler(InvalidApiVersionException.class)
+    public ProblemDetail handleInvalidApiVersionException(InvalidApiVersionException ex) {
+        ProblemDetail problem = ProblemDetail.forStatusAndDetail(
+                HttpStatus.BAD_REQUEST,
+                ex.getMessage() != null ? ex.getMessage() : "Versão da API inválida ou não suportada."
+        );
+        problem.setTitle("Versão de API Inválida");
+        problem.setType(URI.create("https://perola.cv/errors/invalid-api-version"));
+        problem.setProperty("timestamp", Instant.now());
+        return problem;
+    }
+
+    @ExceptionHandler(MissingApiVersionException.class)
+    public ProblemDetail handleMissingApiVersionException(MissingApiVersionException ex) {
+        ProblemDetail problem = ProblemDetail.forStatusAndDetail(
+                HttpStatus.BAD_REQUEST,
+                "A versão da API é obrigatória na requisição."
+        );
+        problem.setTitle("Versão de API Ausente");
+        problem.setType(URI.create("https://perola.cv/errors/missing-api-version"));
         problem.setProperty("timestamp", Instant.now());
         return problem;
     }

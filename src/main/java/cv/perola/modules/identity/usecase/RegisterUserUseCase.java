@@ -6,6 +6,7 @@ import cv.perola.modules.identity.domain.UserRoleEntity;
 import cv.perola.modules.identity.domain.enums.UserRole;
 import cv.perola.modules.identity.dto.AuthResponse;
 import cv.perola.modules.identity.dto.RegisterRequest;
+import cv.perola.modules.identity.mapper.UserMapper;
 import cv.perola.modules.identity.repository.UserRepository;
 import cv.perola.modules.identity.repository.UserRoleRepository;
 import cv.perola.modules.identity.service.TokenService;
@@ -22,6 +23,7 @@ public class RegisterUserUseCase {
     private final UserRoleRepository userRoleRepository;
     private final PasswordEncoder passwordEncoder;
     private final TokenService tokenService;
+    private final UserMapper userMapper;
 
     @Transactional
     public AuthResponse execute(RegisterRequest request) {
@@ -34,14 +36,7 @@ public class RegisterUserUseCase {
             throw new ConflictException("O telefone '" + request.phone() + "' já se encontra associado a outra conta.");
         }
 
-        UserEntity user = UserEntity.builder()
-                .name(request.name().trim())
-                .email(normalizedEmail)
-                .phone(request.phone().trim())
-                .passwordHash(passwordEncoder.encode(request.password()))
-                .isActive(true)
-                .build();
-
+        UserEntity user = userMapper.toEntity(request, passwordEncoder.encode(request.password()));
         UserEntity savedUser = userRepository.save(user);
 
         UserRoleEntity defaultRole = UserRoleEntity.builder()

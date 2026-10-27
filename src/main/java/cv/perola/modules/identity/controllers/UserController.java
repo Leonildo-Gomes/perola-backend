@@ -12,13 +12,13 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
-@RequestMapping("/api/v1/users")
+@RequestMapping("/api/{version}/users")
 @RequiredArgsConstructor
 public class UserController {
 
     private final GetCurrentUserUseCase getCurrentUserUseCase;
 
-    @GetMapping("/me")
+    @GetMapping(value = "/me", version = "v1")
     public ResponseEntity<UserProfileResponse> getCurrentUser(@AuthenticationPrincipal UserPrincipal principal) {
         if (principal == null) {
             throw new AuthenticationFailedException("Autenticação necessária.");

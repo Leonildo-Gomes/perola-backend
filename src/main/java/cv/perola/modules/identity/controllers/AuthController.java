@@ -22,7 +22,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
-@RequestMapping("/api/v1/auth")
+@RequestMapping("/api/{version}/auth")
 @Tag(name = "Authentication", description = "Authentication endpoints")
 @RequiredArgsConstructor
 public class AuthController {
@@ -34,31 +34,31 @@ public class AuthController {
     private final LogoutUseCase logoutUseCase;
 
     @Operation(summary = "Register a new user", description = "Register a new user with  the provided data")
-    @PostMapping("/register")
+    @PostMapping(value = "/register", version = "v1")
     public ResponseEntity<AuthResponse> register(@Valid @RequestBody RegisterRequest request) {
         AuthResponse response = registerUserUseCase.execute(request);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
-    @PostMapping("/login")
+    @PostMapping(value = "/login", version = "v1")
     public ResponseEntity<AuthResponse> login(@Valid @RequestBody LoginRequest request) {
         AuthResponse response = authenticateUserUseCase.execute(request);
         return ResponseEntity.ok(response);
     }
 
-    @PostMapping("/google")
+    @PostMapping(value = "/google", version = "v1")
     public ResponseEntity<AuthResponse> googleLogin(@Valid @RequestBody GoogleLoginRequest request) {
         AuthResponse response = googleOAuth2UseCase.execute(request);
         return ResponseEntity.ok(response);
     }
 
-    @PostMapping("/refresh")
+    @PostMapping(value = "/refresh", version = "v1")
     public ResponseEntity<AuthResponse> refresh(@Valid @RequestBody RefreshTokenRequest request) {
         AuthResponse response = refreshTokenUseCase.execute(request);
         return ResponseEntity.ok(response);
     }
 
-    @PostMapping("/logout")
+    @PostMapping(value = "/logout", version = "v1")
     public ResponseEntity<Void> logout(@RequestBody(required = false) RefreshTokenRequest request) {
         logoutUseCase.execute(request);
         return ResponseEntity.noContent().build();

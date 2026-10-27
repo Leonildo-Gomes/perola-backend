@@ -2,10 +2,12 @@ package cv.perola.core.config;
 
 import io.swagger.v3.oas.models.Components;
 import io.swagger.v3.oas.models.OpenAPI;
+import io.swagger.v3.oas.models.Paths;
 import io.swagger.v3.oas.models.info.Contact;
 import io.swagger.v3.oas.models.info.Info;
 import io.swagger.v3.oas.models.security.SecurityRequirement;
 import io.swagger.v3.oas.models.security.SecurityScheme;
+import org.springdoc.core.customizers.OpenApiCustomizer;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -33,5 +35,26 @@ public class OpenApiConfig {
                                                                                 .type(SecurityScheme.Type.HTTP)
                                                                                 .scheme("bearer")
                                                                                 .bearerFormat("JWT")));
+        }
+
+
+        @Bean
+        public OpenApiCustomizer apiVersionOpenApiCustomizer() {
+                return openApi -> {
+                        if (openApi.getPaths() == null) {
+                                return;
+                        }
+                        Paths resolvedPaths = new Paths();
+                        openApi.getPaths().forEach((path, pathItem) -> {
+                                String resolvedPath = path.replace("{version}", "v1");
+                                pathItem.readOperations().forEach(operation -> {
+                                        if (operation.getParameters() != null) {
+                                                operation.getParameters().removeIf(param -> "version".equalsIgnoreCase(param.getName()));
+                                        }
+                                });
+                                resolvedPaths.addPathItem(resolvedPath, pathItem);
+                        });
+                        openApi.setPaths(resolvedPaths);
+                };
         }
 }

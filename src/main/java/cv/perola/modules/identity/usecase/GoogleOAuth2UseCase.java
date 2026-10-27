@@ -6,6 +6,7 @@ import cv.perola.modules.identity.domain.UserRoleEntity;
 import cv.perola.modules.identity.domain.enums.UserRole;
 import cv.perola.modules.identity.dto.AuthResponse;
 import cv.perola.modules.identity.dto.GoogleLoginRequest;
+import cv.perola.modules.identity.mapper.UserMapper;
 import cv.perola.modules.identity.repository.UserRepository;
 import cv.perola.modules.identity.repository.UserRoleRepository;
 import cv.perola.modules.identity.service.GoogleTokenVerifier;
@@ -25,6 +26,7 @@ public class GoogleOAuth2UseCase {
     private final UserRepository userRepository;
     private final UserRoleRepository userRoleRepository;
     private final TokenService tokenService;
+    private final UserMapper userMapper;
 
     @Transactional
     public AuthResponse execute(GoogleLoginRequest request) {
@@ -50,14 +52,12 @@ public class GoogleOAuth2UseCase {
                 }
                 userRepository.save(user);
             } else {
-                user = UserEntity.builder()
-                        .name(googleData.name())
-                        .email(normalizedEmail)
-                        .phone("")
-                        .googleId(googleData.googleId())
-                        .avatarUrl(googleData.avatarUrl())
-                        .isActive(true)
-                        .build();
+                user = userMapper.toEntity(
+                        googleData.name(),
+                        normalizedEmail,
+                        googleData.googleId(),
+                        googleData.avatarUrl()
+                );
                 user = userRepository.save(user);
 
                 UserRoleEntity role = UserRoleEntity.builder()

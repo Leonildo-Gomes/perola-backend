@@ -9,8 +9,8 @@ import cv.perola.modules.identity.domain.UserEntity;
 import cv.perola.modules.identity.domain.UserRoleEntity;
 import cv.perola.modules.identity.domain.enums.UserRole;
 import cv.perola.modules.identity.dto.AuthResponse;
-import cv.perola.modules.identity.dto.UserMembershipResponse;
 import cv.perola.modules.identity.dto.UserProfileResponse;
+import cv.perola.modules.identity.mapper.UserMapper;
 import cv.perola.modules.identity.repository.RefreshTokenRepository;
 import cv.perola.modules.identity.repository.UserRoleRepository;
 import lombok.RequiredArgsConstructor;
@@ -20,7 +20,6 @@ import org.springframework.transaction.annotation.Transactional;
 import java.security.SecureRandom;
 import java.time.Instant;
 import java.util.Base64;
-import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
 
@@ -32,6 +31,7 @@ public class TokenService {
     private final RefreshTokenRepository refreshTokenRepository;
     private final UserRoleRepository userRoleRepository;
     private final UserMembershipProvider userMembershipProvider;
+    private final UserMapper userMapper;
     private final SecureRandom secureRandom = new SecureRandom();
 
     @Transactional
@@ -55,7 +55,7 @@ public class TokenService {
 
         String rawRefreshToken = generateAndSaveRefreshToken(user.getId());
 
-        UserProfileResponse userProfile = buildUserProfile(user, roles, memberships);
+        UserProfileResponse userProfile = userMapper.toResponse(user, roles, memberships);
 
         return AuthResponse.of(
                 accessToken,
@@ -90,39 +90,6 @@ public class TokenService {
                 .map(UserRoleEntity::getRole)
                 .toList();
         List<TenantMembership> memberships = userMembershipProvider.findMembershipsByUserId(user.getId());
-        return buildUserProfile(user, roles, memberships);
-    }
-
-    private UserProfileResponse buildUserProfile(
-            UserEntity user,
-            List<UserRole> roles,
-            List<TenantMembership> memberships
-    ) {
-        List<UserMembershipResponse> businessMemberships = memberships != null
-                ? memberships.stream()
-                .map(m -> new UserMembershipResponse(
-                        m.businessId(),
-                        parseUserRoleOrNull(m.role())
-                ))
-                .toList()
-                : Collections.emptyList();
-
-        return new UserProfileResponse(
-                user.getId(),
-                user.getName(),
-                user.getEmail(),
-                user.getPhone(),
-                user.getAvatarUrl(),
-                roles,
-                businessMemberships
-        );
-    }
-
-    private UserRole parseUserRoleOrNull(String roleName) {
-        try {
-            return roleName != null ? UserRole.valueOf(roleName) : null;
-        } catch (IllegalArgumentException e) {
-            return null;
-        }
+        return userMapper.toResponse(user, roles, memberships);
     }
 }
