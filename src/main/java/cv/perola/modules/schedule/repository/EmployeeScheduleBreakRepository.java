@@ -11,11 +11,9 @@ import java.util.UUID;
 @Repository
 public interface EmployeeScheduleBreakRepository extends JpaRepository<EmployeeScheduleBreakEntity, UUID> {
 
-    List<EmployeeScheduleBreakEntity> findAllByEmployeeScheduleId(UUID employeeScheduleId);
+    List<EmployeeScheduleBreakEntity> findAllByEmployeeScheduleDayId(UUID employeeScheduleDayId);
 
-    List<EmployeeScheduleBreakEntity> findAllByEmployeeScheduleIdIn(Collection<UUID> employeeScheduleIds);
+    List<EmployeeScheduleBreakEntity> findAllByEmployeeScheduleDayIdIn(Collection<UUID> employeeScheduleDayIds);
 
-    void deleteAllByEmployeeScheduleId(UUID employeeScheduleId);
-
-    void deleteAllByEmployeeScheduleIdIn(Collection<UUID> employeeScheduleIds);
+    void deleteAllByEmployeeScheduleDayIdIn(Collection<UUID> employeeScheduleDayIds);
 }

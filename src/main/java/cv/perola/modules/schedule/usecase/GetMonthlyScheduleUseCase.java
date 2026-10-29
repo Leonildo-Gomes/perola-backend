@@ -2,40 +2,42 @@ package cv.perola.modules.schedule.usecase;
 
 import cv.perola.core.exception.ResourceNotFoundException;
 import cv.perola.core.exception.TenantAccessDeniedException;
+import cv.perola.core.exception.ValidationException;
 import cv.perola.core.security.TenantContext;
 import cv.perola.core.security.UserPrincipal;
 import cv.perola.modules.business.dto.EmployeeResponse;
 import cv.perola.modules.business.service.BusinessEmployeeQueryService;
 import cv.perola.modules.identity.domain.enums.UserRole;
-import cv.perola.modules.schedule.domain.EmployeeScheduleBreakEntity;
+import cv.perola.modules.schedule.domain.EmployeeMonthlyScheduleEntity;
 import cv.perola.modules.schedule.domain.EmployeeScheduleEntity;
-import cv.perola.modules.schedule.dto.WeeklyScheduleItemResponse;
-import cv.perola.modules.schedule.dto.WeeklyScheduleResponse;
-import cv.perola.modules.schedule.mapper.ScheduleMapper;
-import cv.perola.modules.schedule.repository.EmployeeScheduleBreakRepository;
+import cv.perola.modules.schedule.dto.MonthlyScheduleResponse;
+import cv.perola.modules.schedule.mapper.MonthlyScheduleMapper;
+import cv.perola.modules.schedule.repository.EmployeeMonthlyScheduleRepository;
 import cv.perola.modules.schedule.repository.EmployeeScheduleRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.List;
-import java.util.Map;
 import java.util.UUID;
-import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
-public class GetWeeklyScheduleUseCase {
+public class GetMonthlyScheduleUseCase {
 
+    private final EmployeeMonthlyScheduleRepository monthlyScheduleRepository;
     private final EmployeeScheduleRepository scheduleRepository;
-    private final EmployeeScheduleBreakRepository breakRepository;
     private final BusinessEmployeeQueryService employeeQueryService;
-    private final ScheduleMapper scheduleMapper;
+    private final MonthlyScheduleMapper monthlyScheduleMapper;
 
-    public WeeklyScheduleResponse execute(UUID employeeId, UserPrincipal principal) {
+    public MonthlyScheduleResponse execute(UUID employeeId, int year, int month, UserPrincipal principal) {
+        if (year < 2024 || year > 2100) {
+            throw new ValidationException("O ano deve estar compreendido entre 2024 e 2100.");
+        }
+        if (month < 1 || month > 12) {
+            throw new ValidationException("O mês deve estar compreendido entre 1 e 12.");
+        }
+
         UUID businessId = TenantContext.requireTenantId();
 
         EmployeeResponse employee = employeeQueryService.findEmployeeById(employeeId)
@@ -47,26 +49,17 @@ public class GetWeeklyScheduleUseCase {
 
         validatePermissions(employee, principal, businessId);
 
-        List<EmployeeScheduleEntity> schedules = scheduleRepository.findAllByEmployeeIdOrderByDayOfWeekAsc(employeeId);
-        if (schedules.isEmpty()) {
-            return scheduleMapper.toResponse(employeeId, Collections.emptyList());
-        }
+        EmployeeMonthlyScheduleEntity monthlyEntity = monthlyScheduleRepository
+                .findByEmployeeIdAndYearAndMonth(employeeId, year, month)
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "A agenda mensal para " + month + "/" + year + " ainda não foi aberta para este colaborador."
+                ));
 
-        List<UUID> scheduleIds = schedules.stream().map(EmployeeScheduleEntity::getId).toList();
-        List<EmployeeScheduleBreakEntity> allBreaks = breakRepository.findAllByEmployeeScheduleIdIn(scheduleIds);
+        String scheduleName = scheduleRepository.findById(monthlyEntity.getEmployeeScheduleId())
+                .map(EmployeeScheduleEntity::getName)
+                .orElse("Horário Padrão");
 
-        Map<UUID, List<EmployeeScheduleBreakEntity>> breaksBySchedule = allBreaks.stream()
-                .collect(Collectors.groupingBy(EmployeeScheduleBreakEntity::getEmployeeScheduleId));
-
-        List<WeeklyScheduleItemResponse> itemResponses = schedules.stream()
-                .map(s -> scheduleMapper.toResponse(
-                        s,
-                        breaksBySchedule.getOrDefault(s.getId(), Collections.emptyList())
-                ))
-                .sorted(Comparator.comparing(WeeklyScheduleItemResponse::dayOfWeek))
-                .toList();
-
-        return scheduleMapper.toResponse(employeeId, itemResponses);
+        return monthlyScheduleMapper.toResponse(monthlyEntity, scheduleName);
     }
 
     private void validatePermissions(EmployeeResponse employee, UserPrincipal principal, UUID businessId) {
@@ -79,7 +72,8 @@ public class GetWeeklyScheduleUseCase {
 
         boolean isOwnEmployee = employee.userId() != null && employee.userId().equals(principal.getId());
         if (!isOwnEmployee) {
-            throw new TenantAccessDeniedException("O colaborador só pode aceder ao seu próprio expediente.");
+            throw new TenantAccessDeniedException("O colaborador só pode consultar a sua própria agenda mensal.");
         }
     }
 }
+

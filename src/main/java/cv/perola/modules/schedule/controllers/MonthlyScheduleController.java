@@ -2,10 +2,10 @@ package cv.perola.modules.schedule.controllers;
 
 import cv.perola.core.security.TenantFilter;
 import cv.perola.core.security.UserPrincipal;
-import cv.perola.modules.schedule.dto.SetWeeklyScheduleRequest;
-import cv.perola.modules.schedule.dto.WeeklyScheduleResponse;
-import cv.perola.modules.schedule.usecase.GetWeeklyScheduleUseCase;
-import cv.perola.modules.schedule.usecase.SetWeeklyScheduleUseCase;
+import cv.perola.modules.schedule.dto.MonthlyScheduleResponse;
+import cv.perola.modules.schedule.dto.OpenMonthlyScheduleRequest;
+import cv.perola.modules.schedule.usecase.GetMonthlyScheduleUseCase;
+import cv.perola.modules.schedule.usecase.OpenMonthlyScheduleUseCase;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.enums.ParameterIn;
@@ -22,27 +22,28 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.UUID;
 
 @RestController
-@RequestMapping("/api/v1/schedule/employees/{employeeId}/weekly")
+@RequestMapping("/api/v1/schedule/employees/{employeeId}/monthly")
 @RequiredArgsConstructor
-@Tag(name = "Schedule & Availability", description = "Gestão de horários, expediente semanal e pausas de colaboradores")
+@Tag(name = "Schedule & Availability", description = "Gestão de perfis de horário semanal, dias de trabalho, pausas e abertura mensal")
 @SecurityRequirement(name = "BearerAuth")
-public class ScheduleWeeklyController {
+public class MonthlyScheduleController {
 
-    private final SetWeeklyScheduleUseCase setWeeklyScheduleUseCase;
-    private final GetWeeklyScheduleUseCase getWeeklyScheduleUseCase;
+    private final OpenMonthlyScheduleUseCase openMonthlyScheduleUseCase;
+    private final GetMonthlyScheduleUseCase getMonthlyScheduleUseCase;
 
-    @PutMapping
+    @PostMapping("/open")
     @Operation(
-            summary = "Configurar rotina semanal de horários e pausas",
-            description = "Substitui atDrawalmente a rotina semanal de expediente e intervalos do colaborador. Requer papel OWNER ou o próprio EMPLOYEE."
+            summary = "Abrir agenda mensal de atendimentos",
+            description = "Ativa deliberadamente a agenda de um colaborador para um mês/ano específico, vinculando o perfil de horário semanal escolhido e registando decisões de folga em feriados."
     )
     @Parameter(
             name = TenantFilter.TENANT_HEADER,
@@ -52,27 +53,27 @@ public class ScheduleWeeklyController {
             schema = @Schema(type = "string", format = "uuid")
     )
     @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "Rotina semanal configurada com sucesso"),
-            @ApiResponse(responseCode = "400", description = "Dados inválidos ou pausas inconsistentes",
+            @ApiResponse(responseCode = "200", description = "Agenda mensal aberta com sucesso"),
+            @ApiResponse(responseCode = "400", description = "Dados inválidos, horário inativo ou feriado fora do mês",
                     content = @Content(schema = @Schema(implementation = ProblemDetail.class))),
             @ApiResponse(responseCode = "403", description = "Acesso negado para o salão ou colaborador",
                     content = @Content(schema = @Schema(implementation = ProblemDetail.class))),
-            @ApiResponse(responseCode = "404", description = "Colaborador não encontrado",
+            @ApiResponse(responseCode = "404", description = "Colaborador ou perfil de horário não encontrado",
                     content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
     })
-    public ResponseEntity<WeeklyScheduleResponse> setWeeklySchedule(
+    public ResponseEntity<MonthlyScheduleResponse> openMonthlySchedule(
             @PathVariable UUID employeeId,
-            @Valid @RequestBody SetWeeklyScheduleRequest request,
+            @Valid @RequestBody OpenMonthlyScheduleRequest request,
             @AuthenticationPrincipal UserPrincipal principal
     ) {
-        WeeklyScheduleResponse response = setWeeklyScheduleUseCase.execute(employeeId, request, principal);
+        MonthlyScheduleResponse response = openMonthlyScheduleUseCase.execute(employeeId, request, principal);
         return ResponseEntity.ok(response);
     }
 
     @GetMapping
     @Operation(
-            summary = "Obter expediente semanal de rotina e pausas",
-            description = "Consulta a configuração semanal de dias trabalhados e intervalos do colaborador. Requer papel OWNER ou o próprio EMPLOYEE."
+            summary = "Consultar status de abertura mensal e horário associado",
+            description = "Consulta os dados de abertura mensal e o perfil de horário semanal associado a um colaborador para o par (year, month)."
     )
     @Parameter(
             name = TenantFilter.TENANT_HEADER,
@@ -82,17 +83,22 @@ public class ScheduleWeeklyController {
             schema = @Schema(type = "string", format = "uuid")
     )
     @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "Expediente semanal obtido com sucesso"),
+            @ApiResponse(responseCode = "200", description = "Status de abertura mensal obtido com sucesso"),
+            @ApiResponse(responseCode = "400", description = "Parâmetros de ano ou mês inválidos",
+                    content = @Content(schema = @Schema(implementation = ProblemDetail.class))),
             @ApiResponse(responseCode = "403", description = "Acesso negado para o salão ou colaborador",
                     content = @Content(schema = @Schema(implementation = ProblemDetail.class))),
-            @ApiResponse(responseCode = "404", description = "Colaborador não encontrado",
+            @ApiResponse(responseCode = "404", description = "Colaborador não encontrado ou agenda mensal ainda não aberta",
                     content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
     })
-    public ResponseEntity<WeeklyScheduleResponse> getWeeklySchedule(
+    public ResponseEntity<MonthlyScheduleResponse> getMonthlySchedule(
             @PathVariable UUID employeeId,
+            @RequestParam int year,
+            @RequestParam int month,
             @AuthenticationPrincipal UserPrincipal principal
     ) {
-        WeeklyScheduleResponse response = getWeeklyScheduleUseCase.execute(employeeId, principal);
+        MonthlyScheduleResponse response = getMonthlyScheduleUseCase.execute(employeeId, year, month, principal);
         return ResponseEntity.ok(response);
     }
 }
+

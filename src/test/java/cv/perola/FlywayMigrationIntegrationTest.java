@@ -24,18 +24,18 @@ class FlywayMigrationIntegrationTest {
     private JdbcTemplate jdbcTemplate;
 
     @Test
-    @DisplayName("Deve conter o histórico de migrações V1 e V2 com sucesso no Flyway")
+    @DisplayName("Deve conter o histórico de migrações V1, V2, V3 e V4 com sucesso no Flyway")
     void flywayMigrationHistoryIsComplete() {
         List<String> versions = jdbcTemplate.query(
                 "SELECT version FROM flyway_schema_history WHERE success = true ORDER BY installed_rank",
                 (rs, rowNum) -> rs.getString("version")
         );
 
-        assertThat(versions).contains("1", "2");
+        assertThat(versions).contains("1", "2", "3", "4");
     }
 
     @Test
-    @DisplayName("Deve conter todas as 15 tabelas de domínio criadas pela migração V1")
+    @DisplayName("Deve conter todas as 16 tabelas de domínio criadas pelas migrações")
     void allRequiredTablesExist() {
         List<String> tables = jdbcTemplate.query(
                 "SELECT table_name FROM information_schema.tables WHERE table_schema = 'public'",
@@ -52,6 +52,7 @@ class FlywayMigrationIntegrationTest {
                 "employee_services",
                 "employee_monthly_schedules",
                 "employee_schedules",
+                "employee_schedule_days",
                 "employee_schedule_breaks",
                 "employee_time_off",
                 "holidays",

@@ -1,12 +1,14 @@
 package cv.perola.modules.schedule.mapper;
 
 import cv.perola.modules.schedule.domain.EmployeeScheduleBreakEntity;
+import cv.perola.modules.schedule.domain.EmployeeScheduleDayEntity;
 import cv.perola.modules.schedule.domain.EmployeeScheduleEntity;
 import cv.perola.modules.schedule.dto.BreakItemRequest;
 import cv.perola.modules.schedule.dto.BreakItemResponse;
-import cv.perola.modules.schedule.dto.WeeklyScheduleItemRequest;
-import cv.perola.modules.schedule.dto.WeeklyScheduleItemResponse;
-import cv.perola.modules.schedule.dto.WeeklyScheduleResponse;
+import cv.perola.modules.schedule.dto.EmployeeScheduleResponse;
+import cv.perola.modules.schedule.dto.SaveEmployeeScheduleRequest;
+import cv.perola.modules.schedule.dto.ScheduleDayItemRequest;
+import cv.perola.modules.schedule.dto.ScheduleDayItemResponse;
 import org.springframework.stereotype.Component;
 
 import java.util.Collections;
@@ -16,20 +18,30 @@ import java.util.UUID;
 @Component
 public class ScheduleMapper {
 
-    public EmployeeScheduleEntity toEntity(UUID employeeId, WeeklyScheduleItemRequest request) {
+    public EmployeeScheduleEntity toEntity(UUID employeeId, SaveEmployeeScheduleRequest request, boolean isDefault) {
         return EmployeeScheduleEntity.builder()
                 .employeeId(employeeId)
-                .dayOfWeek(request.dayOfWeek())
-                .startTime(request.startTime())
-                .endTime(request.endTime())
+                .name(request.name().trim())
+                .isDefault(isDefault)
                 .isActive(request.resolvedIsActive())
                 .build();
     }
 
-    public EmployeeScheduleBreakEntity toEntity(UUID employeeScheduleId, BreakItemRequest request) {
-        return EmployeeScheduleBreakEntity.builder()
+    public EmployeeScheduleDayEntity toEntity(UUID employeeScheduleId, ScheduleDayItemRequest request) {
+        boolean isWorking = request.resolvedIsWorking();
+        return EmployeeScheduleDayEntity.builder()
                 .employeeScheduleId(employeeScheduleId)
-                .title(request.title())
+                .dayOfWeek(request.dayOfWeek())
+                .isWorking(isWorking)
+                .startTime(isWorking ? request.startTime() : null)
+                .endTime(isWorking ? request.endTime() : null)
+                .build();
+    }
+
+    public EmployeeScheduleBreakEntity toEntity(UUID employeeScheduleDayId, BreakItemRequest request) {
+        return EmployeeScheduleBreakEntity.builder()
+                .employeeScheduleDayId(employeeScheduleDayId)
+                .title(request.title().trim())
                 .startTime(request.startTime())
                 .endTime(request.endTime())
                 .build();
@@ -40,30 +52,33 @@ public class ScheduleMapper {
                 entity.getId(),
                 entity.getTitle(),
                 entity.getStartTime(),
-                entity.getEndTime()
-        );
+                entity.getEndTime());
     }
 
-    public WeeklyScheduleItemResponse toResponse(EmployeeScheduleEntity entity, List<EmployeeScheduleBreakEntity> breaks) {
+    public ScheduleDayItemResponse toResponse(EmployeeScheduleDayEntity entity,
+            List<EmployeeScheduleBreakEntity> breaks) {
         List<BreakItemResponse> breakResponses = breaks != null
                 ? breaks.stream().map(this::toResponse).toList()
                 : Collections.emptyList();
 
-        return new WeeklyScheduleItemResponse(
+        return new ScheduleDayItemResponse(
                 entity.getId(),
-                entity.getEmployeeId(),
                 entity.getDayOfWeek(),
+                entity.isWorking(),
                 entity.getStartTime(),
                 entity.getEndTime(),
-                entity.isActive(),
-                breakResponses
-        );
+                breakResponses);
     }
 
-    public WeeklyScheduleResponse toResponse(UUID employeeId, List<WeeklyScheduleItemResponse> schedules) {
-        return new WeeklyScheduleResponse(
-                employeeId,
-                schedules != null ? schedules : Collections.emptyList()
-        );
+    public EmployeeScheduleResponse toResponse(EmployeeScheduleEntity entity, List<ScheduleDayItemResponse> days) {
+        return new EmployeeScheduleResponse(
+                entity.getId(),
+                entity.getEmployeeId(),
+                entity.getName(),
+                entity.isDefault(),
+                entity.isActive(),
+                days != null ? days : Collections.emptyList(),
+                entity.getCreatedAt(),
+                entity.getUpdatedAt());
     }
 }

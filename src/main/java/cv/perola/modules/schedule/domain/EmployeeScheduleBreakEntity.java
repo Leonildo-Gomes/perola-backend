@@ -37,8 +37,8 @@ public class EmployeeScheduleBreakEntity {
     @Column(name = "id", updatable = false, nullable = false)
     private UUID id;
 
-    @Column(name = "employee_schedule_id", nullable = false)
-    private UUID employeeScheduleId;
+    @Column(name = "employee_schedule_day_id", nullable = false)
+    private UUID employeeScheduleDayId;
 
     @Column(name = "title", nullable = false, length = 100)
     private String title;

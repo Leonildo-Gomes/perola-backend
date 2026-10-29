@@ -39,7 +39,8 @@ public class ListTimeOffUseCase {
 
         validatePermissions(employee, principal, businessId);
 
-        List<EmployeeTimeOffEntity> list = timeOffRepository.findAllByEmployeeIdOrderByStartDateAscStartTimeAsc(employeeId);
+        List<EmployeeTimeOffEntity> list = timeOffRepository
+                .findAllByEmployeeIdOrderByStartDateAscStartTimeAsc(employeeId);
         return list.stream()
                 .map(timeOffMapper::toResponse)
                 .toList();
