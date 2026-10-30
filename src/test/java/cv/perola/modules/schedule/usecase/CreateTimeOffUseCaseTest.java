@@ -14,6 +14,7 @@ import cv.perola.modules.schedule.dto.CreateTimeOffRequest;
 import cv.perola.modules.schedule.dto.TimeOffResponse;
 import cv.perola.modules.schedule.mapper.TimeOffMapper;
 import cv.perola.modules.schedule.repository.EmployeeTimeOffRepository;
+import cv.perola.modules.schedule.validator.timeoff.CreateTimeOffValidator;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -21,6 +22,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.Instant;
@@ -46,6 +48,9 @@ class CreateTimeOffUseCaseTest {
 
     @Mock
     private TimeOffMapper timeOffMapper;
+
+    @Spy
+    private CreateTimeOffValidator timeOffValidator = new CreateTimeOffValidator();
 
     @InjectMocks
     private CreateTimeOffUseCase createTimeOffUseCase;

@@ -8,10 +8,11 @@ import cv.perola.modules.business.dto.ServiceResponse;
 import cv.perola.modules.business.mapper.ServiceMapper;
 import cv.perola.modules.business.repository.BusinessRepository;
 import cv.perola.modules.business.repository.ServiceRepository;
+import cv.perola.modules.business.validator.service.CreateServiceValidator;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -39,8 +40,18 @@ class CreateServiceUseCaseTest {
     @Spy
     private ServiceMapper serviceMapper = new ServiceMapper();
 
-    @InjectMocks
+    private CreateServiceValidator createServiceValidator;
     private CreateServiceUseCase createServiceUseCase;
+
+    @BeforeEach
+    void setUp() {
+        createServiceValidator = new CreateServiceValidator(businessRepository, serviceRepository);
+        createServiceUseCase = new CreateServiceUseCase(
+                serviceRepository,
+                serviceMapper,
+                createServiceValidator
+        );
+    }
 
     @Test
     @DisplayName("Deve criar serviço com sucesso quando dados forem válidos")

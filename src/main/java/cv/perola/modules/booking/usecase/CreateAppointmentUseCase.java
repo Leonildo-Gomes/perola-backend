@@ -13,11 +13,10 @@ import cv.perola.modules.booking.dto.CreateAppointmentRequest;
 import cv.perola.modules.booking.mapper.AppointmentMapper;
 import cv.perola.modules.booking.repository.AppointmentHistoryRepository;
 import cv.perola.modules.booking.repository.AppointmentRepository;
+import cv.perola.modules.booking.validator.appointment.CreateAppointmentValidator;
+import cv.perola.modules.booking.validator.appointment.CreateAppointmentValidator.AppointmentValidationContext;
 import cv.perola.modules.business.dto.BusinessResponse;
-import cv.perola.modules.business.dto.EmployeeResponse;
 import cv.perola.modules.business.dto.ServiceResponse;
-import cv.perola.modules.business.service.BusinessEmployeeQueryService;
-import cv.perola.modules.identity.service.UserAccountService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
@@ -40,42 +39,16 @@ public class CreateAppointmentUseCase {
 
     private final AppointmentRepository appointmentRepository;
     private final AppointmentHistoryRepository appointmentHistoryRepository;
-    private final BusinessEmployeeQueryService businessEmployeeQueryService;
-    private final UserAccountService userAccountService;
     private final AppointmentMapper appointmentMapper;
     private final ApplicationEventPublisher eventPublisher;
+    private final CreateAppointmentValidator createAppointmentValidator;
 
     @Transactional
     public AppointmentResponse execute(UUID customerId, CreateAppointmentRequest request) {
-        if (customerId == null || !userAccountService.existsById(customerId)) {
-            throw new ResourceNotFoundException("Cliente não encontrado.");
-        }
-
-        BusinessResponse business = businessEmployeeQueryService.findBusinessById(request.businessId())
-                .orElseThrow(() -> new ResourceNotFoundException("Salão não encontrado."));
-        if (!business.isActive()) {
-            throw new ValidationException("O salão encontra-se inativo para novos agendamentos.");
-        }
-
-        EmployeeResponse employee = businessEmployeeQueryService
-                .findEmployeeByIdAndBusinessId(request.employeeId(), request.businessId())
-                .orElseThrow(() -> new ResourceNotFoundException("Profissional não encontrado para o salão especificado."));
-        if (!employee.isActive()) {
-            throw new ValidationException("O profissional selecionado encontra-se inativo.");
-        }
-
-        ServiceResponse service = businessEmployeeQueryService
-                .findServiceByIdAndBusinessId(request.serviceId(), request.businessId())
-                .orElseThrow(() -> new ResourceNotFoundException("Serviço não encontrado para o salão especificado."));
-        if (!service.isActive()) {
-            throw new ValidationException("O serviço selecionado encontra-se inativo.");
-        }
-
-        if (businessEmployeeQueryService.hasAnyAssignedServices(request.businessId(), request.employeeId())
-                && !businessEmployeeQueryService.isServiceAssignedToEmployee(
-                        request.businessId(), request.employeeId(), request.serviceId())) {
-            throw new ValidationException("O profissional selecionado não realiza este serviço.");
-        }
+        // 1. Validação isolada de entidades e elegibilidade
+        AppointmentValidationContext context = createAppointmentValidator.validate(customerId, request);
+        BusinessResponse business = context.business();
+        ServiceResponse service = context.service();
 
         Instant startTime = request.startTime().toInstant();
         Instant endTime = startTime.plus(Duration.ofMinutes(service.durationMinutes()));

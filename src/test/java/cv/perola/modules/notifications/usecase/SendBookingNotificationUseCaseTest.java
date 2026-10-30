@@ -4,11 +4,13 @@ import cv.perola.core.shared.event.AppointmentLifecycleEvent;
 import cv.perola.modules.notifications.mapper.NotificationMapper;
 import cv.perola.modules.notifications.mapper.NotificationMapper.BookingNotificationPayload;
 import cv.perola.modules.notifications.service.NotificationService;
+import cv.perola.modules.notifications.validator.notification.SendNotificationValidator;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.Instant;
@@ -26,6 +28,9 @@ class SendBookingNotificationUseCaseTest {
 
     @Mock
     private NotificationService notificationService;
+
+    @Spy
+    private SendNotificationValidator notificationValidator = new SendNotificationValidator();
 
     @InjectMocks
     private SendBookingNotificationUseCase sendBookingNotificationUseCase;

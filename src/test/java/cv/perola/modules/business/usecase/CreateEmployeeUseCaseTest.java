@@ -8,12 +8,13 @@ import cv.perola.modules.business.dto.EmployeeResponse;
 import cv.perola.modules.business.mapper.EmployeeMapper;
 import cv.perola.modules.business.repository.BusinessRepository;
 import cv.perola.modules.business.repository.EmployeeRepository;
+import cv.perola.modules.business.validator.employee.CreateEmployeeValidator;
 import cv.perola.modules.identity.domain.enums.UserRole;
 import cv.perola.modules.identity.service.UserAccountService;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -43,8 +44,19 @@ class CreateEmployeeUseCaseTest {
     @Spy
     private EmployeeMapper employeeMapper = new EmployeeMapper();
 
-    @InjectMocks
+    private CreateEmployeeValidator createEmployeeValidator;
     private CreateEmployeeUseCase createEmployeeUseCase;
+
+    @BeforeEach
+    void setUp() {
+        createEmployeeValidator = new CreateEmployeeValidator(businessRepository, employeeRepository, userAccountService);
+        createEmployeeUseCase = new CreateEmployeeUseCase(
+                employeeRepository,
+                userAccountService,
+                employeeMapper,
+                createEmployeeValidator
+        );
+    }
 
     @Test
     @DisplayName("Deve criar colaborador com utilizador associado e conceder papel EMPLOYEE")

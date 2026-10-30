@@ -8,10 +8,11 @@ import cv.perola.modules.identity.dto.LoginRequest;
 import cv.perola.modules.identity.dto.UserProfileResponse;
 import cv.perola.modules.identity.repository.UserRepository;
 import cv.perola.modules.identity.service.TokenService;
+import cv.perola.modules.identity.validator.auth.AuthenticateUserValidator;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.authentication.BadCredentialsException;
@@ -40,8 +41,18 @@ class AuthenticateUserUseCaseTest {
     @Mock
     private TokenService tokenService;
 
-    @InjectMocks
+    private AuthenticateUserValidator authenticateUserValidator;
     private AuthenticateUserUseCase authenticateUserUseCase;
+
+    @BeforeEach
+    void setUp() {
+        authenticateUserValidator = new AuthenticateUserValidator(passwordEncoder);
+        authenticateUserUseCase = new AuthenticateUserUseCase(
+                userRepository,
+                tokenService,
+                authenticateUserValidator
+        );
+    }
 
     @Test
     @DisplayName("Deve autenticar com sucesso quando as credenciais forem válidas e conta ativa")

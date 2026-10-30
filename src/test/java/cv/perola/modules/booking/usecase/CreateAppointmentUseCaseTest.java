@@ -17,6 +17,8 @@ import cv.perola.modules.business.dto.EmployeeResponse;
 import cv.perola.modules.business.dto.ServiceResponse;
 import cv.perola.modules.business.service.BusinessEmployeeQueryService;
 import cv.perola.modules.identity.service.UserAccountService;
+import cv.perola.modules.booking.validator.appointment.CreateAppointmentValidator;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -62,8 +64,20 @@ class CreateAppointmentUseCaseTest {
     @Mock
     private ApplicationEventPublisher eventPublisher;
 
-    @InjectMocks
+    private CreateAppointmentValidator createAppointmentValidator;
     private CreateAppointmentUseCase createAppointmentUseCase;
+
+    @BeforeEach
+    void setUp() {
+        createAppointmentValidator = new CreateAppointmentValidator(businessEmployeeQueryService, userAccountService);
+        createAppointmentUseCase = new CreateAppointmentUseCase(
+                appointmentRepository,
+                appointmentHistoryRepository,
+                appointmentMapper,
+                eventPublisher,
+                createAppointmentValidator
+        );
+    }
 
     @Test
     @DisplayName("Deve criar agendamento com sucesso, gravar histórico CREATED e publicar evento de domínio")

@@ -7,15 +7,16 @@ import cv.perola.modules.identity.domain.enums.UserRole;
 import cv.perola.modules.identity.dto.AuthResponse;
 import cv.perola.modules.identity.dto.RegisterRequest;
 import cv.perola.modules.identity.dto.UserProfileResponse;
+import cv.perola.modules.identity.mapper.UserMapper;
 import cv.perola.modules.identity.repository.UserRepository;
 import cv.perola.modules.identity.repository.UserRoleRepository;
 import cv.perola.modules.identity.service.TokenService;
-import cv.perola.modules.identity.mapper.UserMapper;
+import cv.perola.modules.identity.validator.user.RegisterUserValidator;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -49,8 +50,21 @@ class RegisterUserUseCaseTest {
     @Spy
     private UserMapper userMapper = new UserMapper();
 
-    @InjectMocks
+    private RegisterUserValidator registerUserValidator;
     private RegisterUserUseCase registerUserUseCase;
+
+    @BeforeEach
+    void setUp() {
+        registerUserValidator = new RegisterUserValidator(userRepository);
+        registerUserUseCase = new RegisterUserUseCase(
+                userRepository,
+                userRoleRepository,
+                passwordEncoder,
+                tokenService,
+                userMapper,
+                registerUserValidator
+        );
+    }
 
     @Test
     @DisplayName("Deve registar utilizador com sucesso, atribuir papel CUSTOMER e emitir tokens")

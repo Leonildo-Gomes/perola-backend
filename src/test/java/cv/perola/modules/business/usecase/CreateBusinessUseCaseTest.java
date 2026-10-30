@@ -13,11 +13,12 @@ import cv.perola.modules.identity.domain.enums.UserRole;
 import cv.perola.modules.identity.service.UserAccountService;
 import cv.perola.modules.business.mapper.BusinessMapper;
 import cv.perola.modules.business.mapper.EmployeeMapper;
+import cv.perola.modules.business.validator.business.CreateBusinessValidator;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -51,8 +52,21 @@ class CreateBusinessUseCaseTest {
     @Spy
     private EmployeeMapper employeeMapper = new EmployeeMapper();
 
-    @InjectMocks
+    private CreateBusinessValidator createBusinessValidator;
     private CreateBusinessUseCase createBusinessUseCase;
+
+    @BeforeEach
+    void setUp() {
+        createBusinessValidator = new CreateBusinessValidator(businessRepository);
+        createBusinessUseCase = new CreateBusinessUseCase(
+                businessRepository,
+                employeeRepository,
+                userAccountService,
+                businessMapper,
+                employeeMapper,
+                createBusinessValidator
+        );
+    }
 
     @Test
     @DisplayName("Deve criar salão, atribuir papéis OWNER/EMPLOYEE e criar perfil de funcionário inicial com sucesso")

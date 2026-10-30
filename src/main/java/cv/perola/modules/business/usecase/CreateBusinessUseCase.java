@@ -1,7 +1,5 @@
 package cv.perola.modules.business.usecase;
 
-import cv.perola.core.exception.AuthenticationFailedException;
-import cv.perola.core.exception.ConflictException;
 import cv.perola.core.exception.ResourceNotFoundException;
 import cv.perola.modules.business.domain.BusinessEntity;
 import cv.perola.modules.business.domain.EmployeeEntity;
@@ -11,6 +9,7 @@ import cv.perola.modules.business.mapper.BusinessMapper;
 import cv.perola.modules.business.mapper.EmployeeMapper;
 import cv.perola.modules.business.repository.BusinessRepository;
 import cv.perola.modules.business.repository.EmployeeRepository;
+import cv.perola.modules.business.validator.business.CreateBusinessValidator;
 import cv.perola.modules.identity.domain.enums.UserRole;
 import cv.perola.modules.identity.service.UserAccountService;
 import lombok.RequiredArgsConstructor;
@@ -28,18 +27,12 @@ public class CreateBusinessUseCase {
     private final UserAccountService userAccountService;
     private final BusinessMapper businessMapper;
     private final EmployeeMapper employeeMapper;
+    private final CreateBusinessValidator createBusinessValidator;
 
     @Transactional
     public BusinessResponse execute(UUID currentUserId, CreateBusinessRequest request) {
-        if (currentUserId == null) {
-            throw new AuthenticationFailedException("Autenticação necessária.");
-        }
-
-        // 1. Regra PRD (MVP): Cada proprietário gere apenas 1 negócio
-        if (businessRepository.existsByOwnerId(currentUserId)) {
-            throw new ConflictException(
-                    "O utilizador já possui um salão registado. No MVP é permitido apenas 1 negócio por proprietário.");
-        }
+        // 1. Validação isolada de elegibilidade e regras de negócio
+        createBusinessValidator.validate(currentUserId, request);
 
         // 2. Obter nome do utilizador no módulo Identity
         String ownerName = userAccountService.findUserNameById(currentUserId)

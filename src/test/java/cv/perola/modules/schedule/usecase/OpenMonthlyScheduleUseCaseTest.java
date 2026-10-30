@@ -19,6 +19,7 @@ import cv.perola.modules.schedule.mapper.MonthlyScheduleMapper;
 import cv.perola.modules.schedule.repository.EmployeeMonthlyScheduleRepository;
 import cv.perola.modules.schedule.repository.EmployeeScheduleRepository;
 import cv.perola.modules.schedule.repository.EmployeeTimeOffRepository;
+import cv.perola.modules.schedule.validator.monthly.OpenMonthlyScheduleValidator;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -72,7 +73,8 @@ class OpenMonthlyScheduleUseCaseTest {
                                 scheduleRepository,
                                 timeOffRepository,
                                 employeeQueryService,
-                                new MonthlyScheduleMapper());
+                                new MonthlyScheduleMapper(),
+                                new OpenMonthlyScheduleValidator());
         }
 
         @AfterEach

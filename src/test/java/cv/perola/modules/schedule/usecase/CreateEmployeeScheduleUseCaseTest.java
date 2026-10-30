@@ -20,6 +20,7 @@ import cv.perola.modules.schedule.mapper.ScheduleMapper;
 import cv.perola.modules.schedule.repository.EmployeeScheduleBreakRepository;
 import cv.perola.modules.schedule.repository.EmployeeScheduleDayRepository;
 import cv.perola.modules.schedule.repository.EmployeeScheduleRepository;
+import cv.perola.modules.schedule.validator.schedule.EmployeeScheduleValidator;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -72,7 +73,8 @@ class CreateEmployeeScheduleUseCaseTest {
                 scheduleDayRepository,
                 breakRepository,
                 employeeQueryService,
-                new ScheduleMapper()
+                new ScheduleMapper(),
+                new EmployeeScheduleValidator()
         );
     }
 
