@@ -114,6 +114,17 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(org.springframework.dao.DataIntegrityViolationException.class)
     public ProblemDetail handleDataIntegrityViolationException(org.springframework.dao.DataIntegrityViolationException ex) {
+        if (isSlotOverlapViolation(ex)) {
+            ProblemDetail problem = ProblemDetail.forStatusAndDetail(
+                    HttpStatus.CONFLICT,
+                    "O profissional selecionado já possui um agendamento confirmado ou pendente neste intervalo de tempo."
+            );
+            problem.setTitle("Conflito de Horário");
+            problem.setType(URI.create("https://perola.cv/errors/slot-already-booked"));
+            problem.setProperty("timestamp", Instant.now());
+            return problem;
+        }
+
         String detail = "Conflito de integridade de dados.";
         if (ex.getMessage() != null && ex.getMessage().contains("uk_businesses_owner_id")) {
             detail = "O utilizador já possui um salão registado. No MVP é permitido apenas 1 negócio por proprietário.";
@@ -126,6 +137,21 @@ public class GlobalExceptionHandler {
         problem.setType(URI.create("https://perola.cv/errors/conflict"));
         problem.setProperty("timestamp", Instant.now());
         return problem;
+    }
+
+    private boolean isSlotOverlapViolation(Throwable ex) {
+        Throwable current = ex;
+        while (current != null) {
+            String message = current.getMessage();
+            if (message != null && message.toLowerCase().contains("ex_appointments_no_overlap")) {
+                return true;
+            }
+            if (current instanceof java.sql.SQLException sqlEx && "23P01".equals(sqlEx.getSQLState())) {
+                return true;
+            }
+            current = current.getCause();
+        }
+        return false;
     }
 
     @ExceptionHandler(ResourceNotFoundException.class)
