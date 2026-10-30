@@ -9,8 +9,10 @@ import org.springframework.validation.FieldError;
 import org.springframework.web.accept.InvalidApiVersionException;
 import org.springframework.web.accept.MissingApiVersionException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 
 import java.net.URI;
 import java.time.Instant;
@@ -43,6 +45,18 @@ public class GlobalExceptionHandler {
         ProblemDetail problem = ProblemDetail.forStatusAndDetail(
                 HttpStatus.BAD_REQUEST,
                 ex.getMessage() != null ? ex.getMessage() : "Os dados fornecidos contêm erros de validação."
+        );
+        problem.setTitle("Erro de Validação");
+        problem.setType(URI.create("https://perola.cv/errors/validation-error"));
+        problem.setProperty("timestamp", Instant.now());
+        return problem;
+    }
+
+    @ExceptionHandler({MissingServletRequestParameterException.class, MethodArgumentTypeMismatchException.class})
+    public ProblemDetail handleRequestParameterException(Exception ex) {
+        ProblemDetail problem = ProblemDetail.forStatusAndDetail(
+                HttpStatus.BAD_REQUEST,
+                "Os parâmetros de consulta fornecidos são inválidos ou estão ausentes."
         );
         problem.setTitle("Erro de Validação");
         problem.setType(URI.create("https://perola.cv/errors/validation-error"));
