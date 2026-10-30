@@ -6,6 +6,7 @@ import cv.perola.modules.booking.dto.AppointmentActionNotesRequest;
 import cv.perola.modules.booking.dto.AppointmentResponse;
 import cv.perola.modules.booking.dto.CancelAppointmentRequest;
 import cv.perola.modules.booking.dto.CreateAppointmentRequest;
+import cv.perola.modules.booking.dto.CreateReviewRequest;
 import cv.perola.modules.booking.dto.RejectRescheduleRequest;
 import cv.perola.modules.booking.dto.RescheduleAppointmentRequest;
 import cv.perola.modules.booking.repository.AppointmentRepository;
@@ -411,6 +412,93 @@ class BookingIntegrationTest {
                         .content(objectMapper.writeValueAsString(createReq)))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.status").value("PENDING"));
+    }
+
+    @Test
+    @DisplayName("Deve permitir avaliação apenas após COMPLETED, rejeitar duplicada (409) e listar avaliações por salão e profissional")
+    void shouldAllowReviewOnlyAfterCompletionRejectDuplicatesAndListReviews() throws Exception {
+        // Arrange: criar agendamento (PENDING)
+        OffsetDateTime slotStart = OffsetDateTime.of(2027, 11, 22, 9, 0, 0, 0, ZoneOffset.ofHours(-1));
+        CreateAppointmentRequest createReq = new CreateAppointmentRequest(
+                businessId, employeeId, serviceId, slotStart, "Atendimento para avaliar"
+        );
+
+        MvcResult createRes = mockMvc.perform(post("/api/v1/appointments")
+                        .header("Authorization", "Bearer " + customerToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(createReq)))
+                .andExpect(status().isCreated())
+                .andReturn();
+
+        UUID appointmentId = objectMapper.readValue(
+                createRes.getResponse().getContentAsString(), AppointmentResponse.class
+        ).id();
+
+        CreateReviewRequest reviewReq = new CreateReviewRequest(5, "Excelente atendimento, super pontual!");
+
+        // 1. Tentar avaliar agendamento PENDING -> 400 Bad Request
+        mockMvc.perform(post("/api/v1/appointments/{id}/reviews", appointmentId)
+                        .header("Authorization", "Bearer " + customerToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(reviewReq)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.status").value(400));
+
+        // 2. Confirmar e concluir o agendamento (PENDING -> CONFIRMED -> COMPLETED)
+        mockMvc.perform(post("/api/v1/appointments/{id}/confirm", appointmentId)
+                        .header("Authorization", "Bearer " + ownerToken)
+                        .header(TENANT_HEADER, businessId.toString()))
+                .andExpect(status().isOk());
+
+        mockMvc.perform(post("/api/v1/appointments/{id}/complete", appointmentId)
+                        .header("Authorization", "Bearer " + ownerToken)
+                        .header(TENANT_HEADER, businessId.toString()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("COMPLETED"));
+
+        // 3. Tentar avaliar com utilizador que não é o cliente autor (ex.: ownerToken) -> 403 Forbidden
+        mockMvc.perform(post("/api/v1/appointments/{id}/reviews", appointmentId)
+                        .header("Authorization", "Bearer " + ownerToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(reviewReq)))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.status").value(403));
+
+        // 4. Submeter avaliação pelo cliente autor -> 201 Created
+        mockMvc.perform(post("/api/v1/appointments/{id}/reviews", appointmentId)
+                        .header("Authorization", "Bearer " + customerToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(reviewReq)))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.id").isNotEmpty())
+                .andExpect(jsonPath("$.appointmentId").value(appointmentId.toString()))
+                .andExpect(jsonPath("$.customerId").value(customerId.toString()))
+                .andExpect(jsonPath("$.employeeId").value(employeeId.toString()))
+                .andExpect(jsonPath("$.rating").value(5))
+                .andExpect(jsonPath("$.comment").value("Excelente atendimento, super pontual!"));
+
+        // 5. Tentar duplicar avaliação para a mesma marcação -> 409 Conflict
+        mockMvc.perform(post("/api/v1/appointments/{id}/reviews", appointmentId)
+                        .header("Authorization", "Bearer " + customerToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(reviewReq)))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.status").value(409))
+                .andExpect(jsonPath("$.detail").value("Já existe uma avaliação registada para este agendamento."));
+
+        // 6. Consultar avaliações do salão GET /api/v1/businesses/{id}/reviews -> 200 OK
+        mockMvc.perform(get("/api/v1/businesses/{id}/reviews", businessId))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.totalElements").value(1))
+                .andExpect(jsonPath("$.content[0].appointmentId").value(appointmentId.toString()))
+                .andExpect(jsonPath("$.content[0].rating").value(5));
+
+        // 7. Consultar avaliações públicas do profissional GET /api/v1/marketplace/employees/{id}/reviews -> 200 OK
+        mockMvc.perform(get("/api/v1/marketplace/employees/{id}/reviews", employeeId))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.totalElements").value(1))
+                .andExpect(jsonPath("$.content[0].employeeId").value(employeeId.toString()))
+                .andExpect(jsonPath("$.content[0].rating").value(5));
     }
 
     private AuthResponse registerUser(String name, String email, String phone) throws Exception {

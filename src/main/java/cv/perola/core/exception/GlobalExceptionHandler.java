@@ -128,6 +128,8 @@ public class GlobalExceptionHandler {
         String detail = "Conflito de integridade de dados.";
         if (ex.getMessage() != null && ex.getMessage().contains("uk_businesses_owner_id")) {
             detail = "O utilizador já possui um salão registado. No MVP é permitido apenas 1 negócio por proprietário.";
+        } else if (ex.getMessage() != null && ex.getMessage().contains("uk_reviews_appointment")) {
+            detail = "Já existe uma avaliação registada para este agendamento.";
         }
         ProblemDetail problem = ProblemDetail.forStatusAndDetail(
                 HttpStatus.CONFLICT,

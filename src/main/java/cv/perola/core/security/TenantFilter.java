@@ -152,7 +152,8 @@ public class TenantFilter extends OncePerRequestFilter {
                 || path.startsWith("/api/v1/auth")
                 || path.startsWith("/api/v1/marketplace")
                 || path.startsWith("/api/v1/availability")
-                || path.startsWith("/api/v1/schedule/holidays");
+                || path.startsWith("/api/v1/schedule/holidays")
+                || path.matches("^/api/v1/businesses/[0-9a-fA-F\\-]{36}/reviews$");
     }
 
     private boolean isTenantManagementRoute(String normalizedPath, String method) {
