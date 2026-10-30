@@ -3,10 +3,15 @@ package cv.perola.modules.booking.usecase;
 import cv.perola.core.config.AppConfig;
 import cv.perola.core.exception.ResourceNotFoundException;
 import cv.perola.core.exception.ValidationException;
+import cv.perola.core.shared.event.AppointmentLifecycleEvent;
 import cv.perola.modules.booking.domain.AppointmentEntity;
+import cv.perola.modules.booking.domain.AppointmentHistoryEntity;
+import cv.perola.modules.booking.domain.enums.AppointmentAction;
+import cv.perola.modules.booking.domain.enums.AppointmentStatus;
 import cv.perola.modules.booking.dto.AppointmentResponse;
 import cv.perola.modules.booking.dto.CreateAppointmentRequest;
 import cv.perola.modules.booking.mapper.AppointmentMapper;
+import cv.perola.modules.booking.repository.AppointmentHistoryRepository;
 import cv.perola.modules.booking.repository.AppointmentRepository;
 import cv.perola.modules.business.dto.BusinessResponse;
 import cv.perola.modules.business.dto.EmployeeResponse;
@@ -14,26 +19,31 @@ import cv.perola.modules.business.dto.ServiceResponse;
 import cv.perola.modules.business.service.BusinessEmployeeQueryService;
 import cv.perola.modules.identity.service.UserAccountService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Duration;
 import java.time.Instant;
 import java.time.ZoneId;
+import java.util.List;
 import java.util.UUID;
 
 /**
- * Caso de uso para criação transacional e atómica de um agendamento (BE-013),
- * blindado pela constraint física GiST ex_appointments_no_overlap no PostgreSQL.
+ * Caso de uso para criação transacional e atómica de um agendamento (BE-013 / BE-014),
+ * blindado pela constraint física GiST ex_appointments_no_overlap no PostgreSQL,
+ * com registo na trilha de auditoria append-only e publicação de evento de domínio.
  */
 @Service
 @RequiredArgsConstructor
 public class CreateAppointmentUseCase {
 
     private final AppointmentRepository appointmentRepository;
+    private final AppointmentHistoryRepository appointmentHistoryRepository;
     private final BusinessEmployeeQueryService businessEmployeeQueryService;
     private final UserAccountService userAccountService;
     private final AppointmentMapper appointmentMapper;
+    private final ApplicationEventPublisher eventPublisher;
 
     @Transactional
     public AppointmentResponse execute(UUID customerId, CreateAppointmentRequest request) {
@@ -80,9 +90,40 @@ public class CreateAppointmentUseCase {
         );
 
         AppointmentEntity saved = appointmentRepository.saveAndFlush(appointment);
-        ZoneId businessZone = resolveZoneId(business.timezone());
 
-        return appointmentMapper.toResponse(saved, businessZone);
+        AppointmentHistoryEntity historyEntry = appointmentMapper.toHistoryEntity(
+                saved.getId(),
+                customerId,
+                AppointmentAction.CREATED,
+                null,
+                AppointmentStatus.PENDING,
+                null,
+                null,
+                startTime,
+                endTime,
+                request.notes()
+        );
+        AppointmentHistoryEntity savedHistory = appointmentHistoryRepository.save(historyEntry);
+
+        eventPublisher.publishEvent(new AppointmentLifecycleEvent(
+                saved.getId(),
+                saved.getBusinessId(),
+                saved.getCustomerId(),
+                saved.getEmployeeId(),
+                customerId,
+                AppointmentAction.CREATED.name(),
+                null,
+                AppointmentStatus.PENDING.name(),
+                startTime,
+                endTime,
+                request.notes(),
+                Instant.now()
+        ));
+
+        ZoneId businessZone = resolveZoneId(business.timezone());
+        List<AppointmentHistoryEntity> historyList = savedHistory != null ? List.of(savedHistory) : List.of();
+
+        return appointmentMapper.toResponse(saved, historyList, businessZone);
     }
 
     private ZoneId resolveZoneId(String timezone) {
@@ -96,4 +137,3 @@ public class CreateAppointmentUseCase {
         }
     }
 }
-

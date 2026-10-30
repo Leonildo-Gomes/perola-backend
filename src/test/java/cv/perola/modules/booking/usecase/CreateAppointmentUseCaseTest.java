@@ -2,11 +2,15 @@ package cv.perola.modules.booking.usecase;
 
 import cv.perola.core.exception.ResourceNotFoundException;
 import cv.perola.core.exception.ValidationException;
+import cv.perola.core.shared.event.AppointmentLifecycleEvent;
 import cv.perola.modules.booking.domain.AppointmentEntity;
+import cv.perola.modules.booking.domain.AppointmentHistoryEntity;
+import cv.perola.modules.booking.domain.enums.AppointmentAction;
 import cv.perola.modules.booking.domain.enums.AppointmentStatus;
 import cv.perola.modules.booking.dto.AppointmentResponse;
 import cv.perola.modules.booking.dto.CreateAppointmentRequest;
 import cv.perola.modules.booking.mapper.AppointmentMapper;
+import cv.perola.modules.booking.repository.AppointmentHistoryRepository;
 import cv.perola.modules.booking.repository.AppointmentRepository;
 import cv.perola.modules.business.dto.BusinessResponse;
 import cv.perola.modules.business.dto.EmployeeResponse;
@@ -19,19 +23,20 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.context.ApplicationEventPublisher;
 
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.time.ZoneId;
 import java.time.ZoneOffset;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -43,6 +48,9 @@ class CreateAppointmentUseCaseTest {
     private AppointmentRepository appointmentRepository;
 
     @Mock
+    private AppointmentHistoryRepository appointmentHistoryRepository;
+
+    @Mock
     private BusinessEmployeeQueryService businessEmployeeQueryService;
 
     @Mock
@@ -51,12 +59,15 @@ class CreateAppointmentUseCaseTest {
     @Mock
     private AppointmentMapper appointmentMapper;
 
+    @Mock
+    private ApplicationEventPublisher eventPublisher;
+
     @InjectMocks
     private CreateAppointmentUseCase createAppointmentUseCase;
 
     @Test
-    @DisplayName("Deve criar agendamento com sucesso, calcular end_time e persistir com saveAndFlush")
-    void shouldCreateAppointmentSuccessfullyWithSnapshotAndCalculatedEndTime() {
+    @DisplayName("Deve criar agendamento com sucesso, gravar histórico CREATED e publicar evento de domínio")
+    void shouldCreateAppointmentSuccessfullyWithSnapshotHistoryAndEvent() {
         // Arrange
         UUID customerId = UUID.randomUUID();
         UUID businessId = UUID.randomUUID();
@@ -104,6 +115,17 @@ class CreateAppointmentUseCaseTest {
                 .build();
         mappedEntity.setId(appointmentId);
 
+        AppointmentHistoryEntity historyEntity = AppointmentHistoryEntity.builder()
+                .id(UUID.randomUUID())
+                .appointmentId(appointmentId)
+                .performedById(customerId)
+                .action(AppointmentAction.CREATED)
+                .toStatus(AppointmentStatus.PENDING)
+                .newStartTime(expectedStart)
+                .newEndTime(expectedEnd)
+                .notes("Primeira visita")
+                .build();
+
         AppointmentResponse expectedResponse = new AppointmentResponse(
                 appointmentId,
                 businessId,
@@ -131,7 +153,13 @@ class CreateAppointmentUseCaseTest {
         when(appointmentMapper.toEntity(request, customerId, customerId, service, expectedStart, expectedEnd))
                 .thenReturn(mappedEntity);
         when(appointmentRepository.saveAndFlush(mappedEntity)).thenReturn(mappedEntity);
-        when(appointmentMapper.toResponse(mappedEntity, ZoneId.of("Atlantic/Cape_Verde"))).thenReturn(expectedResponse);
+        when(appointmentMapper.toHistoryEntity(
+                appointmentId, customerId, AppointmentAction.CREATED, null, AppointmentStatus.PENDING,
+                null, null, expectedStart, expectedEnd, "Primeira visita"
+        )).thenReturn(historyEntity);
+        when(appointmentHistoryRepository.save(historyEntity)).thenReturn(historyEntity);
+        when(appointmentMapper.toResponse(mappedEntity, List.of(historyEntity), ZoneId.of("Atlantic/Cape_Verde")))
+                .thenReturn(expectedResponse);
 
         // Act
         AppointmentResponse result = createAppointmentUseCase.execute(customerId, request);
@@ -139,6 +167,8 @@ class CreateAppointmentUseCaseTest {
         // Assert
         assertThat(result).isEqualTo(expectedResponse);
         verify(appointmentRepository).saveAndFlush(mappedEntity);
+        verify(appointmentHistoryRepository).save(historyEntity);
+        verify(eventPublisher).publishEvent(any(AppointmentLifecycleEvent.class));
     }
 
     @Test
@@ -243,4 +273,3 @@ class CreateAppointmentUseCaseTest {
         verify(appointmentRepository, never()).saveAndFlush(any());
     }
 }
-

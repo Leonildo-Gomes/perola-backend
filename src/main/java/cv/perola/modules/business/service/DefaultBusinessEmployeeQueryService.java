@@ -49,6 +49,12 @@ public class DefaultBusinessEmployeeQueryService implements BusinessEmployeeQuer
     }
 
     @Override
+    public Optional<EmployeeResponse> findEmployeeByBusinessIdAndUserId(UUID businessId, UUID userId) {
+        return employeeRepository.findByBusinessIdAndUserId(businessId, userId)
+                .map(employeeMapper::toResponse);
+    }
+
+    @Override
     public Optional<ServiceResponse> findServiceByIdAndBusinessId(UUID serviceId, UUID businessId) {
         return serviceRepository.findByIdAndBusinessId(serviceId, businessId)
                 .map(serviceMapper::toResponse);

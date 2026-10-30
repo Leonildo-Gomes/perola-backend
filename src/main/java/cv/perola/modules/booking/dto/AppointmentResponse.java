@@ -6,6 +6,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
 
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
+import java.util.List;
 import java.util.UUID;
 
 @Schema(description = "Dados detalhados de um agendamento")
@@ -58,7 +59,45 @@ public record AppointmentResponse(
 
         @Schema(description = "Data e hora de criação do registo em ISO-8601 com offset")
         @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd'T'HH:mm:ssXXX")
-        OffsetDateTime createdAt
-) {
-}
+        OffsetDateTime createdAt,
 
+        @Schema(description = "Linha do tempo de auditoria das transições do agendamento", nullable = true)
+        List<AppointmentHistoryResponse> history
+) {
+    public AppointmentResponse(
+            UUID id,
+            UUID businessId,
+            UUID customerId,
+            UUID employeeId,
+            UUID serviceId,
+            String serviceName,
+            BigDecimal servicePrice,
+            Integer serviceDuration,
+            OffsetDateTime startTime,
+            OffsetDateTime endTime,
+            OffsetDateTime proposedStartTime,
+            OffsetDateTime proposedEndTime,
+            AppointmentStatus status,
+            String notes,
+            OffsetDateTime createdAt
+    ) {
+        this(
+                id,
+                businessId,
+                customerId,
+                employeeId,
+                serviceId,
+                serviceName,
+                servicePrice,
+                serviceDuration,
+                startTime,
+                endTime,
+                proposedStartTime,
+                proposedEndTime,
+                status,
+                notes,
+                createdAt,
+                List.of()
+        );
+    }
+}

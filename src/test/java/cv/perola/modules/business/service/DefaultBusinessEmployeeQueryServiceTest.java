@@ -200,4 +200,31 @@ class DefaultBusinessEmployeeQueryServiceTest {
         assertThat(hasAny).isTrue();
         assertThat(isAssigned).isTrue();
     }
+
+    @Test
+    @DisplayName("Deve retornar EmployeeResponse quando colaborador encontrado por businessId e userId")
+    void shouldReturnEmployeeResponseWhenFoundByBusinessIdAndUserId() {
+        // Arrange
+        UUID businessId = UUID.randomUUID();
+        UUID userId = UUID.randomUUID();
+        UUID employeeId = UUID.randomUUID();
+        EmployeeEntity entity = EmployeeEntity.builder()
+                .businessId(businessId)
+                .userId(userId)
+                .displayName("Carla")
+                .isActive(true)
+                .build();
+        EmployeeResponse expectedResponse = new EmployeeResponse(
+                employeeId, businessId, userId, "Carla", true, Instant.now(), Instant.now()
+        );
+        when(employeeRepository.findByBusinessIdAndUserId(businessId, userId)).thenReturn(Optional.of(entity));
+        when(employeeMapper.toResponse(entity)).thenReturn(expectedResponse);
+
+        // Act
+        Optional<EmployeeResponse> result = employeeQueryService.findEmployeeByBusinessIdAndUserId(businessId, userId);
+
+        // Assert
+        assertThat(result).isPresent().contains(expectedResponse);
+        verify(employeeRepository).findByBusinessIdAndUserId(businessId, userId);
+    }
 }

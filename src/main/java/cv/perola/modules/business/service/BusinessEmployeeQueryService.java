@@ -18,6 +18,8 @@ public interface BusinessEmployeeQueryService {
 
     Optional<EmployeeResponse> findEmployeeByIdAndBusinessId(UUID employeeId, UUID businessId);
 
+    Optional<EmployeeResponse> findEmployeeByBusinessIdAndUserId(UUID businessId, UUID userId);
+
     Optional<ServiceResponse> findServiceByIdAndBusinessId(UUID serviceId, UUID businessId);
 
     boolean hasAnyAssignedServices(UUID businessId, UUID employeeId);
