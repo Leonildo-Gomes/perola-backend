@@ -28,7 +28,7 @@ import org.springframework.web.bind.annotation.RestController;
 import java.util.UUID;
 
 @RestController
-@RequestMapping("/api/v1/marketplace")
+@RequestMapping("/api/{version}/marketplace")
 @RequiredArgsConstructor
 @Tag(name = "Marketplace", description = "Catálogo público de negócios, profissionais e serviços (Sem autenticação)")
 public class MarketplaceController {
@@ -39,49 +39,40 @@ public class MarketplaceController {
     private final GetMarketplaceBusinessDetailUseCase getMarketplaceBusinessDetailUseCase;
     private final SearchMarketplaceServicesUseCase searchMarketplaceServicesUseCase;
 
-    @GetMapping("/businesses")
+    @GetMapping(value = "/businesses", version = "v1")
     @Operation(summary = "Listar e pesquisar salões no marketplace", description = "Endpoint público para busca de salões ativos por nome, ilha ou cidade com paginação.")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Lista paginada de salões encontrados")
     })
     public ResponseEntity<PageResponse<MarketplaceBusinessSummaryResponse>> searchBusinesses(
-            @Parameter(description = "Termo de pesquisa (nome do salão ou localização)")
-            @RequestParam(required = false) String search,
-            @Parameter(description = "Alias para termo de pesquisa")
-            @RequestParam(required = false) String query,
-            @Parameter(description = "Filtro por ilha (ex: Santiago, São Vicente, Sal)")
-            @RequestParam(required = false) String island,
-            @Parameter(description = "Filtro por cidade ou concelho (ex: Praia, Mindelo)")
-            @RequestParam(required = false) String city,
-            @Parameter(description = "Número da página (0-based)")
-            @RequestParam(defaultValue = "0") int page,
-            @Parameter(description = "Tamanho da página (máximo 50)")
-            @RequestParam(defaultValue = "20") int size) {
+            @Parameter(description = "Termo de pesquisa (nome do salão ou localização)") @RequestParam(required = false) String search,
+            @Parameter(description = "Alias para termo de pesquisa") @RequestParam(required = false) String query,
+            @Parameter(description = "Filtro por ilha (ex: Santiago, São Vicente, Sal)") @RequestParam(required = false) String island,
+            @Parameter(description = "Filtro por cidade ou concelho (ex: Praia, Mindelo)") @RequestParam(required = false) String city,
+            @Parameter(description = "Número da página (0-based)") @RequestParam(defaultValue = "0") int page,
+            @Parameter(description = "Tamanho da página (máximo 50)") @RequestParam(defaultValue = "20") int size) {
 
         String searchTerm = resolveSearchTerm(search, query);
         Pageable pageable = createPageable(page, size, Sort.by("name").ascending());
 
         PageResponse<MarketplaceBusinessSummaryResponse> response = searchMarketplaceBusinessesUseCase.execute(
-                searchTerm, island, city, pageable
-        );
+                searchTerm, island, city, pageable);
         return ResponseEntity.ok(response);
     }
 
-    @GetMapping("/businesses/{id}")
+    @GetMapping(value = "/businesses/{id}", version = "v1")
     @Operation(summary = "Perfil público de um salão", description = "Retorna os detalhes públicos de um salão ativo, incluindo catálogo de serviços e profissionais.")
     @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "Dados do salão encontrados",
-                    content = @Content(schema = @Schema(implementation = MarketplaceBusinessDetailResponse.class))),
+            @ApiResponse(responseCode = "200", description = "Dados do salão encontrados", content = @Content(schema = @Schema(implementation = MarketplaceBusinessDetailResponse.class))),
             @ApiResponse(responseCode = "404", description = "Salão não encontrado ou inativo")
     })
     public ResponseEntity<MarketplaceBusinessDetailResponse> getBusinessDetail(
-            @Parameter(description = "Identificador único do salão (UUID)")
-            @PathVariable UUID id) {
+            @Parameter(description = "Identificador único do salão (UUID)") @PathVariable UUID id) {
         MarketplaceBusinessDetailResponse response = getMarketplaceBusinessDetailUseCase.execute(id);
         return ResponseEntity.ok(response);
     }
 
-    @GetMapping("/services")
+    @GetMapping(value = "/services", version = "v1")
     @Operation(summary = "Pesquisar serviços no catálogo público", description = "Busca paginada de serviços ativos de salões ativos, filtrando opcionalmente por nome/descrição, ilha e cidade.")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Lista paginada de serviços encontrados")

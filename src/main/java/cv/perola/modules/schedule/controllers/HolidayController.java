@@ -19,28 +19,26 @@ import org.springframework.web.bind.annotation.RestController;
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/v1/schedule/holidays")
+@RequestMapping("/api/{version}/schedule/holidays")
 @RequiredArgsConstructor
 @Tag(name = "Schedule & Availability", description = "Consulta de feriados oficiais e gestão de agenda")
 public class HolidayController {
 
-    private final ListHolidaysUseCase listHolidaysUseCase;
+        private final ListHolidaysUseCase listHolidaysUseCase;
 
-    @GetMapping
-    @Operation(
-            summary = "Consultar feriados oficiais de Cabo Verde",
-            description = "Retorna a listagem de feriados oficiais nacionais de Cabo Verde, opcionalmente filtrados por ano. Endpoint público."
-    )
-    @ApiResponse(
-            responseCode = "200",
-            description = "Lista de feriados retornada com sucesso",
-            content = @Content(array = @ArraySchema(schema = @Schema(implementation = HolidayResponse.class)))
-    )
-    public ResponseEntity<List<HolidayResponse>> listHolidays(
-            @Parameter(description = "Ano de referência (ex: 2026)", example = "2026")
-            @RequestParam(required = false) Integer year
-    ) {
-        List<HolidayResponse> holidays = listHolidaysUseCase.execute(year);
-        return ResponseEntity.ok(holidays);
-    }
+        @GetMapping(version = "v1")
+        @Operation(summary = "Consultar feriados oficiais de Cabo Verde", description = "Retorna a listagem de feriados oficiais nacionais de Cabo Verde, opcionalmente filtrados por ano. Endpoint público.")
+        @ApiResponse(responseCode = "200", description = "Lista de feriados retornada com sucesso", content = @Content(array = @ArraySchema(schema = @Schema(implementation = HolidayResponse.class))))
+        public ResponseEntity<List<HolidayResponse>> listHolidays(
+                        @Parameter(description = "Ano de referência (ex: 2026)", example = "2026") @RequestParam(required = false) Integer year) {
+                List<HolidayResponse> holidays = listHolidaysUseCase.execute(year);
+                return ResponseEntity.ok(holidays);
+        }
+
 }
+
+        
+                         
+                
+                
+        

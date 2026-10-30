@@ -35,7 +35,7 @@ import java.util.List;
 import java.util.UUID;
 
 @RestController
-@RequestMapping("/api/v1/schedule/employees/{employeeId}/time-off")
+@RequestMapping("/api/{version}/schedule/employees/{employeeId}/time-off")
 @RequiredArgsConstructor
 @Tag(name = "Schedule & Availability", description = "Gestão de ausências, férias e bloqueios de agenda dos colaboradores")
 @SecurityRequirement(name = "BearerAuth")
@@ -45,7 +45,7 @@ public class ScheduleTimeOffController {
     private final ListTimeOffUseCase listTimeOffUseCase;
     private final DeleteTimeOffUseCase deleteTimeOffUseCase;
 
-    @PostMapping
+    @PostMapping(version = "v1")
     @Operation(
             summary = "Registar férias, consulta médica ou folga pontual",
             description = "Cria um registo de ausência ou bloqueio para o colaborador no salão. Requer papel OWNER ou o próprio EMPLOYEE."
@@ -76,7 +76,7 @@ public class ScheduleTimeOffController {
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
-    @GetMapping
+    @GetMapping(version = "v1")
     @Operation(
             summary = "Listar ausências, férias e bloqueios do profissional",
             description = "Consulta a lista cronológica de períodos de ausência do colaborador. Requer papel OWNER ou o próprio EMPLOYEE."
@@ -104,7 +104,7 @@ public class ScheduleTimeOffController {
         return ResponseEntity.ok(list);
     }
 
-    @DeleteMapping("/{timeOffId}")
+    @DeleteMapping(value = "/{timeOffId}", version = "v1")
     @Operation(
             summary = "Remover bloqueio de ausência ou férias",
             description = "Remove um período de ausência previamente registado, desbloqueando a agenda. Requer papel OWNER ou o próprio EMPLOYEE."

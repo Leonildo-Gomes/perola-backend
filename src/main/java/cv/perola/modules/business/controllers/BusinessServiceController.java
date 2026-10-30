@@ -38,7 +38,7 @@ import java.util.List;
 import java.util.UUID;
 
 @RestController
-@RequestMapping("/api/v1/businesses/{businessId}/services")
+@RequestMapping("/api/{version}/businesses/{businessId}/services")
 @RequiredArgsConstructor
 @Tag(name = "Salon Management", description = "Gestão do catálogo de serviços do salão (Requer X-Business-Id)")
 @SecurityRequirement(name = "BearerAuth")
@@ -49,7 +49,7 @@ public class BusinessServiceController {
     private final UpdateServiceUseCase updateServiceUseCase;
     private final DeactivateServiceUseCase deactivateServiceUseCase;
 
-    @PostMapping
+    @PostMapping(version = "v1")
     @PreAuthorize("hasRole('OWNER')")
     @ResponseStatus(HttpStatus.CREATED)
     @Operation(summary = "Criar novo serviço no catálogo do salão", description = "Adiciona um novo serviço com preço e duração estimada. Apenas o proprietário pode criar serviços.")
@@ -68,7 +68,7 @@ public class BusinessServiceController {
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
-    @GetMapping
+    @GetMapping(version = "v1")
     @PreAuthorize("hasAnyRole('OWNER', 'EMPLOYEE')")
     @Operation(summary = "Listar catálogo de serviços ativos do salão", description = "Retorna todos os serviços ativos do salão.")
     @Parameter(name = TenantFilter.TENANT_HEADER, in = ParameterIn.HEADER, required = true, description = "UUID do salão ativo")
@@ -82,7 +82,7 @@ public class BusinessServiceController {
         return ResponseEntity.ok(services);
     }
 
-    @PutMapping("/{serviceId}")
+    @PutMapping(value = "/{serviceId}", version = "v1")
     @PreAuthorize("hasRole('OWNER')")
     @Operation(summary = "Atualizar serviço existente (substituição integral)", description = "Atualiza os dados de um serviço existente.")
     @Parameter(name = TenantFilter.TENANT_HEADER, in = ParameterIn.HEADER, required = true, description = "UUID do salão ativo")
@@ -100,7 +100,7 @@ public class BusinessServiceController {
         return ResponseEntity.ok(response);
     }
 
-    @PatchMapping("/{serviceId}")
+    @PatchMapping(value = "/{serviceId}", version = "v1")
     @PreAuthorize("hasRole('OWNER')")
     @Operation(summary = "Atualizar serviço existente (parcial)", description = "Atualiza parcialmente os campos de um serviço existente.")
     @Parameter(name = TenantFilter.TENANT_HEADER, in = ParameterIn.HEADER, required = true, description = "UUID do salão ativo")
@@ -112,7 +112,7 @@ public class BusinessServiceController {
         return ResponseEntity.ok(response);
     }
 
-    @DeleteMapping("/{serviceId}")
+    @DeleteMapping(value = "/{serviceId}", version = "v1")
     @PreAuthorize("hasRole('OWNER')")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     @Operation(summary = "Desativar serviço (soft delete)", description = "Marca o serviço como inativo (is_active = false) preservando integridade de agendamentos históricos.")

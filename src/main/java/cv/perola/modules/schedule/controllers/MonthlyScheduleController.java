@@ -31,7 +31,7 @@ import org.springframework.web.bind.annotation.RestController;
 import java.util.UUID;
 
 @RestController
-@RequestMapping("/api/v1/schedule/employees/{employeeId}/monthly")
+@RequestMapping("/api/{version}/schedule/employees/{employeeId}/monthly")
 @RequiredArgsConstructor
 @Tag(name = "Schedule & Availability", description = "Gestão de perfis de horário semanal, dias de trabalho, pausas e abertura mensal")
 @SecurityRequirement(name = "BearerAuth")
@@ -40,7 +40,7 @@ public class MonthlyScheduleController {
     private final OpenMonthlyScheduleUseCase openMonthlyScheduleUseCase;
     private final GetMonthlyScheduleUseCase getMonthlyScheduleUseCase;
 
-    @PostMapping("/open")
+    @PostMapping(value = "/open", version = "v1")
     @Operation(
             summary = "Abrir agenda mensal de atendimentos",
             description = "Ativa deliberadamente a agenda de um colaborador para um mês/ano específico, vinculando o perfil de horário semanal escolhido e registando decisões de folga em feriados."
@@ -70,7 +70,7 @@ public class MonthlyScheduleController {
         return ResponseEntity.ok(response);
     }
 
-    @GetMapping
+    @GetMapping(version = "v1")
     @Operation(
             summary = "Consultar status de abertura mensal e horário associado",
             description = "Consulta os dados de abertura mensal e o perfil de horário semanal associado a um colaborador para o par (year, month)."
