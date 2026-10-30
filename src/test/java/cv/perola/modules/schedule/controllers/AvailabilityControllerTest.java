@@ -2,7 +2,7 @@ package cv.perola.modules.schedule.controllers;
 
 import cv.perola.modules.schedule.dto.AvailabilitySlotsResponse;
 import cv.perola.modules.schedule.dto.AvailableSlotResponse;
-import cv.perola.modules.schedule.usecase.CalculateAvailableSlotsUseCase;
+import cv.perola.modules.schedule.usecase.availability.CalculateAvailableSlotsUseCase;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;

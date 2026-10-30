@@ -1,7 +1,7 @@
 package cv.perola.modules.schedule.controllers;
 
 import cv.perola.modules.schedule.dto.HolidayResponse;
-import cv.perola.modules.schedule.usecase.ListHolidaysUseCase;
+import cv.perola.modules.schedule.usecase.holiday.ListHolidaysUseCase;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;

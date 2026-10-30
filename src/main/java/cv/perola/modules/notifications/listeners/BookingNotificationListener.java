@@ -1,7 +1,7 @@
 package cv.perola.modules.notifications.listeners;
 
 import cv.perola.core.shared.event.BookingDomainEvent;
-import cv.perola.modules.notifications.usecase.SendBookingNotificationUseCase;
+import cv.perola.modules.notifications.usecase.notification.SendBookingNotificationUseCase;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;

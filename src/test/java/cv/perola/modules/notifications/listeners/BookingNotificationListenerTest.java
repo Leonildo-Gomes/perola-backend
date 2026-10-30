@@ -1,7 +1,7 @@
 package cv.perola.modules.notifications.listeners;
 
 import cv.perola.core.shared.event.AppointmentLifecycleEvent;
-import cv.perola.modules.notifications.usecase.SendBookingNotificationUseCase;
+import cv.perola.modules.notifications.usecase.notification.SendBookingNotificationUseCase;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;

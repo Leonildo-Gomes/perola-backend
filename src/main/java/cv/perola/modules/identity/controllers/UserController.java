@@ -3,7 +3,7 @@ package cv.perola.modules.identity.controllers;
 import cv.perola.core.exception.AuthenticationFailedException;
 import cv.perola.core.security.UserPrincipal;
 import cv.perola.modules.identity.dto.UserProfileResponse;
-import cv.perola.modules.identity.usecase.GetCurrentUserUseCase;
+import cv.perola.modules.identity.usecase.user.GetCurrentUserUseCase;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;

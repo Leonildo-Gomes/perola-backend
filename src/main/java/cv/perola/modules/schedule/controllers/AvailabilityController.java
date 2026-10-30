@@ -1,7 +1,7 @@
 package cv.perola.modules.schedule.controllers;
 
 import cv.perola.modules.schedule.dto.AvailabilitySlotsResponse;
-import cv.perola.modules.schedule.usecase.CalculateAvailableSlotsUseCase;
+import cv.perola.modules.schedule.usecase.availability.CalculateAvailableSlotsUseCase;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
