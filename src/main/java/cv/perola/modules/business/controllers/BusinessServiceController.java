@@ -6,6 +6,7 @@ import cv.perola.modules.business.dto.ServiceResponse;
 import cv.perola.modules.business.dto.UpdateServiceRequest;
 import cv.perola.modules.business.usecase.service.CreateServiceUseCase;
 import cv.perola.modules.business.usecase.service.DeactivateServiceUseCase;
+import cv.perola.modules.business.usecase.service.ListActiveServicesUseCase;
 import cv.perola.modules.business.usecase.service.ListServicesUseCase;
 import cv.perola.modules.business.usecase.service.ToggleServiceStatusUseCase;
 import cv.perola.modules.business.usecase.service.UpdateServiceUseCase;
@@ -44,107 +45,116 @@ import java.util.UUID;
 @Tag(name = "Salon Management", description = "Gestão do catálogo de serviços do salão (Requer X-Business-Id)")
 @SecurityRequirement(name = "BearerAuth")
 public class BusinessServiceController {
+        private final CreateServiceUseCase createServiceUseCase;
+        private final ListServicesUseCase listServicesUseCase;
+        private final ListActiveServicesUseCase listActiveServicesUseCase;
+        private final UpdateServiceUseCase updateServiceUseCase;
+        private final DeactivateServiceUseCase deactivateServiceUseCase;
+        private final ToggleServiceStatusUseCase toggleServiceStatusUseCase;
 
-    private final CreateServiceUseCase createServiceUseCase;
-    private final ListServicesUseCase listServicesUseCase;
-    private final UpdateServiceUseCase updateServiceUseCase;
-    private final DeactivateServiceUseCase deactivateServiceUseCase;
-    private final ToggleServiceStatusUseCase toggleServiceStatusUseCase;
+        @PostMapping(version = "v1")
+        @PreAuthorize("hasRole('OWNER')")
+        @ResponseStatus(HttpStatus.CREATED)
+        @Operation(summary = "Criar novo serviço no catálogo do salão", description = "Adiciona um novo serviço com preço e duração estimada. Apenas o proprietário pode criar serviços.")
+        @Parameter(name = TenantFilter.TENANT_HEADER, in = ParameterIn.HEADER, required = true, description = "UUID do salão ativo")
+        @ApiResponses({
+                        @ApiResponse(responseCode = "201", description = "Serviço criado com sucesso", content = @Content(schema = @Schema(implementation = ServiceResponse.class))),
+                        @ApiResponse(responseCode = "400", description = "Dados inválidos no corpo da requisição"),
+                        @ApiResponse(responseCode = "403", description = "Acesso negado ao salão"),
+                        @ApiResponse(responseCode = "409", description = "Já existe um serviço ativo com o mesmo nome")
+        })
+        public ResponseEntity<ServiceResponse> createService(
+                        @PathVariable UUID businessId,
+                        @Valid @RequestBody CreateServiceRequest request) {
+                ServiceResponse response = createServiceUseCase.execute(businessId, request);
+                return ResponseEntity.status(HttpStatus.CREATED).body(response);
+        }
 
-    @PostMapping(version = "v1")
-    @PreAuthorize("hasRole('OWNER')")
-    @ResponseStatus(HttpStatus.CREATED)
-    @Operation(summary = "Criar novo serviço no catálogo do salão", description = "Adiciona um novo serviço com preço e duração estimada. Apenas o proprietário pode criar serviços.")
-    @Parameter(name = TenantFilter.TENANT_HEADER, in = ParameterIn.HEADER, required = true, description = "UUID do salão ativo")
-    @ApiResponses({
-            @ApiResponse(responseCode = "201", description = "Serviço criado com sucesso",
-                    content = @Content(schema = @Schema(implementation = ServiceResponse.class))),
-            @ApiResponse(responseCode = "400", description = "Dados inválidos no corpo da requisição"),
-            @ApiResponse(responseCode = "403", description = "Acesso negado ao salão"),
-            @ApiResponse(responseCode = "409", description = "Já existe um serviço ativo com o mesmo nome")
-    })
-    public ResponseEntity<ServiceResponse> createService(
-            @PathVariable UUID businessId,
-            @Valid @RequestBody CreateServiceRequest request) {
-        ServiceResponse response = createServiceUseCase.execute(businessId, request);
-        return ResponseEntity.status(HttpStatus.CREATED).body(response);
-    }
+        @GetMapping(version = "v1")
+        @PreAuthorize("hasAnyRole('OWNER', 'EMPLOYEE')")
+        @Operation(summary = "Listar catálogo completo de serviços do salão", description = "Retorna todos os serviços do salão, incluindo ativos e inativos.")
+        @Parameter(name = TenantFilter.TENANT_HEADER, in = ParameterIn.HEADER, required = true, description = "UUID do salão ativo")
+        @ApiResponses({
+                        @ApiResponse(responseCode = "200", description = "Lista completa de serviços do salão", content = @Content(array = @ArraySchema(schema = @Schema(implementation = ServiceResponse.class)))),
+                        @ApiResponse(responseCode = "403", description = "Acesso negado ao salão")
+        })
+        public ResponseEntity<List<ServiceResponse>> listServices(@PathVariable UUID businessId) {
+                List<ServiceResponse> services = listServicesUseCase.execute(businessId);
+                return ResponseEntity.ok(services);
+        }
 
-    @GetMapping(version = "v1")
-    @PreAuthorize("hasAnyRole('OWNER', 'EMPLOYEE')")
-    @Operation(summary = "Listar catálogo de serviços ativos do salão", description = "Retorna todos os serviços ativos do salão.")
-    @Parameter(name = TenantFilter.TENANT_HEADER, in = ParameterIn.HEADER, required = true, description = "UUID do salão ativo")
-    @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "Lista de serviços do salão",
-                    content = @Content(array = @ArraySchema(schema = @Schema(implementation = ServiceResponse.class)))),
-            @ApiResponse(responseCode = "403", description = "Acesso negado ao salão")
-    })
-    public ResponseEntity<List<ServiceResponse>> listServices(@PathVariable UUID businessId) {
-        List<ServiceResponse> services = listServicesUseCase.execute(businessId);
-        return ResponseEntity.ok(services);
-    }
+        @GetMapping(value = "/active", version = "v1")
+        @PreAuthorize("hasAnyRole('OWNER', 'EMPLOYEE')")
+        @Operation(summary = "Listar catálogo de serviços ativos do salão", description = "Retorna exclusivamente os serviços ativos do salão.")
+        @Parameter(name = TenantFilter.TENANT_HEADER, in = ParameterIn.HEADER, required = true, description = "UUID do salão ativo")
+        @ApiResponses({
+                        @ApiResponse(responseCode = "200", description = "Lista de serviços ativos do salão", content = @Content(array = @ArraySchema(schema = @Schema(implementation = ServiceResponse.class)))),
+                        @ApiResponse(responseCode = "403", description = "Acesso negado ao salão")
+        })
+        public ResponseEntity<List<ServiceResponse>> listActiveServices(@PathVariable UUID businessId) {
+                List<ServiceResponse> services = listActiveServicesUseCase.execute(businessId);
+                return ResponseEntity.ok(services);
+        }
 
-    @PutMapping(value = "/{serviceId}", version = "v1")
-    @PreAuthorize("hasRole('OWNER')")
-    @Operation(summary = "Atualizar serviço existente (substituição integral)", description = "Atualiza os dados de um serviço existente.")
-    @Parameter(name = TenantFilter.TENANT_HEADER, in = ParameterIn.HEADER, required = true, description = "UUID do salão ativo")
-    @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "Serviço atualizado com sucesso",
-                    content = @Content(schema = @Schema(implementation = ServiceResponse.class))),
-            @ApiResponse(responseCode = "400", description = "Dados inválidos"),
-            @ApiResponse(responseCode = "404", description = "Serviço não encontrado")
-    })
-    public ResponseEntity<ServiceResponse> updateService(
-            @PathVariable UUID businessId,
-            @PathVariable UUID serviceId,
-            @Valid @RequestBody UpdateServiceRequest request) {
-        ServiceResponse response = updateServiceUseCase.execute(businessId, serviceId, request);
-        return ResponseEntity.ok(response);
-    }
+        @PutMapping(value = "/{serviceId}", version = "v1")
+        @PreAuthorize("hasRole('OWNER')")
+        @Operation(summary = "Atualizar serviço existente (substituição integral)", description = "Atualiza os dados de um serviço existente.")
+        @Parameter(name = TenantFilter.TENANT_HEADER, in = ParameterIn.HEADER, required = true, description = "UUID do salão ativo")
+        @ApiResponses({
+                        @ApiResponse(responseCode = "200", description = "Serviço atualizado com sucesso", content = @Content(schema = @Schema(implementation = ServiceResponse.class))),
+                        @ApiResponse(responseCode = "400", description = "Dados inválidos"),
+                        @ApiResponse(responseCode = "404", description = "Serviço não encontrado")
+        })
+        public ResponseEntity<ServiceResponse> updateService(
+                        @PathVariable UUID businessId,
+                        @PathVariable UUID serviceId,
+                        @Valid @RequestBody UpdateServiceRequest request) {
+                ServiceResponse response = updateServiceUseCase.execute(businessId, serviceId, request);
+                return ResponseEntity.ok(response);
+        }
 
-    @PatchMapping(value = "/{serviceId}", version = "v1")
-    @PreAuthorize("hasRole('OWNER')")
-    @Operation(summary = "Atualizar serviço existente (parcial)", description = "Atualiza parcialmente os campos de um serviço existente.")
-    @Parameter(name = TenantFilter.TENANT_HEADER, in = ParameterIn.HEADER, required = true, description = "UUID do salão ativo")
-    public ResponseEntity<ServiceResponse> patchService(
-            @PathVariable UUID businessId,
-            @PathVariable UUID serviceId,
-            @Valid @RequestBody UpdateServiceRequest request) {
-        ServiceResponse response = updateServiceUseCase.execute(businessId, serviceId, request);
-        return ResponseEntity.ok(response);
-    }
+        @PatchMapping(value = "/{serviceId}", version = "v1")
+        @PreAuthorize("hasRole('OWNER')")
+        @Operation(summary = "Atualizar serviço existente (parcial)", description = "Atualiza parcialmente os campos de um serviço existente.")
+        @Parameter(name = TenantFilter.TENANT_HEADER, in = ParameterIn.HEADER, required = true, description = "UUID do salão ativo")
+        public ResponseEntity<ServiceResponse> patchService(
+                        @PathVariable UUID businessId,
+                        @PathVariable UUID serviceId,
+                        @Valid @RequestBody UpdateServiceRequest request) {
+                ServiceResponse response = updateServiceUseCase.execute(businessId, serviceId, request);
+                return ResponseEntity.ok(response);
+        }
 
-    @DeleteMapping(value = "/{serviceId}", version = "v1")
-    @PreAuthorize("hasRole('OWNER')")
-    @ResponseStatus(HttpStatus.NO_CONTENT)
-    @Operation(summary = "Desativar serviço (soft delete)", description = "Marca o serviço como inativo (is_active = false) preservando integridade de agendamentos históricos.")
-    @Parameter(name = TenantFilter.TENANT_HEADER, in = ParameterIn.HEADER, required = true, description = "UUID do salão ativo")
-    @ApiResponses({
-            @ApiResponse(responseCode = "204", description = "Serviço desativado com sucesso"),
-            @ApiResponse(responseCode = "404", description = "Serviço não encontrado")
-    })
-    public ResponseEntity<Void> deactivateService(
-            @PathVariable UUID businessId,
-            @PathVariable UUID serviceId) {
-        deactivateServiceUseCase.execute(businessId, serviceId);
-        return ResponseEntity.noContent().build();
-    }
+        @DeleteMapping(value = "/{serviceId}", version = "v1")
+        @PreAuthorize("hasRole('OWNER')")
+        @ResponseStatus(HttpStatus.NO_CONTENT)
+        @Operation(summary = "Desativar serviço (soft delete)", description = "Marca o serviço como inativo (is_active = false) preservando integridade de agendamentos históricos.")
+        @Parameter(name = TenantFilter.TENANT_HEADER, in = ParameterIn.HEADER, required = true, description = "UUID do salão ativo")
+        @ApiResponses({
+                        @ApiResponse(responseCode = "204", description = "Serviço desativado com sucesso"),
+                        @ApiResponse(responseCode = "404", description = "Serviço não encontrado")
+        })
+        public ResponseEntity<Void> deactivateService(
+                        @PathVariable UUID businessId,
+                        @PathVariable UUID serviceId) {
+                deactivateServiceUseCase.execute(businessId, serviceId);
+                return ResponseEntity.noContent().build();
+        }
 
-    @PostMapping(value = "/{serviceId}/status", version = "v1")
-    @PreAuthorize("hasRole('OWNER')")
-    @Operation(summary = "Alternar estado ativo/inativo do serviço (Toggle status)", description = "Inverte o estado de ativação do serviço (de ativo para inativo ou vice-versa). Apenas o proprietário pode alterar.")
-    @Parameter(name = TenantFilter.TENANT_HEADER, in = ParameterIn.HEADER, required = true, description = "UUID do salão ativo")
-    @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "Status do serviço alterado com sucesso",
-                    content = @Content(schema = @Schema(implementation = ServiceResponse.class))),
-            @ApiResponse(responseCode = "403", description = "Acesso negado ao salão"),
-            @ApiResponse(responseCode = "404", description = "Serviço não encontrado"),
-            @ApiResponse(responseCode = "409", description = "Já existe outro serviço ativo com o mesmo nome neste salão")
-    })
-    public ResponseEntity<ServiceResponse> toggleServiceStatus(
-            @PathVariable UUID businessId,
-            @PathVariable UUID serviceId) {
-        ServiceResponse response = toggleServiceStatusUseCase.execute(businessId, serviceId);
-        return ResponseEntity.ok(response);
-    }
+        @PostMapping(value = "/{serviceId}/status", version = "v1")
+        @PreAuthorize("hasRole('OWNER')")
+        @Operation(summary = "Alternar estado ativo/inativo do serviço (Toggle status)", description = "Inverte o estado de ativação do serviço (de ativo para inativo ou vice-versa). Apenas o proprietário pode alterar.")
+        @Parameter(name = TenantFilter.TENANT_HEADER, in = ParameterIn.HEADER, required = true, description = "UUID do salão ativo")
+        @ApiResponses({
+                        @ApiResponse(responseCode = "200", description = "Status do serviço alterado com sucesso", content = @Content(schema = @Schema(implementation = ServiceResponse.class))),
+                        @ApiResponse(responseCode = "403", description = "Acesso negado ao salão"),
+                        @ApiResponse(responseCode = "404", description = "Serviço não encontrado"),
+                        @ApiResponse(responseCode = "409", description = "Já existe outro serviço ativo com o mesmo nome neste salão")
+        })
+        public ResponseEntity<ServiceResponse> toggleServiceStatus(
+                        @PathVariable UUID businessId,
+                        @PathVariable UUID serviceId) {
+                ServiceResponse response = toggleServiceStatusUseCase.execute(businessId, serviceId);
+                return ResponseEntity.ok(response);
+        }
 }

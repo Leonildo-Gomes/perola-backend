@@ -37,4 +37,3 @@ public class ToggleServiceStatusUseCase {
         return serviceMapper.toResponse(updated);
     }
 }
-

@@ -34,8 +34,8 @@ class ListServicesUseCaseTest {
     private ListServicesUseCase listServicesUseCase;
 
     @Test
-    @DisplayName("Deve listar todos os serviços ativos de um salão")
-    void shouldListActiveServicesForBusiness() {
+    @DisplayName("Deve listar todos os serviços (ativos e inativos) de um salão")
+    void shouldListAllServicesForBusiness() {
         // Arrange
         UUID businessId = UUID.randomUUID();
         ServiceEntity s1 = ServiceEntity.builder()
@@ -54,13 +54,13 @@ class ListServicesUseCaseTest {
                 .name("Barba")
                 .durationMinutes(20)
                 .price(new BigDecimal("800.00"))
-                .isActive(true)
+                .isActive(false)
                 .build();
         s2.setId(UUID.randomUUID());
         s2.setCreatedAt(Instant.now());
         s2.setUpdatedAt(Instant.now());
 
-        when(serviceRepository.findAllByBusinessIdAndIsActiveTrue(businessId)).thenReturn(List.of(s1, s2));
+        when(serviceRepository.findAllByBusinessId(businessId)).thenReturn(List.of(s1, s2));
 
         // Act
         List<ServiceResponse> result = listServicesUseCase.execute(businessId);
@@ -68,9 +68,11 @@ class ListServicesUseCaseTest {
         // Assert
         assertThat(result).hasSize(2);
         assertThat(result.get(0).name()).isEqualTo("Corte Masculino");
+        assertThat(result.get(0).isActive()).isTrue();
         assertThat(result.get(1).name()).isEqualTo("Barba");
+        assertThat(result.get(1).isActive()).isFalse();
 
-        verify(serviceRepository).findAllByBusinessIdAndIsActiveTrue(businessId);
+        verify(serviceRepository).findAllByBusinessId(businessId);
     }
 
     @Test
@@ -78,7 +80,7 @@ class ListServicesUseCaseTest {
     void shouldReturnEmptyListWhenNoServicesExist() {
         // Arrange
         UUID businessId = UUID.randomUUID();
-        when(serviceRepository.findAllByBusinessIdAndIsActiveTrue(businessId)).thenReturn(List.of());
+        when(serviceRepository.findAllByBusinessId(businessId)).thenReturn(List.of());
 
         // Act
         List<ServiceResponse> result = listServicesUseCase.execute(businessId);
@@ -86,6 +88,6 @@ class ListServicesUseCaseTest {
         // Assert
         assertThat(result).isEmpty();
 
-        verify(serviceRepository).findAllByBusinessIdAndIsActiveTrue(businessId);
+        verify(serviceRepository).findAllByBusinessId(businessId);
     }
 }

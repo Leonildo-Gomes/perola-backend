@@ -5,6 +5,7 @@ import cv.perola.modules.business.dto.ServiceResponse;
 import cv.perola.modules.business.dto.UpdateServiceRequest;
 import cv.perola.modules.business.usecase.service.CreateServiceUseCase;
 import cv.perola.modules.business.usecase.service.DeactivateServiceUseCase;
+import cv.perola.modules.business.usecase.service.ListActiveServicesUseCase;
 import cv.perola.modules.business.usecase.service.ListServicesUseCase;
 import cv.perola.modules.business.usecase.service.ToggleServiceStatusUseCase;
 import cv.perola.modules.business.usecase.service.UpdateServiceUseCase;
@@ -34,6 +35,9 @@ class BusinessServiceControllerTest {
 
     @Mock
     private ListServicesUseCase listServicesUseCase;
+
+    @Mock
+    private ListActiveServicesUseCase listActiveServicesUseCase;
 
     @Mock
     private UpdateServiceUseCase updateServiceUseCase;
@@ -84,6 +88,26 @@ class BusinessServiceControllerTest {
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(response.getBody()).hasSize(1);
         verify(listServicesUseCase).execute(businessId);
+    }
+
+    @Test
+    @DisplayName("Deve chamar ListActiveServicesUseCase e retornar HTTP 200 OK com lista de serviços ativos")
+    void shouldListActiveServicesAndReturn200() {
+        // Arrange
+        UUID businessId = UUID.randomUUID();
+        ServiceResponse s1 = new ServiceResponse(
+                UUID.randomUUID(), businessId, "Corte", "Desc", 30, new BigDecimal("1000.00"), true, Instant.now(), Instant.now()
+        );
+        when(listActiveServicesUseCase.execute(businessId)).thenReturn(List.of(s1));
+
+        // Act
+        ResponseEntity<List<ServiceResponse>> response = controller.listActiveServices(businessId);
+
+        // Assert
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(response.getBody()).hasSize(1);
+        assertThat(response.getBody().get(0).isActive()).isTrue();
+        verify(listActiveServicesUseCase).execute(businessId);
     }
 
     @Test

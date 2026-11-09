@@ -9,6 +9,7 @@ import cv.perola.modules.business.dto.UpdateEmployeeRequest;
 import cv.perola.modules.business.usecase.employee.AssignEmployeeServicesUseCase;
 import cv.perola.modules.business.usecase.employee.CreateEmployeeUseCase;
 import cv.perola.modules.business.usecase.employee.GetEmployeeServicesUseCase;
+import cv.perola.modules.business.usecase.employee.ListActiveEmployeesUseCase;
 import cv.perola.modules.business.usecase.employee.ListEmployeesUseCase;
 import cv.perola.modules.business.usecase.employee.ToggleEmployeeStatusUseCase;
 import cv.perola.modules.business.usecase.employee.UpdateEmployeeUseCase;
@@ -49,6 +50,7 @@ public class BusinessEmployeeController {
 
         private final CreateEmployeeUseCase createEmployeeUseCase;
         private final ListEmployeesUseCase listEmployeesUseCase;
+        private final ListActiveEmployeesUseCase listActiveEmployeesUseCase;
         private final UpdateEmployeeUseCase updateEmployeeUseCase;
         private final AssignEmployeeServicesUseCase assignEmployeeServicesUseCase;
         private final GetEmployeeServicesUseCase getEmployeeServicesUseCase;
@@ -74,7 +76,7 @@ public class BusinessEmployeeController {
 
         @GetMapping(version = "v1")
         @PreAuthorize("hasAnyRole('OWNER', 'EMPLOYEE')")
-        @Operation(summary = "Listar profissionais do salão", description = "Retorna todos os profissionais ativos da equipa do salão.")
+        @Operation(summary = "Listar todos os profissionais do salão", description = "Retorna todos os profissionais da equipa do salão, incluindo ativos e inativos.")
         @Parameter(name = TenantFilter.TENANT_HEADER, in = ParameterIn.HEADER, required = true, description = "UUID do salão ativo")
         @ApiResponses({
                         @ApiResponse(responseCode = "200", description = "Lista de colaboradores", content = @Content(array = @ArraySchema(schema = @Schema(implementation = EmployeeResponse.class)))),
@@ -82,6 +84,19 @@ public class BusinessEmployeeController {
         })
         public ResponseEntity<List<EmployeeResponse>> listEmployees(@PathVariable UUID businessId) {
                 List<EmployeeResponse> employees = listEmployeesUseCase.execute(businessId);
+                return ResponseEntity.ok(employees);
+        }
+
+        @GetMapping(value = "/active", version = "v1")
+        @PreAuthorize("hasAnyRole('OWNER', 'EMPLOYEE')")
+        @Operation(summary = "Listar profissionais ativos do salão", description = "Retorna exclusivamente os profissionais ativos da equipa do salão.")
+        @Parameter(name = TenantFilter.TENANT_HEADER, in = ParameterIn.HEADER, required = true, description = "UUID do salão ativo")
+        @ApiResponses({
+                        @ApiResponse(responseCode = "200", description = "Lista de colaboradores ativos", content = @Content(array = @ArraySchema(schema = @Schema(implementation = EmployeeResponse.class)))),
+                        @ApiResponse(responseCode = "403", description = "Acesso negado ao salão")
+        })
+        public ResponseEntity<List<EmployeeResponse>> listActiveEmployees(@PathVariable UUID businessId) {
+                List<EmployeeResponse> employees = listActiveEmployeesUseCase.execute(businessId);
                 return ResponseEntity.ok(employees);
         }
 

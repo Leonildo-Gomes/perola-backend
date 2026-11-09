@@ -19,7 +19,7 @@ public class ListEmployeesUseCase {
 
     @Transactional(readOnly = true)
     public List<EmployeeResponse> execute(UUID businessId) {
-        return employeeRepository.findAllByBusinessIdAndIsActiveTrue(businessId)
+        return employeeRepository.findAllByBusinessId(businessId)
                 .stream()
                 .map(employeeMapper::toResponse)
                 .toList();

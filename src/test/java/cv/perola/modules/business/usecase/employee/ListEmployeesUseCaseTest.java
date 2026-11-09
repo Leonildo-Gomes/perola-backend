@@ -33,8 +33,8 @@ class ListEmployeesUseCaseTest {
     private ListEmployeesUseCase listEmployeesUseCase;
 
     @Test
-    @DisplayName("Deve listar colaboradores ativos do salão com sucesso")
-    void shouldListActiveEmployeesSuccessfully() {
+    @DisplayName("Deve listar todos os colaboradores do salão (ativos e inativos) com sucesso")
+    void shouldListAllEmployeesSuccessfully() {
         // Arrange
         UUID businessId = UUID.randomUUID();
         EmployeeEntity e1 = EmployeeEntity.builder()
@@ -49,13 +49,13 @@ class ListEmployeesUseCaseTest {
         EmployeeEntity e2 = EmployeeEntity.builder()
                 .businessId(businessId)
                 .displayName("João Mendes")
-                .isActive(true)
+                .isActive(false)
                 .build();
         e2.setId(UUID.randomUUID());
         e2.setCreatedAt(Instant.now());
         e2.setUpdatedAt(Instant.now());
 
-        when(employeeRepository.findAllByBusinessIdAndIsActiveTrue(businessId)).thenReturn(List.of(e1, e2));
+        when(employeeRepository.findAllByBusinessId(businessId)).thenReturn(List.of(e1, e2));
 
         // Act
         List<EmployeeResponse> result = listEmployeesUseCase.execute(businessId);
@@ -63,8 +63,10 @@ class ListEmployeesUseCaseTest {
         // Assert
         assertThat(result).hasSize(2);
         assertThat(result.get(0).displayName()).isEqualTo("Maria Silva");
+        assertThat(result.get(0).isActive()).isTrue();
         assertThat(result.get(1).displayName()).isEqualTo("João Mendes");
+        assertThat(result.get(1).isActive()).isFalse();
 
-        verify(employeeRepository).findAllByBusinessIdAndIsActiveTrue(businessId);
+        verify(employeeRepository).findAllByBusinessId(businessId);
     }
 }

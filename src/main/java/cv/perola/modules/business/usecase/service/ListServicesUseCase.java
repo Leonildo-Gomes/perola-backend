@@ -19,7 +19,7 @@ public class ListServicesUseCase {
 
     @Transactional(readOnly = true)
     public List<ServiceResponse> execute(UUID businessId) {
-        return serviceRepository.findAllByBusinessIdAndIsActiveTrue(businessId)
+        return serviceRepository.findAllByBusinessId(businessId)
                 .stream()
                 .map(serviceMapper::toResponse)
                 .toList();

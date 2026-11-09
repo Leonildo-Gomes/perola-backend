@@ -9,6 +9,7 @@ import cv.perola.modules.business.dto.UpdateEmployeeRequest;
 import cv.perola.modules.business.usecase.employee.AssignEmployeeServicesUseCase;
 import cv.perola.modules.business.usecase.employee.CreateEmployeeUseCase;
 import cv.perola.modules.business.usecase.employee.GetEmployeeServicesUseCase;
+import cv.perola.modules.business.usecase.employee.ListActiveEmployeesUseCase;
 import cv.perola.modules.business.usecase.employee.ListEmployeesUseCase;
 import cv.perola.modules.business.usecase.employee.ToggleEmployeeStatusUseCase;
 import cv.perola.modules.business.usecase.employee.UpdateEmployeeUseCase;
@@ -38,6 +39,9 @@ class BusinessEmployeeControllerTest {
 
     @Mock
     private ListEmployeesUseCase listEmployeesUseCase;
+
+    @Mock
+    private ListActiveEmployeesUseCase listActiveEmployeesUseCase;
 
     @Mock
     private UpdateEmployeeUseCase updateEmployeeUseCase;
@@ -91,6 +95,26 @@ class BusinessEmployeeControllerTest {
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(response.getBody()).hasSize(1);
         verify(listEmployeesUseCase).execute(businessId);
+    }
+
+    @Test
+    @DisplayName("Deve chamar ListActiveEmployeesUseCase e retornar HTTP 200 OK com lista de colaboradores ativos")
+    void shouldListActiveEmployeesAndReturn200() {
+        // Arrange
+        UUID businessId = UUID.randomUUID();
+        EmployeeResponse e1 = new EmployeeResponse(
+                UUID.randomUUID(), businessId, null, "Maria Silva", true, Instant.now(), Instant.now()
+        );
+        when(listActiveEmployeesUseCase.execute(businessId)).thenReturn(List.of(e1));
+
+        // Act
+        ResponseEntity<List<EmployeeResponse>> response = controller.listActiveEmployees(businessId);
+
+        // Assert
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(response.getBody()).hasSize(1);
+        assertThat(response.getBody().get(0).isActive()).isTrue();
+        verify(listActiveEmployeesUseCase).execute(businessId);
     }
 
     @Test
