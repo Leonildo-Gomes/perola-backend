@@ -6,6 +6,7 @@ import cv.perola.modules.business.dto.UpdateServiceRequest;
 import cv.perola.modules.business.usecase.service.CreateServiceUseCase;
 import cv.perola.modules.business.usecase.service.DeactivateServiceUseCase;
 import cv.perola.modules.business.usecase.service.ListServicesUseCase;
+import cv.perola.modules.business.usecase.service.ToggleServiceStatusUseCase;
 import cv.perola.modules.business.usecase.service.UpdateServiceUseCase;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -39,6 +40,9 @@ class BusinessServiceControllerTest {
 
     @Mock
     private DeactivateServiceUseCase deactivateServiceUseCase;
+
+    @Mock
+    private ToggleServiceStatusUseCase toggleServiceStatusUseCase;
 
     @InjectMocks
     private BusinessServiceController controller;
@@ -116,5 +120,27 @@ class BusinessServiceControllerTest {
         // Assert
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.NO_CONTENT);
         verify(deactivateServiceUseCase).execute(businessId, serviceId);
+    }
+
+    @Test
+    @DisplayName("Deve chamar ToggleServiceStatusUseCase e retornar HTTP 200 OK")
+    void shouldToggleServiceStatusAndReturn200() {
+        // Arrange
+        UUID businessId = UUID.randomUUID();
+        UUID serviceId = UUID.randomUUID();
+        ServiceResponse expected = new ServiceResponse(
+                serviceId, businessId, "Corte", "Desc", 30, new BigDecimal("1000.00"), false, Instant.now(), Instant.now()
+        );
+
+        when(toggleServiceStatusUseCase.execute(businessId, serviceId)).thenReturn(expected);
+
+        // Act
+        ResponseEntity<ServiceResponse> response = controller.toggleServiceStatus(businessId, serviceId);
+
+        // Assert
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(response.getBody()).isEqualTo(expected);
+        assertThat(response.getBody().isActive()).isFalse();
+        verify(toggleServiceStatusUseCase).execute(businessId, serviceId);
     }
 }

@@ -10,6 +10,7 @@ import cv.perola.modules.business.usecase.employee.AssignEmployeeServicesUseCase
 import cv.perola.modules.business.usecase.employee.CreateEmployeeUseCase;
 import cv.perola.modules.business.usecase.employee.GetEmployeeServicesUseCase;
 import cv.perola.modules.business.usecase.employee.ListEmployeesUseCase;
+import cv.perola.modules.business.usecase.employee.ToggleEmployeeStatusUseCase;
 import cv.perola.modules.business.usecase.employee.UpdateEmployeeUseCase;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -46,6 +47,9 @@ class BusinessEmployeeControllerTest {
 
     @Mock
     private GetEmployeeServicesUseCase getEmployeeServicesUseCase;
+
+    @Mock
+    private ToggleEmployeeStatusUseCase toggleEmployeeStatusUseCase;
 
     @InjectMocks
     private BusinessEmployeeController controller;
@@ -149,5 +153,27 @@ class BusinessEmployeeControllerTest {
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(response.getBody()).isEqualTo(expected);
         verify(assignEmployeeServicesUseCase).execute(businessId, employeeId, request);
+    }
+
+    @Test
+    @DisplayName("Deve chamar ToggleEmployeeStatusUseCase e retornar HTTP 200 OK")
+    void shouldToggleEmployeeStatusAndReturn200() {
+        // Arrange
+        UUID businessId = UUID.randomUUID();
+        UUID employeeId = UUID.randomUUID();
+        EmployeeResponse expected = new EmployeeResponse(
+                employeeId, businessId, null, "Carlos Cabeleireiro", false, Instant.now(), Instant.now()
+        );
+
+        when(toggleEmployeeStatusUseCase.execute(businessId, employeeId)).thenReturn(expected);
+
+        // Act
+        ResponseEntity<EmployeeResponse> response = controller.toggleEmployeeStatus(businessId, employeeId);
+
+        // Assert
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(response.getBody()).isEqualTo(expected);
+        assertThat(response.getBody().isActive()).isFalse();
+        verify(toggleEmployeeStatusUseCase).execute(businessId, employeeId);
     }
 }

@@ -10,6 +10,7 @@ import cv.perola.modules.business.usecase.employee.AssignEmployeeServicesUseCase
 import cv.perola.modules.business.usecase.employee.CreateEmployeeUseCase;
 import cv.perola.modules.business.usecase.employee.GetEmployeeServicesUseCase;
 import cv.perola.modules.business.usecase.employee.ListEmployeesUseCase;
+import cv.perola.modules.business.usecase.employee.ToggleEmployeeStatusUseCase;
 import cv.perola.modules.business.usecase.employee.UpdateEmployeeUseCase;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -51,6 +52,7 @@ public class BusinessEmployeeController {
         private final UpdateEmployeeUseCase updateEmployeeUseCase;
         private final AssignEmployeeServicesUseCase assignEmployeeServicesUseCase;
         private final GetEmployeeServicesUseCase getEmployeeServicesUseCase;
+        private final ToggleEmployeeStatusUseCase toggleEmployeeStatusUseCase;
 
         @PostMapping(version = "v1")
         @PreAuthorize("hasRole('OWNER')")
@@ -129,6 +131,22 @@ public class BusinessEmployeeController {
                         @Valid @RequestBody AssignEmployeeServicesRequest request) {
                 EmployeeServicesResponse response = assignEmployeeServicesUseCase.execute(businessId, employeeId,
                                 request);
+                return ResponseEntity.ok(response);
+        }
+
+        @PostMapping(value = "/{employeeId}/status", version = "v1")
+        @PreAuthorize("hasRole('OWNER')")
+        @Operation(summary = "Alternar estado ativo/inativo do colaborador (Toggle status)", description = "Inverte o estado de ativação do colaborador (de ativo para inativo ou vice-versa). Apenas o proprietário pode alterar.")
+        @Parameter(name = TenantFilter.TENANT_HEADER, in = ParameterIn.HEADER, required = true, description = "UUID do salão ativo")
+        @ApiResponses({
+                        @ApiResponse(responseCode = "200", description = "Status do colaborador alterado com sucesso", content = @Content(schema = @Schema(implementation = EmployeeResponse.class))),
+                        @ApiResponse(responseCode = "403", description = "Acesso negado ao salão"),
+                        @ApiResponse(responseCode = "404", description = "Colaborador não encontrado")
+        })
+        public ResponseEntity<EmployeeResponse> toggleEmployeeStatus(
+                        @PathVariable UUID businessId,
+                        @PathVariable UUID employeeId) {
+                EmployeeResponse response = toggleEmployeeStatusUseCase.execute(businessId, employeeId);
                 return ResponseEntity.ok(response);
         }
 

@@ -551,6 +551,131 @@ class BusinessIntegrationTest {
                 .andExpect(jsonPath("$.services.length()").value(2));
     }
 
+    @Test
+    @DisplayName("Deve alternar status do salão (toggle business status true <-> false)")
+    void shouldToggleBusinessStatusSuccessfully() throws Exception {
+        // Arrange
+        UserEntity owner = createTestUser("owner.toggle@perola.cv", "Owner Toggle");
+        BusinessEntity business = createTestBusiness(owner, "Salão Toggle", "Santiago", "Praia");
+        String ownerToken = generateToken(owner, List.of(new TenantMembership(business.getId(), UserRole.OWNER.name())));
+
+        // Act 1: Toggle de ativo para inativo
+        mockMvc.perform(post("/api/v1/businesses/" + business.getId() + "/status")
+                        .header("Authorization", "Bearer " + ownerToken)
+                        .header("X-Business-Id", business.getId().toString()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(business.getId().toString()))
+                .andExpect(jsonPath("$.isActive").value(false));
+
+        BusinessEntity inDb1 = businessRepository.findById(business.getId()).orElseThrow();
+        assertThat(inDb1.isActive()).isFalse();
+
+        // Act 2: Toggle de inativo de volta para ativo
+        mockMvc.perform(post("/api/v1/businesses/" + business.getId() + "/status")
+                        .header("Authorization", "Bearer " + ownerToken)
+                        .header("X-Business-Id", business.getId().toString()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(business.getId().toString()))
+                .andExpect(jsonPath("$.isActive").value(true));
+
+        BusinessEntity inDb2 = businessRepository.findById(business.getId()).orElseThrow();
+        assertThat(inDb2.isActive()).isTrue();
+    }
+
+    @Test
+    @DisplayName("Deve alternar status do serviço e lançar 409 Conflict se houver colisão de nome ativo ao reativar")
+    void shouldToggleServiceStatusSuccessfullyAndBlockCollision() throws Exception {
+        // Arrange
+        UserEntity owner = createTestUser("owner.servicetoggle@perola.cv", "Owner Service Toggle");
+        BusinessEntity business = createTestBusiness(owner, "Salão Service Toggle", "Santiago", "Praia");
+        String ownerToken = generateToken(owner, List.of(new TenantMembership(business.getId(), UserRole.OWNER.name())));
+
+        ServiceEntity service1 = serviceRepository.save(ServiceEntity.builder()
+                .businessId(business.getId())
+                .name("Brushing Especial")
+                .description("Modelagem capilar")
+                .durationMinutes(45)
+                .price(BigDecimal.valueOf(1500))
+                .isActive(true)
+                .build());
+
+        // Act 1: Toggle de ativo para inativo
+        mockMvc.perform(post("/api/v1/businesses/" + business.getId() + "/services/" + service1.getId() + "/status")
+                        .header("Authorization", "Bearer " + ownerToken)
+                        .header("X-Business-Id", business.getId().toString()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(service1.getId().toString()))
+                .andExpect(jsonPath("$.isActive").value(false));
+
+        // Act 2: Criar outro serviço ativo com o mesmo nome enquanto o primeiro está inativo
+        ServiceEntity service2 = serviceRepository.save(ServiceEntity.builder()
+                .businessId(business.getId())
+                .name("Brushing Especial")
+                .description("Outra versão do brushing")
+                .durationMinutes(40)
+                .price(BigDecimal.valueOf(1600))
+                .isActive(true)
+                .build());
+
+        // Act 3: Tentar reativar o primeiro serviço -> deve lançar 409 Conflict devido ao nome colidente
+        mockMvc.perform(post("/api/v1/businesses/" + business.getId() + "/services/" + service1.getId() + "/status")
+                        .header("Authorization", "Bearer " + ownerToken)
+                        .header("X-Business-Id", business.getId().toString()))
+                .andExpect(status().isConflict());
+
+        // Act 4: Desativar o segundo serviço
+        mockMvc.perform(post("/api/v1/businesses/" + business.getId() + "/services/" + service2.getId() + "/status")
+                        .header("Authorization", "Bearer " + ownerToken)
+                        .header("X-Business-Id", business.getId().toString()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.isActive").value(false));
+
+        // Act 5: Agora a reativação do primeiro serviço deve ter sucesso!
+        mockMvc.perform(post("/api/v1/businesses/" + business.getId() + "/services/" + service1.getId() + "/status")
+                        .header("Authorization", "Bearer " + ownerToken)
+                        .header("X-Business-Id", business.getId().toString()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(service1.getId().toString()))
+                .andExpect(jsonPath("$.isActive").value(true));
+    }
+
+    @Test
+    @DisplayName("Deve alternar status do colaborador (toggle employee status true <-> false)")
+    void shouldToggleEmployeeStatusSuccessfully() throws Exception {
+        // Arrange
+        UserEntity owner = createTestUser("owner.emptoggle@perola.cv", "Owner Emp Toggle");
+        BusinessEntity business = createTestBusiness(owner, "Salão Emp Toggle", "Santiago", "Praia");
+        String ownerToken = generateToken(owner, List.of(new TenantMembership(business.getId(), UserRole.OWNER.name())));
+
+        EmployeeEntity employee = employeeRepository.save(EmployeeEntity.builder()
+                .businessId(business.getId())
+                .displayName("Ana Manicure")
+                .isActive(true)
+                .build());
+
+        // Act 1: Toggle para inativo
+        mockMvc.perform(post("/api/v1/businesses/" + business.getId() + "/employees/" + employee.getId() + "/status")
+                        .header("Authorization", "Bearer " + ownerToken)
+                        .header("X-Business-Id", business.getId().toString()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(employee.getId().toString()))
+                .andExpect(jsonPath("$.isActive").value(false));
+
+        EmployeeEntity inDb1 = employeeRepository.findById(employee.getId()).orElseThrow();
+        assertThat(inDb1.isActive()).isFalse();
+
+        // Act 2: Toggle de volta para ativo
+        mockMvc.perform(post("/api/v1/businesses/" + business.getId() + "/employees/" + employee.getId() + "/status")
+                        .header("Authorization", "Bearer " + ownerToken)
+                        .header("X-Business-Id", business.getId().toString()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(employee.getId().toString()))
+                .andExpect(jsonPath("$.isActive").value(true));
+
+        EmployeeEntity inDb2 = employeeRepository.findById(employee.getId()).orElseThrow();
+        assertThat(inDb2.isActive()).isTrue();
+    }
+
     private BusinessEntity createTestBusiness(UserEntity owner, String name, String island, String city) {
         BusinessEntity business = BusinessEntity.builder()
                 .ownerId(owner.getId())

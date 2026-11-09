@@ -7,6 +7,7 @@ import cv.perola.modules.business.dto.UpdateServiceRequest;
 import cv.perola.modules.business.usecase.service.CreateServiceUseCase;
 import cv.perola.modules.business.usecase.service.DeactivateServiceUseCase;
 import cv.perola.modules.business.usecase.service.ListServicesUseCase;
+import cv.perola.modules.business.usecase.service.ToggleServiceStatusUseCase;
 import cv.perola.modules.business.usecase.service.UpdateServiceUseCase;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -48,6 +49,7 @@ public class BusinessServiceController {
     private final ListServicesUseCase listServicesUseCase;
     private final UpdateServiceUseCase updateServiceUseCase;
     private final DeactivateServiceUseCase deactivateServiceUseCase;
+    private final ToggleServiceStatusUseCase toggleServiceStatusUseCase;
 
     @PostMapping(version = "v1")
     @PreAuthorize("hasRole('OWNER')")
@@ -126,5 +128,23 @@ public class BusinessServiceController {
             @PathVariable UUID serviceId) {
         deactivateServiceUseCase.execute(businessId, serviceId);
         return ResponseEntity.noContent().build();
+    }
+
+    @PostMapping(value = "/{serviceId}/status", version = "v1")
+    @PreAuthorize("hasRole('OWNER')")
+    @Operation(summary = "Alternar estado ativo/inativo do serviço (Toggle status)", description = "Inverte o estado de ativação do serviço (de ativo para inativo ou vice-versa). Apenas o proprietário pode alterar.")
+    @Parameter(name = TenantFilter.TENANT_HEADER, in = ParameterIn.HEADER, required = true, description = "UUID do salão ativo")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Status do serviço alterado com sucesso",
+                    content = @Content(schema = @Schema(implementation = ServiceResponse.class))),
+            @ApiResponse(responseCode = "403", description = "Acesso negado ao salão"),
+            @ApiResponse(responseCode = "404", description = "Serviço não encontrado"),
+            @ApiResponse(responseCode = "409", description = "Já existe outro serviço ativo com o mesmo nome neste salão")
+    })
+    public ResponseEntity<ServiceResponse> toggleServiceStatus(
+            @PathVariable UUID businessId,
+            @PathVariable UUID serviceId) {
+        ServiceResponse response = toggleServiceStatusUseCase.execute(businessId, serviceId);
+        return ResponseEntity.ok(response);
     }
 }

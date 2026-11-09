@@ -7,6 +7,7 @@ import cv.perola.modules.business.dto.CreateBusinessRequest;
 import cv.perola.modules.business.dto.UpdateBusinessRequest;
 import cv.perola.modules.business.usecase.business.CreateBusinessUseCase;
 import cv.perola.modules.business.usecase.business.GetBusinessUseCase;
+import cv.perola.modules.business.usecase.business.ToggleBusinessStatusUseCase;
 import cv.perola.modules.business.usecase.business.UpdateBusinessUseCase;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -41,6 +42,7 @@ public class BusinessController {
     private final CreateBusinessUseCase createBusinessUseCase;
     private final GetBusinessUseCase getBusinessUseCase;
     private final UpdateBusinessUseCase updateBusinessUseCase;
+    private final ToggleBusinessStatusUseCase toggleBusinessStatusUseCase;
 
     @Operation(
             summary = "Registar novo salão (Onboarding de negócio)",
@@ -130,6 +132,37 @@ public class BusinessController {
             @Valid @RequestBody UpdateBusinessRequest request
     ) {
         BusinessResponse response = updateBusinessUseCase.execute(id, request);
+        return ResponseEntity.ok(response);
+    }
+
+    @Operation(
+            summary = "Alternar estado ativo/inativo do salão (Toggle status)",
+            description = "Inverte o estado de ativação do salão (de ativo para inativo ou vice-versa). Requer o cabeçalho X-Business-Id.",
+            parameters = {
+                    @Parameter(
+                            name = "X-Business-Id",
+                            in = ParameterIn.HEADER,
+                            required = true,
+                            description = "Identificador UUID do salão",
+                            schema = @Schema(type = "string", format = "uuid")
+                    )
+            }
+    )
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Status do salão alterado com sucesso",
+                    content = @Content(schema = @Schema(implementation = BusinessResponse.class))),
+            @ApiResponse(responseCode = "401", description = "Não autenticado",
+                    content = @Content(schema = @Schema(implementation = ProblemDetail.class))),
+            @ApiResponse(responseCode = "403", description = "Acesso negado para este salão (X-Business-Id ausente ou inválido)",
+                    content = @Content(schema = @Schema(implementation = ProblemDetail.class))),
+            @ApiResponse(responseCode = "404", description = "Salão não encontrado",
+                    content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
+    })
+    @PostMapping(value = "/{id}/status", version = "v1")
+    public ResponseEntity<BusinessResponse> toggleBusinessStatus(
+            @PathVariable("id") UUID id
+    ) {
+        BusinessResponse response = toggleBusinessStatusUseCase.execute(id);
         return ResponseEntity.ok(response);
     }
 }

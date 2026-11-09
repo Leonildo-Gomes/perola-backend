@@ -7,6 +7,7 @@ import cv.perola.modules.business.dto.CreateBusinessRequest;
 import cv.perola.modules.business.dto.UpdateBusinessRequest;
 import cv.perola.modules.business.usecase.business.CreateBusinessUseCase;
 import cv.perola.modules.business.usecase.business.GetBusinessUseCase;
+import cv.perola.modules.business.usecase.business.ToggleBusinessStatusUseCase;
 import cv.perola.modules.business.usecase.business.UpdateBusinessUseCase;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -38,6 +39,9 @@ class BusinessControllerTest {
 
     @Mock
     private UpdateBusinessUseCase updateBusinessUseCase;
+
+    @Mock
+    private ToggleBusinessStatusUseCase toggleBusinessStatusUseCase;
 
     @InjectMocks
     private BusinessController businessController;
@@ -164,5 +168,36 @@ class BusinessControllerTest {
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(response.getBody()).isEqualTo(expectedResponse);
         verify(updateBusinessUseCase).execute(businessId, request);
+    }
+
+    @Test
+    @DisplayName("Deve chamar ToggleBusinessStatusUseCase e retornar HTTP 200 OK")
+    void shouldToggleBusinessStatusAndReturn200Ok() {
+        // Arrange
+        UUID businessId = UUID.randomUUID();
+        BusinessResponse expectedResponse = new BusinessResponse(
+                businessId,
+                UUID.randomUUID(),
+                "Salão VIP",
+                "Santiago",
+                "Praia",
+                "Platô",
+                "+2382611122",
+                "Atlantic/Cape_Verde",
+                false,
+                Instant.now(),
+                Instant.now()
+        );
+
+        when(toggleBusinessStatusUseCase.execute(businessId)).thenReturn(expectedResponse);
+
+        // Act
+        ResponseEntity<BusinessResponse> response = businessController.toggleBusinessStatus(businessId);
+
+        // Assert
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(response.getBody()).isEqualTo(expectedResponse);
+        assertThat(response.getBody().isActive()).isFalse();
+        verify(toggleBusinessStatusUseCase).execute(businessId);
     }
 }
