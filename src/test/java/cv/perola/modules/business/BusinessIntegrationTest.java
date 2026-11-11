@@ -3,16 +3,21 @@ package cv.perola.modules.business;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import cv.perola.core.security.JwtService;
 import cv.perola.core.security.TenantMembership;
+import cv.perola.modules.business.domain.BusinessCategoryEntity;
 import cv.perola.modules.business.domain.BusinessEntity;
+import cv.perola.modules.business.domain.CategoryEntity;
 import cv.perola.modules.business.domain.EmployeeEntity;
 import cv.perola.modules.business.domain.ServiceEntity;
 import cv.perola.modules.business.dto.AssignEmployeeServicesRequest;
+import cv.perola.modules.business.dto.BusinessCategoryItemRequest;
 import cv.perola.modules.business.dto.CreateBusinessRequest;
 import cv.perola.modules.business.dto.CreateEmployeeRequest;
 import cv.perola.modules.business.dto.CreateServiceRequest;
 import cv.perola.modules.business.dto.UpdateBusinessRequest;
 import cv.perola.modules.business.dto.UpdateServiceRequest;
+import cv.perola.modules.business.repository.BusinessCategoryRepository;
 import cv.perola.modules.business.repository.BusinessRepository;
+import cv.perola.modules.business.repository.CategoryRepository;
 import cv.perola.modules.business.repository.EmployeeRepository;
 import cv.perola.modules.business.repository.EmployeeServiceRepository;
 import cv.perola.modules.business.repository.ServiceRepository;
@@ -75,6 +80,12 @@ class BusinessIntegrationTest {
     private BusinessRepository businessRepository;
 
     @Autowired
+    private CategoryRepository categoryRepository;
+
+    @Autowired
+    private BusinessCategoryRepository businessCategoryRepository;
+
+    @Autowired
     private EmployeeRepository employeeRepository;
 
     @Autowired
@@ -118,13 +129,20 @@ class BusinessIntegrationTest {
         UserEntity user = createTestUser("maria.dona@perola.cv", "Dona Maria");
         String token = generateToken(user, Collections.emptyList());
 
+        CategoryEntity hairCat = getCategoryBySlug("hair");
+        CategoryEntity nailsCat = getCategoryBySlug("nails");
+
         CreateBusinessRequest request = new CreateBusinessRequest(
                 "Salão Dona Maria",
                 "Santiago",
                 "Praia",
                 "Terra Branca, Rua Principal nº 10",
                 "+2382619988",
-                "Atlantic/Cape_Verde"
+                "Atlantic/Cape_Verde",
+                List.of(
+                        new BusinessCategoryItemRequest(hairCat.getId(), true),
+                        new BusinessCategoryItemRequest(nailsCat.getId(), false)
+                )
         );
 
         // Act
@@ -141,6 +159,9 @@ class BusinessIntegrationTest {
                 .andExpect(jsonPath("$.location").value("Terra Branca, Rua Principal nº 10"))
                 .andExpect(jsonPath("$.contactPhone").value("+2382619988"))
                 .andExpect(jsonPath("$.timezone").value("Atlantic/Cape_Verde"))
+                .andExpect(jsonPath("$.categories.length()").value(2))
+                .andExpect(jsonPath("$.categories[0].slug").value("hair"))
+                .andExpect(jsonPath("$.categories[0].isPrimary").value(true))
                 .andExpect(jsonPath("$.isActive").value(true))
                 .andReturn();
 
@@ -170,13 +191,15 @@ class BusinessIntegrationTest {
         UserEntity user = createTestUser("joao.prop@perola.cv", "João Proprietário");
         String token = generateToken(user, Collections.emptyList());
 
+        CategoryEntity hairCat = getCategoryBySlug("hair");
         CreateBusinessRequest firstRequest = new CreateBusinessRequest(
                 "Primeiro Salão",
                 "Santiago",
                 "Praia",
                 "Platô",
                 "+2382611111",
-                "Atlantic/Cape_Verde"
+                "Atlantic/Cape_Verde",
+                List.of(new BusinessCategoryItemRequest(hairCat.getId(), true))
         );
 
         mockMvc.perform(post("/api/v1/businesses")
@@ -191,7 +214,8 @@ class BusinessIntegrationTest {
                 "Mindelo",
                 "Rua de Lisboa",
                 "+2382622222",
-                "Atlantic/Cape_Verde"
+                "Atlantic/Cape_Verde",
+                List.of(new BusinessCategoryItemRequest(hairCat.getId(), true))
         );
 
         // Act & Assert
@@ -215,7 +239,8 @@ class BusinessIntegrationTest {
                 "Praia",
                 "Palmarejo",
                 "+2382613333",
-                null
+                null,
+                List.of(new BusinessCategoryItemRequest(UUID.randomUUID(), true))
         );
 
         // Act & Assert
@@ -239,7 +264,8 @@ class BusinessIntegrationTest {
                 "", // Cidade vazia
                 "", // Localização vazia
                 "", // Telefone vazio
-                null
+                null,
+                List.of() // Categorias vazias
         );
 
         // Act & Assert
@@ -250,7 +276,7 @@ class BusinessIntegrationTest {
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.type").value("https://perola.cv/errors/validation-error"))
                 .andExpect(jsonPath("$.invalidParams").isArray())
-                .andExpect(jsonPath("$.invalidParams.length()").value(5));
+                .andExpect(jsonPath("$.invalidParams.length()").value(6));
     }
 
     @Test
@@ -333,13 +359,15 @@ class BusinessIntegrationTest {
 
         String token = generateToken(user, List.of(new TenantMembership(business.getId(), "OWNER")));
 
+        CategoryEntity spaCat = getCategoryBySlug("spa_massage");
         UpdateBusinessRequest updateRequest = new UpdateBusinessRequest(
                 "Salão Renovado VIP",
                 null,
                 null,
                 "Palmarejo Grande, Lote 14",
                 "+2382619999",
-                null
+                null,
+                List.of(new BusinessCategoryItemRequest(spaCat.getId(), true))
         );
 
         // Act & Assert
@@ -353,6 +381,8 @@ class BusinessIntegrationTest {
                 .andExpect(jsonPath("$.name").value("Salão Renovado VIP"))
                 .andExpect(jsonPath("$.location").value("Palmarejo Grande, Lote 14"))
                 .andExpect(jsonPath("$.contactPhone").value("+2382619999"))
+                .andExpect(jsonPath("$.categories.length()").value(1))
+                .andExpect(jsonPath("$.categories[0].slug").value("spa_massage"))
                 .andExpect(jsonPath("$.city").value("Praia")); // Preservado
 
         // Assert no banco
@@ -386,7 +416,11 @@ class BusinessIntegrationTest {
         BusinessEntity business = createTestBusiness(owner, "Salão Glamour", "São Vicente", "Mindelo");
         String token = generateToken(owner, List.of(new TenantMembership(business.getId(), "OWNER")));
 
+        CategoryEntity hairCat = getCategoryBySlug("hair");
+        CategoryEntity barbershopCat = getCategoryBySlug("barbershop");
+
         CreateServiceRequest createRequest = new CreateServiceRequest(
+                hairCat.getId(),
                 "Corte com Hidratação",
                 "Corte premium com tratamento reconstrutor",
                 60,
@@ -401,6 +435,9 @@ class BusinessIntegrationTest {
                         .content(objectMapper.writeValueAsString(createRequest)))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.id").isNotEmpty())
+                .andExpect(jsonPath("$.categoryId").value(hairCat.getId().toString()))
+                .andExpect(jsonPath("$.categorySlug").value("hair"))
+                .andExpect(jsonPath("$.categoryName").value("Cabeleireiro & Tranças"))
                 .andExpect(jsonPath("$.name").value("Corte com Hidratação"))
                 .andExpect(jsonPath("$.durationMinutes").value(60))
                 .andExpect(jsonPath("$.price").value(2500.00))
@@ -421,6 +458,7 @@ class BusinessIntegrationTest {
 
         // Act 3: Atualizar serviço via PUT
         UpdateServiceRequest updateRequest = new UpdateServiceRequest(
+                barbershopCat.getId(),
                 "Corte com Hidratação Profunda",
                 "Tratamento com queratina e corte moderno",
                 75,
@@ -434,6 +472,8 @@ class BusinessIntegrationTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(updateRequest)))
                 .andExpect(status().isOk())
+                .andExpect(jsonPath("$.categoryId").value(barbershopCat.getId().toString()))
+                .andExpect(jsonPath("$.categorySlug").value("barbershop"))
                 .andExpect(jsonPath("$.name").value("Corte com Hidratação Profunda"))
                 .andExpect(jsonPath("$.durationMinutes").value(75))
                 .andExpect(jsonPath("$.price").value(3000.00));
@@ -449,7 +489,7 @@ class BusinessIntegrationTest {
         assertThat(deactivatedInDb.isActive()).isFalse();
 
         // Act 5: Listar serviços ativos do salão não deve mais incluir o desativado
-        mockMvc.perform(get("/api/v1/businesses/" + business.getId() + "/services")
+        mockMvc.perform(get("/api/v1/businesses/" + business.getId() + "/services/active")
                         .header("Authorization", "Bearer " + token)
                         .header("X-Business-Id", business.getId().toString()))
                 .andExpect(status().isOk())
@@ -464,9 +504,10 @@ class BusinessIntegrationTest {
         UserEntity owner = createTestUser("dup.owner@perola.cv", "Owner Duplicados");
         BusinessEntity business = createTestBusiness(owner, "Salão Duplicados", "Santiago", "Praia");
         String token = generateToken(owner, List.of(new TenantMembership(business.getId(), "OWNER")));
+        CategoryEntity hairCat = getCategoryBySlug("hair");
 
-        CreateServiceRequest req1 = new CreateServiceRequest("Escova Progressiva", "Desc", 90, new BigDecimal("4000.00"));
-        CreateServiceRequest req2 = new CreateServiceRequest("Escova Progressiva", "Outra desc", 60, new BigDecimal("3500.00"));
+        CreateServiceRequest req1 = new CreateServiceRequest(hairCat.getId(), "Escova Progressiva", "Desc", 90, new BigDecimal("4000.00"));
+        CreateServiceRequest req2 = new CreateServiceRequest(hairCat.getId(), "Escova Progressiva", "Outra desc", 60, new BigDecimal("3500.00"));
 
         mockMvc.perform(post("/api/v1/businesses/" + business.getId() + "/services")
                         .header("Authorization", "Bearer " + token)
@@ -494,8 +535,10 @@ class BusinessIntegrationTest {
         String ownerToken = generateToken(owner, List.of(new TenantMembership(business.getId(), "OWNER")));
 
         // Criar 2 serviços
+        CategoryEntity nailsCat = getCategoryBySlug("nails");
         ServiceEntity s1 = serviceRepository.save(ServiceEntity.builder()
                 .businessId(business.getId())
+                .category(nailsCat)
                 .name("Unhas de Gel")
                 .durationMinutes(60)
                 .price(new BigDecimal("2200.00"))
@@ -504,6 +547,7 @@ class BusinessIntegrationTest {
 
         ServiceEntity s2 = serviceRepository.save(ServiceEntity.builder()
                 .businessId(business.getId())
+                .category(nailsCat)
                 .name("Pedicure Spa")
                 .durationMinutes(45)
                 .price(new BigDecimal("1800.00"))
@@ -590,8 +634,10 @@ class BusinessIntegrationTest {
         BusinessEntity business = createTestBusiness(owner, "Salão Service Toggle", "Santiago", "Praia");
         String ownerToken = generateToken(owner, List.of(new TenantMembership(business.getId(), UserRole.OWNER.name())));
 
+        CategoryEntity hairCat = getCategoryBySlug("hair");
         ServiceEntity service1 = serviceRepository.save(ServiceEntity.builder()
                 .businessId(business.getId())
+                .category(hairCat)
                 .name("Brushing Especial")
                 .description("Modelagem capilar")
                 .durationMinutes(45)
@@ -610,6 +656,7 @@ class BusinessIntegrationTest {
         // Act 2: Criar outro serviço ativo com o mesmo nome enquanto o primeiro está inativo
         ServiceEntity service2 = serviceRepository.save(ServiceEntity.builder()
                 .businessId(business.getId())
+                .category(hairCat)
                 .name("Brushing Especial")
                 .description("Outra versão do brushing")
                 .durationMinutes(40)
@@ -676,8 +723,44 @@ class BusinessIntegrationTest {
         assertThat(inDb2.isActive()).isTrue();
     }
 
+    @Test
+    @DisplayName("BE-018: Deve rejeitar criação de salão com duas categorias isPrimary = true (HTTP 400 Bad Request)")
+    void shouldRejectBusinessWithMultiplePrimaryCategories() throws Exception {
+        // Arrange
+        UserEntity user = createTestUser("two.primary@perola.cv", "Owner Two Primary");
+        String token = generateToken(user, Collections.emptyList());
+        CategoryEntity cat1 = getCategoryBySlug("barbershop");
+        CategoryEntity cat2 = getCategoryBySlug("hair");
+
+        CreateBusinessRequest request = new CreateBusinessRequest(
+                "Salão Inválido",
+                "Santiago",
+                "Praia",
+                "Platô",
+                "+2382610099",
+                "Atlantic/Cape_Verde",
+                List.of(
+                        new BusinessCategoryItemRequest(cat1.getId(), true),
+                        new BusinessCategoryItemRequest(cat2.getId(), true)
+                )
+        );
+
+        // Act & Assert
+        mockMvc.perform(post("/api/v1/businesses")
+                        .header("Authorization", "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.type").value("https://perola.cv/errors/validation-error"));
+    }
+
+    private CategoryEntity getCategoryBySlug(String slug) {
+        return categoryRepository.findBySlug(slug)
+                .orElseThrow(() -> new IllegalStateException("Categoria seed não encontrada: " + slug));
+    }
+
     private BusinessEntity createTestBusiness(UserEntity owner, String name, String island, String city) {
-        BusinessEntity business = BusinessEntity.builder()
+        BusinessEntity business = businessRepository.save(BusinessEntity.builder()
                 .ownerId(owner.getId())
                 .name(name)
                 .island(island)
@@ -686,8 +769,15 @@ class BusinessIntegrationTest {
                 .contactPhone("+2382601122")
                 .timezone("Atlantic/Cape_Verde")
                 .isActive(true)
-                .build();
-        return businessRepository.save(business);
+                .build());
+        CategoryEntity hairCat = getCategoryBySlug("hair");
+        businessCategoryRepository.save(BusinessCategoryEntity.builder()
+                .businessId(business.getId())
+                .categoryId(hairCat.getId())
+                .category(hairCat)
+                .isPrimary(true)
+                .build());
+        return business;
     }
 }
 

@@ -52,6 +52,9 @@ class AppointmentMapperTest {
                 ServiceResponse service = new ServiceResponse(
                                 serviceId,
                                 businessId,
+                                UUID.randomUUID(),
+                                "hair",
+                                "Cabeleireiro & Tranças",
                                 "Corte & Brushing",
                                 "Corte completo",
                                 60,

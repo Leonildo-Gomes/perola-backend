@@ -1,15 +1,19 @@
 package cv.perola.modules.business.service;
 
+import cv.perola.modules.business.domain.BusinessCategoryEntity;
 import cv.perola.modules.business.domain.BusinessEntity;
 import cv.perola.modules.business.domain.EmployeeEntity;
 import cv.perola.modules.business.domain.EmployeeServiceEntity;
 import cv.perola.modules.business.domain.ServiceEntity;
+import cv.perola.modules.business.dto.BusinessCategoryResponse;
 import cv.perola.modules.business.dto.BusinessResponse;
 import cv.perola.modules.business.dto.EmployeeResponse;
 import cv.perola.modules.business.dto.ServiceResponse;
 import cv.perola.modules.business.mapper.BusinessMapper;
+import cv.perola.modules.business.mapper.CategoryMapper;
 import cv.perola.modules.business.mapper.EmployeeMapper;
 import cv.perola.modules.business.mapper.ServiceMapper;
+import cv.perola.modules.business.repository.BusinessCategoryRepository;
 import cv.perola.modules.business.repository.BusinessRepository;
 import cv.perola.modules.business.repository.EmployeeRepository;
 import cv.perola.modules.business.repository.EmployeeServiceRepository;
@@ -38,6 +42,9 @@ class DefaultBusinessEmployeeQueryServiceTest {
     private BusinessRepository businessRepository;
 
     @Mock
+    private BusinessCategoryRepository businessCategoryRepository;
+
+    @Mock
     private EmployeeRepository employeeRepository;
 
     @Mock
@@ -48,6 +55,9 @@ class DefaultBusinessEmployeeQueryServiceTest {
 
     @Mock
     private BusinessMapper businessMapper;
+
+    @Mock
+    private CategoryMapper categoryMapper;
 
     @Mock
     private EmployeeMapper employeeMapper;
@@ -68,12 +78,16 @@ class DefaultBusinessEmployeeQueryServiceTest {
                 .timezone("Atlantic/Cape_Verde")
                 .isActive(true)
                 .build();
+        List<BusinessCategoryEntity> catEntities = List.of();
+        List<BusinessCategoryResponse> catResponses = List.of();
         BusinessResponse expectedResponse = new BusinessResponse(
                 businessId, UUID.randomUUID(), "Salão Pérola", "Santiago", "Praia",
-                "Platô", "+2389911223", "Atlantic/Cape_Verde", true, Instant.now(), Instant.now()
+                "Platô", "+2389911223", "Atlantic/Cape_Verde", catResponses, true, Instant.now(), Instant.now()
         );
         when(businessRepository.findById(businessId)).thenReturn(Optional.of(entity));
-        when(businessMapper.toResponse(entity)).thenReturn(expectedResponse);
+        when(businessCategoryRepository.findAllByBusinessId(businessId)).thenReturn(catEntities);
+        when(categoryMapper.toBusinessCategoryResponses(catEntities)).thenReturn(catResponses);
+        when(businessMapper.toResponse(entity, catResponses)).thenReturn(expectedResponse);
 
         // Act
         Optional<BusinessResponse> result = employeeQueryService.findBusinessById(businessId);
@@ -162,7 +176,8 @@ class DefaultBusinessEmployeeQueryServiceTest {
                 .isActive(true)
                 .build();
         ServiceResponse expectedResponse = new ServiceResponse(
-                serviceId, businessId, "Corte", null, 60, new BigDecimal("1500.00"), true, Instant.now(), Instant.now()
+                serviceId, businessId, UUID.randomUUID(), "hair", "Cabeleireiro & Tranças",
+                "Corte", null, 60, new BigDecimal("1500.00"), true, Instant.now(), Instant.now()
         );
         when(serviceRepository.findByIdAndBusinessId(serviceId, businessId)).thenReturn(Optional.of(entity));
         when(serviceMapper.toResponse(entity)).thenReturn(expectedResponse);

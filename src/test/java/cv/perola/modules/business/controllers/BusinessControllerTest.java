@@ -2,6 +2,8 @@ package cv.perola.modules.business.controllers;
 
 import cv.perola.core.exception.AuthenticationFailedException;
 import cv.perola.core.security.UserPrincipal;
+import cv.perola.modules.business.dto.BusinessCategoryItemRequest;
+import cv.perola.modules.business.dto.BusinessCategoryResponse;
 import cv.perola.modules.business.dto.BusinessResponse;
 import cv.perola.modules.business.dto.CreateBusinessRequest;
 import cv.perola.modules.business.dto.UpdateBusinessRequest;
@@ -60,13 +62,15 @@ class BusinessControllerTest {
                 Collections.emptyList(),
                 true
         );
+        UUID catId = UUID.randomUUID();
         CreateBusinessRequest request = new CreateBusinessRequest(
                 "Salão Pérola",
                 "Santiago",
                 "Praia",
                 "Platô",
                 "+2382611122",
-                "Atlantic/Cape_Verde"
+                "Atlantic/Cape_Verde",
+                List.of(new BusinessCategoryItemRequest(catId, true))
         );
         BusinessResponse expectedResponse = new BusinessResponse(
                 businessId,
@@ -77,6 +81,7 @@ class BusinessControllerTest {
                 "Platô",
                 "+2382611122",
                 "Atlantic/Cape_Verde",
+                List.of(new BusinessCategoryResponse(catId, "hair", "Cabeleireiro & Tranças", "Sparkles", true)),
                 true,
                 Instant.now(),
                 Instant.now()
@@ -98,7 +103,8 @@ class BusinessControllerTest {
     void shouldThrowAuthenticationFailedExceptionWhenPrincipalIsNull() {
         // Arrange
         CreateBusinessRequest request = new CreateBusinessRequest(
-                "Salão", "Santiago", "Praia", "Rua 1", "+2382611122", null
+                "Salão", "Santiago", "Praia", "Rua 1", "+2382611122", null,
+                List.of(new BusinessCategoryItemRequest(UUID.randomUUID(), true))
         );
 
         // Act & Assert
@@ -121,6 +127,7 @@ class BusinessControllerTest {
                 "Platô",
                 "+2382611122",
                 "Atlantic/Cape_Verde",
+                List.of(),
                 true,
                 Instant.now(),
                 Instant.now()
@@ -143,7 +150,7 @@ class BusinessControllerTest {
         // Arrange
         UUID businessId = UUID.randomUUID();
         UpdateBusinessRequest request = new UpdateBusinessRequest(
-                "Salão VIP", null, null, null, null, null
+                "Salão VIP", null, null, null, null, null, null
         );
         BusinessResponse expectedResponse = new BusinessResponse(
                 businessId,
@@ -154,6 +161,7 @@ class BusinessControllerTest {
                 "Platô",
                 "+2382611122",
                 "Atlantic/Cape_Verde",
+                List.of(),
                 true,
                 Instant.now(),
                 Instant.now()
@@ -184,6 +192,7 @@ class BusinessControllerTest {
                 "Platô",
                 "+2382611122",
                 "Atlantic/Cape_Verde",
+                List.of(),
                 false,
                 Instant.now(),
                 Instant.now()

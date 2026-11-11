@@ -1,9 +1,13 @@
 package cv.perola.modules.business;
 
+import cv.perola.modules.business.domain.BusinessCategoryEntity;
 import cv.perola.modules.business.domain.BusinessEntity;
+import cv.perola.modules.business.domain.CategoryEntity;
 import cv.perola.modules.business.domain.EmployeeEntity;
 import cv.perola.modules.business.domain.ServiceEntity;
+import cv.perola.modules.business.repository.BusinessCategoryRepository;
 import cv.perola.modules.business.repository.BusinessRepository;
+import cv.perola.modules.business.repository.CategoryRepository;
 import cv.perola.modules.business.repository.EmployeeRepository;
 import cv.perola.modules.business.repository.ServiceRepository;
 import cv.perola.modules.identity.domain.UserEntity;
@@ -42,6 +46,12 @@ class MarketplaceIntegrationTest {
 
     @Autowired
     private BusinessRepository businessRepository;
+
+    @Autowired
+    private CategoryRepository categoryRepository;
+
+    @Autowired
+    private BusinessCategoryRepository businessCategoryRepository;
 
     @Autowired
     private ServiceRepository serviceRepository;
@@ -166,6 +176,84 @@ class MarketplaceIntegrationTest {
                 .andExpect(jsonPath("$.content[0].price").value(3500.00));
     }
 
+    @Test
+    @DisplayName("BE-018: Deve listar categorias ativas ordenadas em GET /api/v1/marketplace/categories")
+    void shouldListMarketplaceCategoriesOrdered() throws Exception {
+        mockMvc.perform(get("/api/v1/marketplace/categories"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$").isArray())
+                .andExpect(jsonPath("$.length()").value(6))
+                .andExpect(jsonPath("$[0].slug").value("barbershop"))
+                .andExpect(jsonPath("$[1].slug").value("hair"))
+                .andExpect(jsonPath("$[2].slug").value("nails"))
+                .andExpect(jsonPath("$[3].slug").value("spa_massage"))
+                .andExpect(jsonPath("$[4].slug").value("aesthetics"))
+                .andExpect(jsonPath("$[5].slug").value("makeup_brows"));
+    }
+
+    @Test
+    @DisplayName("BE-018: Deve filtrar salões e serviços do marketplace por slug ou UUID da categoria incluindo espaços mistos")
+    void shouldFilterMarketplaceBusinessesAndServicesByCategory() throws Exception {
+        // Arrange
+        CategoryEntity barbershop = getCategoryBySlug("barbershop");
+        CategoryEntity spa = getCategoryBySlug("spa_massage");
+
+        UserEntity ownerMixed = createTestUser("mixed.market@perola.cv", "Owner Mixed");
+        BusinessEntity mixedSalon = createTestBusiness(ownerMixed, "Pérola Barbearia & Spa", "Santiago", "Praia", true);
+        linkBusinessCategory(mixedSalon.getId(), barbershop, true);
+        linkBusinessCategory(mixedSalon.getId(), spa, false);
+
+        UserEntity ownerSpaOnly = createTestUser("spa.market@perola.cv", "Owner Spa");
+        BusinessEntity spaSalon = createTestBusiness(ownerSpaOnly, "Zen Spa Mindelo", "São Vicente", "Mindelo", true);
+        linkBusinessCategory(spaSalon.getId(), spa, true);
+
+        createTestService(mixedSalon.getId(), barbershop, "Corte Degradê", new BigDecimal("800.00"), true);
+        createTestService(spaSalon.getId(), spa, "Massagem Pedras Quentes", new BigDecimal("3500.00"), true);
+
+        // Act & Assert 1: Filtro ?category=barbershop retorna apenas o espaço misto
+        mockMvc.perform(get("/api/v1/marketplace/businesses")
+                        .param("category", "barbershop"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content[?(@.name == 'Pérola Barbearia & Spa')]").exists())
+                .andExpect(jsonPath("$.content[?(@.name == 'Zen Spa Mindelo')]").doesNotExist())
+                .andExpect(jsonPath("$.content[?(@.name == 'Pérola Barbearia & Spa')].categories[0].slug").value("barbershop"));
+
+        // Act & Assert 2: Filtro ?category=spa_massage retorna ambos (misto + exclusivo)
+        mockMvc.perform(get("/api/v1/marketplace/businesses")
+                        .param("category", "spa_massage"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content[?(@.name == 'Pérola Barbearia & Spa')]").exists())
+                .andExpect(jsonPath("$.content[?(@.name == 'Zen Spa Mindelo')]").exists());
+
+        // Act & Assert 3: Filtro de serviços por UUID e por slug
+        mockMvc.perform(get("/api/v1/marketplace/services")
+                        .param("category", spa.getId().toString()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content[?(@.name == 'Massagem Pedras Quentes')]").exists())
+                .andExpect(jsonPath("$.content[?(@.name == 'Corte Degradê')]").doesNotExist())
+                .andExpect(jsonPath("$.content[0].categorySlug").value("spa_massage"));
+
+        mockMvc.perform(get("/api/v1/marketplace/services")
+                        .param("category", "barbershop"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content[?(@.name == 'Corte Degradê')]").exists())
+                .andExpect(jsonPath("$.content[?(@.name == 'Massagem Pedras Quentes')]").doesNotExist());
+    }
+
+    private CategoryEntity getCategoryBySlug(String slug) {
+        return categoryRepository.findBySlug(slug)
+                .orElseThrow(() -> new IllegalStateException("Categoria seed não encontrada: " + slug));
+    }
+
+    private void linkBusinessCategory(UUID businessId, CategoryEntity category, boolean isPrimary) {
+        businessCategoryRepository.save(BusinessCategoryEntity.builder()
+                .businessId(businessId)
+                .categoryId(category.getId())
+                .category(category)
+                .isPrimary(isPrimary)
+                .build());
+    }
+
     private UserEntity createTestUser(String email, String name) {
         return userRepository.save(UserEntity.builder()
                 .email(email)
@@ -190,8 +278,13 @@ class MarketplaceIntegrationTest {
     }
 
     private ServiceEntity createTestService(UUID businessId, String name, BigDecimal price, boolean isActive) {
+        return createTestService(businessId, getCategoryBySlug("hair"), name, price, isActive);
+    }
+
+    private ServiceEntity createTestService(UUID businessId, CategoryEntity category, String name, BigDecimal price, boolean isActive) {
         return serviceRepository.save(ServiceEntity.builder()
                 .businessId(businessId)
+                .category(category)
                 .name(name)
                 .durationMinutes(45)
                 .price(price)

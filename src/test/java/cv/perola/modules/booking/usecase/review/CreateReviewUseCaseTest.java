@@ -30,6 +30,7 @@ import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.time.ZoneId;
 import java.time.ZoneOffset;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -105,7 +106,7 @@ class CreateReviewUseCaseTest {
 
                 BusinessResponse businessResponse = new BusinessResponse(
                                 businessId, UUID.randomUUID(), "Salão Pérola", "Santiago", "Praia",
-                                "Platô", "+2389911223", "Atlantic/Cape_Verde", true, Instant.now(), Instant.now());
+                                "Platô", "+2389911223", "Atlantic/Cape_Verde", List.of(), true, Instant.now(), Instant.now());
 
                 when(appointmentRepository.findById(appointmentId)).thenReturn(Optional.of(appointment));
                 when(reviewRepository.existsByAppointmentId(appointmentId)).thenReturn(false);

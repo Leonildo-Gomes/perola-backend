@@ -3,6 +3,7 @@ package cv.perola.modules.business.dto;
 import io.swagger.v3.oas.annotations.media.Schema;
 
 import java.time.Instant;
+import java.util.List;
 import java.util.UUID;
 
 @Schema(description = "Representação detalhada do estabelecimento")
@@ -30,6 +31,9 @@ public record BusinessResponse(
 
         @Schema(description = "Fuso horário IANA oficial")
         String timezone,
+
+        @Schema(description = "Categorias de atuação do estabelecimento")
+        List<BusinessCategoryResponse> categories,
 
         @Schema(description = "Indica se o estabelecimento está ativo")
         boolean isActive,

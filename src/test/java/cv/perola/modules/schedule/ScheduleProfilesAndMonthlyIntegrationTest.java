@@ -2,6 +2,8 @@ package cv.perola.modules.schedule;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import cv.perola.modules.business.dto.BusinessCategoryItemRequest;
+import cv.perola.modules.business.dto.CategoryResponse;
 import cv.perola.modules.business.dto.CreateBusinessRequest;
 import cv.perola.modules.business.dto.CreateEmployeeRequest;
 import cv.perola.modules.identity.dto.RegisterRequest;
@@ -77,13 +79,21 @@ class ScheduleProfilesAndMonthlyIntegrationTest {
         String initialToken = objectMapper.readTree(regResult.getResponse().getContentAsString())
                 .get("accessToken").asText();
 
+        MvcResult catResult = mockMvc.perform(get("/api/v1/marketplace/categories"))
+                .andExpect(status().isOk())
+                .andReturn();
+        CategoryResponse[] categories = objectMapper.readValue(
+                catResult.getResponse().getContentAsString(), CategoryResponse[].class
+        );
+
         CreateBusinessRequest createBizReq = new CreateBusinessRequest(
                 "Salão Schedule " + uniqueSuffix,
                 "Santiago",
                 "Praia",
                 "Achada Santo António",
                 "+2382610000",
-                "Atlantic/Cape_Verde"
+                "Atlantic/Cape_Verde",
+                List.of(new BusinessCategoryItemRequest(categories[0].id(), true))
         );
 
         MvcResult bizResult = mockMvc.perform(post("/api/v1/businesses")
@@ -396,4 +406,3 @@ class ScheduleProfilesAndMonthlyIntegrationTest {
         );
     }
 }
-

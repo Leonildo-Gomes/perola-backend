@@ -60,7 +60,8 @@ class ToggleServiceStatusUseCaseTest {
                 .build();
 
         ServiceResponse expectedResponse = new ServiceResponse(
-                serviceId, businessId, "Corte Masculino", "Corte com máquina e tesoura",
+                serviceId, businessId, UUID.randomUUID(), "barbershop", "Barbearia",
+                "Corte Masculino", "Corte com máquina e tesoura",
                 30, BigDecimal.valueOf(800), false, Instant.now(), Instant.now()
         );
 
@@ -98,7 +99,8 @@ class ToggleServiceStatusUseCaseTest {
                 .build();
 
         ServiceResponse expectedResponse = new ServiceResponse(
-                serviceId, businessId, "Corte Masculino", "Corte com máquina e tesoura",
+                serviceId, businessId, UUID.randomUUID(), "barbershop", "Barbearia",
+                "Corte Masculino", "Corte com máquina e tesoura",
                 30, BigDecimal.valueOf(800), true, Instant.now(), Instant.now()
         );
 

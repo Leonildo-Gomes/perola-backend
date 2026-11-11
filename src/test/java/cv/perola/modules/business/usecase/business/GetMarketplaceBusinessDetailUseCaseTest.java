@@ -6,8 +6,10 @@ import cv.perola.modules.business.domain.EmployeeEntity;
 import cv.perola.modules.business.domain.ServiceEntity;
 import cv.perola.modules.business.dto.MarketplaceBusinessDetailResponse;
 import cv.perola.modules.business.mapper.BusinessMapper;
+import cv.perola.modules.business.mapper.CategoryMapper;
 import cv.perola.modules.business.mapper.EmployeeMapper;
 import cv.perola.modules.business.mapper.ServiceMapper;
+import cv.perola.modules.business.repository.BusinessCategoryRepository;
 import cv.perola.modules.business.repository.BusinessRepository;
 import cv.perola.modules.business.repository.EmployeeRepository;
 import cv.perola.modules.business.repository.ServiceRepository;
@@ -37,6 +39,9 @@ class GetMarketplaceBusinessDetailUseCaseTest {
     private BusinessRepository businessRepository;
 
     @Mock
+    private BusinessCategoryRepository businessCategoryRepository;
+
+    @Mock
     private ServiceRepository serviceRepository;
 
     @Mock
@@ -44,6 +49,9 @@ class GetMarketplaceBusinessDetailUseCaseTest {
 
     @Spy
     private BusinessMapper businessMapper = new BusinessMapper();
+
+    @Spy
+    private CategoryMapper categoryMapper = new CategoryMapper();
 
     @Spy
     private ServiceMapper serviceMapper = new ServiceMapper();
@@ -92,6 +100,7 @@ class GetMarketplaceBusinessDetailUseCaseTest {
         employee.setUpdatedAt(Instant.now());
 
         when(businessRepository.findByIdAndIsActiveTrue(businessId)).thenReturn(Optional.of(business));
+        when(businessCategoryRepository.findAllByBusinessId(businessId)).thenReturn(List.of());
         when(serviceRepository.findAllByBusinessIdAndIsActiveTrue(businessId)).thenReturn(List.of(service));
         when(employeeRepository.findAllByBusinessIdAndIsActiveTrue(businessId)).thenReturn(List.of(employee));
 

@@ -46,244 +46,244 @@ import static org.mockito.Mockito.when;
 @ExtendWith(MockitoExtension.class)
 class CreateAppointmentUseCaseTest {
 
-    @Mock
-    private AppointmentRepository appointmentRepository;
+        @Mock
+        private AppointmentRepository appointmentRepository;
 
-    @Mock
-    private AppointmentHistoryRepository appointmentHistoryRepository;
+        @Mock
+        private AppointmentHistoryRepository appointmentHistoryRepository;
 
-    @Mock
-    private BusinessEmployeeQueryService businessEmployeeQueryService;
+        @Mock
+        private BusinessEmployeeQueryService businessEmployeeQueryService;
 
-    @Mock
-    private UserAccountService userAccountService;
+        @Mock
+        private UserAccountService userAccountService;
 
-    @Mock
-    private AppointmentMapper appointmentMapper;
+        @Mock
+        private AppointmentMapper appointmentMapper;
 
-    @Mock
-    private ApplicationEventPublisher eventPublisher;
+        @Mock
+        private ApplicationEventPublisher eventPublisher;
 
-    private CreateAppointmentValidator createAppointmentValidator;
-    private CreateAppointmentUseCase createAppointmentUseCase;
+        private CreateAppointmentValidator createAppointmentValidator;
+        private CreateAppointmentUseCase createAppointmentUseCase;
 
-    @BeforeEach
-    void setUp() {
-        createAppointmentValidator = new CreateAppointmentValidator(businessEmployeeQueryService, userAccountService);
-        createAppointmentUseCase = new CreateAppointmentUseCase(
-                appointmentRepository,
-                appointmentHistoryRepository,
-                appointmentMapper,
-                eventPublisher,
-                createAppointmentValidator
-        );
-    }
+        @BeforeEach
+        void setUp() {
+                createAppointmentValidator = new CreateAppointmentValidator(businessEmployeeQueryService,
+                                userAccountService);
+                createAppointmentUseCase = new CreateAppointmentUseCase(
+                                appointmentRepository,
+                                appointmentHistoryRepository,
+                                appointmentMapper,
+                                eventPublisher,
+                                createAppointmentValidator);
+        }
 
-    @Test
-    @DisplayName("Deve criar agendamento com sucesso, gravar histórico CREATED e publicar evento de domínio")
-    void shouldCreateAppointmentSuccessfullyWithSnapshotHistoryAndEvent() {
-        // Arrange
-        UUID customerId = UUID.randomUUID();
-        UUID businessId = UUID.randomUUID();
-        UUID employeeId = UUID.randomUUID();
-        UUID serviceId = UUID.randomUUID();
-        UUID appointmentId = UUID.randomUUID();
+        @Test
+        @DisplayName("Deve criar agendamento com sucesso, gravar histórico CREATED e publicar evento de domínio")
+        void shouldCreateAppointmentSuccessfullyWithSnapshotHistoryAndEvent() {
+                // Arrange
+                UUID customerId = UUID.randomUUID();
+                UUID businessId = UUID.randomUUID();
+                UUID employeeId = UUID.randomUUID();
+                UUID serviceId = UUID.randomUUID();
+                UUID appointmentId = UUID.randomUUID();
 
-        OffsetDateTime startOffset = OffsetDateTime.of(2026, 11, 3, 10, 0, 0, 0, ZoneOffset.ofHours(-1));
-        Instant expectedStart = Instant.parse("2026-11-03T11:00:00Z");
-        Instant expectedEnd = Instant.parse("2026-11-03T12:00:00Z");
+                OffsetDateTime startOffset = OffsetDateTime.of(2026, 11, 3, 10, 0, 0, 0, ZoneOffset.ofHours(-1));
+                Instant expectedStart = Instant.parse("2026-11-03T11:00:00Z");
+                Instant expectedEnd = Instant.parse("2026-11-03T12:00:00Z");
 
-        CreateAppointmentRequest request = new CreateAppointmentRequest(
-                businessId,
-                employeeId,
-                serviceId,
-                startOffset,
-                "Primeira visita"
-        );
+                CreateAppointmentRequest request = new CreateAppointmentRequest(
+                                businessId,
+                                employeeId,
+                                serviceId,
+                                startOffset,
+                                "Primeira visita");
 
-        BusinessResponse business = new BusinessResponse(
-                businessId, UUID.randomUUID(), "Salão Pérola", "Santiago", "Praia",
-                "Platô", "+2382610000", "Atlantic/Cape_Verde", true, Instant.now(), Instant.now()
-        );
-        EmployeeResponse employee = new EmployeeResponse(
-                employeeId, businessId, UUID.randomUUID(), "Carla", true, Instant.now(), Instant.now()
-        );
-        ServiceResponse service = new ServiceResponse(
-                serviceId, businessId, "Corte & Brushing", "Descrição", 60,
-                new BigDecimal("2500.00"), true, Instant.now(), Instant.now()
-        );
+                BusinessResponse business = new BusinessResponse(
+                                businessId, UUID.randomUUID(), "Salão Pérola", "Santiago", "Praia",
+                                "Platô", "+2382610000", "Atlantic/Cape_Verde", List.of(), true, Instant.now(),
+                                Instant.now());
+                EmployeeResponse employee = new EmployeeResponse(
+                                employeeId, businessId, UUID.randomUUID(), "Carla", true, Instant.now(), Instant.now());
+                ServiceResponse service = new ServiceResponse(
+                                serviceId, businessId, UUID.randomUUID(), "hair", "Cabeleireiro & Tranças",
+                                "Corte & Brushing", "Descrição", 60,
+                                new BigDecimal("2500.00"), true, Instant.now(), Instant.now());
 
-        AppointmentEntity mappedEntity = AppointmentEntity.builder()
-                .businessId(businessId)
-                .customerId(customerId)
-                .employeeId(employeeId)
-                .serviceId(serviceId)
-                .createdById(customerId)
-                .startTime(expectedStart)
-                .endTime(expectedEnd)
-                .serviceName("Corte & Brushing")
-                .servicePrice(new BigDecimal("2500.00"))
-                .serviceDuration(60)
-                .status(AppointmentStatus.PENDING)
-                .notes("Primeira visita")
-                .build();
-        mappedEntity.setId(appointmentId);
+                AppointmentEntity mappedEntity = AppointmentEntity.builder()
+                                .businessId(businessId)
+                                .customerId(customerId)
+                                .employeeId(employeeId)
+                                .serviceId(serviceId)
+                                .createdById(customerId)
+                                .startTime(expectedStart)
+                                .endTime(expectedEnd)
+                                .serviceName("Corte & Brushing")
+                                .servicePrice(new BigDecimal("2500.00"))
+                                .serviceDuration(60)
+                                .status(AppointmentStatus.PENDING)
+                                .notes("Primeira visita")
+                                .build();
+                mappedEntity.setId(appointmentId);
 
-        AppointmentHistoryEntity historyEntity = AppointmentHistoryEntity.builder()
-                .id(UUID.randomUUID())
-                .appointmentId(appointmentId)
-                .performedById(customerId)
-                .action(AppointmentAction.CREATED)
-                .toStatus(AppointmentStatus.PENDING)
-                .newStartTime(expectedStart)
-                .newEndTime(expectedEnd)
-                .notes("Primeira visita")
-                .build();
+                AppointmentHistoryEntity historyEntity = AppointmentHistoryEntity.builder()
+                                .id(UUID.randomUUID())
+                                .appointmentId(appointmentId)
+                                .performedById(customerId)
+                                .action(AppointmentAction.CREATED)
+                                .toStatus(AppointmentStatus.PENDING)
+                                .newStartTime(expectedStart)
+                                .newEndTime(expectedEnd)
+                                .notes("Primeira visita")
+                                .build();
 
-        AppointmentResponse expectedResponse = new AppointmentResponse(
-                appointmentId,
-                businessId,
-                customerId,
-                employeeId,
-                serviceId,
-                "Corte & Brushing",
-                new BigDecimal("2500.00"),
-                60,
-                startOffset,
-                startOffset.plusMinutes(60),
-                null,
-                null,
-                AppointmentStatus.PENDING,
-                "Primeira visita",
-                startOffset
-        );
+                AppointmentResponse expectedResponse = new AppointmentResponse(
+                                appointmentId,
+                                businessId,
+                                customerId,
+                                employeeId,
+                                serviceId,
+                                "Corte & Brushing",
+                                new BigDecimal("2500.00"),
+                                60,
+                                startOffset,
+                                startOffset.plusMinutes(60),
+                                null,
+                                null,
+                                AppointmentStatus.PENDING,
+                                "Primeira visita",
+                                startOffset);
 
-        when(userAccountService.existsById(customerId)).thenReturn(true);
-        when(businessEmployeeQueryService.findBusinessById(businessId)).thenReturn(Optional.of(business));
-        when(businessEmployeeQueryService.findEmployeeByIdAndBusinessId(employeeId, businessId)).thenReturn(Optional.of(employee));
-        when(businessEmployeeQueryService.findServiceByIdAndBusinessId(serviceId, businessId)).thenReturn(Optional.of(service));
-        when(businessEmployeeQueryService.hasAnyAssignedServices(businessId, employeeId)).thenReturn(true);
-        when(businessEmployeeQueryService.isServiceAssignedToEmployee(businessId, employeeId, serviceId)).thenReturn(true);
-        when(appointmentMapper.toEntity(request, customerId, customerId, service, expectedStart, expectedEnd))
-                .thenReturn(mappedEntity);
-        when(appointmentRepository.saveAndFlush(mappedEntity)).thenReturn(mappedEntity);
-        when(appointmentMapper.toHistoryEntity(
-                appointmentId, customerId, AppointmentAction.CREATED, null, AppointmentStatus.PENDING,
-                null, null, expectedStart, expectedEnd, "Primeira visita"
-        )).thenReturn(historyEntity);
-        when(appointmentHistoryRepository.save(historyEntity)).thenReturn(historyEntity);
-        when(appointmentMapper.toResponse(mappedEntity, List.of(historyEntity), ZoneId.of("Atlantic/Cape_Verde")))
-                .thenReturn(expectedResponse);
+                when(userAccountService.existsById(customerId)).thenReturn(true);
+                when(businessEmployeeQueryService.findBusinessById(businessId)).thenReturn(Optional.of(business));
+                when(businessEmployeeQueryService.findEmployeeByIdAndBusinessId(employeeId, businessId))
+                                .thenReturn(Optional.of(employee));
+                when(businessEmployeeQueryService.findServiceByIdAndBusinessId(serviceId, businessId))
+                                .thenReturn(Optional.of(service));
+                when(businessEmployeeQueryService.hasAnyAssignedServices(businessId, employeeId)).thenReturn(true);
+                when(businessEmployeeQueryService.isServiceAssignedToEmployee(businessId, employeeId, serviceId))
+                                .thenReturn(true);
+                when(appointmentMapper.toEntity(request, customerId, customerId, service, expectedStart, expectedEnd))
+                                .thenReturn(mappedEntity);
+                when(appointmentRepository.saveAndFlush(mappedEntity)).thenReturn(mappedEntity);
+                when(appointmentMapper.toHistoryEntity(
+                                appointmentId, customerId, AppointmentAction.CREATED, null, AppointmentStatus.PENDING,
+                                null, null, expectedStart, expectedEnd, "Primeira visita")).thenReturn(historyEntity);
+                when(appointmentHistoryRepository.save(historyEntity)).thenReturn(historyEntity);
+                when(appointmentMapper.toResponse(mappedEntity, List.of(historyEntity),
+                                ZoneId.of("Atlantic/Cape_Verde")))
+                                .thenReturn(expectedResponse);
 
-        // Act
-        AppointmentResponse result = createAppointmentUseCase.execute(customerId, request);
+                // Act
+                AppointmentResponse result = createAppointmentUseCase.execute(customerId, request);
 
-        // Assert
-        assertThat(result).isEqualTo(expectedResponse);
-        verify(appointmentRepository).saveAndFlush(mappedEntity);
-        verify(appointmentHistoryRepository).save(historyEntity);
-        verify(eventPublisher).publishEvent(any(AppointmentLifecycleEvent.class));
-    }
+                // Assert
+                assertThat(result).isEqualTo(expectedResponse);
+                verify(appointmentRepository).saveAndFlush(mappedEntity);
+                verify(appointmentHistoryRepository).save(historyEntity);
+                verify(eventPublisher).publishEvent(any(AppointmentLifecycleEvent.class));
+        }
 
-    @Test
-    @DisplayName("Deve lançar ResourceNotFoundException quando o cliente não existir")
-    void shouldThrowResourceNotFoundExceptionWhenCustomerDoesNotExist() {
-        // Arrange
-        UUID customerId = UUID.randomUUID();
-        CreateAppointmentRequest request = new CreateAppointmentRequest(
-                UUID.randomUUID(), UUID.randomUUID(), UUID.randomUUID(),
-                OffsetDateTime.now(ZoneOffset.ofHours(-1)), null
-        );
-        when(userAccountService.existsById(customerId)).thenReturn(false);
+        @Test
+        @DisplayName("Deve lançar ResourceNotFoundException quando o cliente não existir")
+        void shouldThrowResourceNotFoundExceptionWhenCustomerDoesNotExist() {
+                // Arrange
+                UUID customerId = UUID.randomUUID();
+                CreateAppointmentRequest request = new CreateAppointmentRequest(
+                                UUID.randomUUID(), UUID.randomUUID(), UUID.randomUUID(),
+                                OffsetDateTime.now(ZoneOffset.ofHours(-1)), null);
+                when(userAccountService.existsById(customerId)).thenReturn(false);
 
-        // Act & Assert
-        assertThatThrownBy(() -> createAppointmentUseCase.execute(customerId, request))
-                .isInstanceOf(ResourceNotFoundException.class)
-                .hasMessage("Cliente não encontrado.");
-        verify(appointmentRepository, never()).saveAndFlush(any());
-    }
+                // Act & Assert
+                assertThatThrownBy(() -> createAppointmentUseCase.execute(customerId, request))
+                                .isInstanceOf(ResourceNotFoundException.class)
+                                .hasMessage("Cliente não encontrado.");
+                verify(appointmentRepository, never()).saveAndFlush(any());
+        }
 
-    @Test
-    @DisplayName("Deve lançar ResourceNotFoundException quando o salão não existir")
-    void shouldThrowResourceNotFoundExceptionWhenBusinessDoesNotExist() {
-        // Arrange
-        UUID customerId = UUID.randomUUID();
-        UUID businessId = UUID.randomUUID();
-        CreateAppointmentRequest request = new CreateAppointmentRequest(
-                businessId, UUID.randomUUID(), UUID.randomUUID(),
-                OffsetDateTime.now(ZoneOffset.ofHours(-1)), null
-        );
-        when(userAccountService.existsById(customerId)).thenReturn(true);
-        when(businessEmployeeQueryService.findBusinessById(businessId)).thenReturn(Optional.empty());
+        @Test
+        @DisplayName("Deve lançar ResourceNotFoundException quando o salão não existir")
+        void shouldThrowResourceNotFoundExceptionWhenBusinessDoesNotExist() {
+                // Arrange
+                UUID customerId = UUID.randomUUID();
+                UUID businessId = UUID.randomUUID();
+                CreateAppointmentRequest request = new CreateAppointmentRequest(
+                                businessId, UUID.randomUUID(), UUID.randomUUID(),
+                                OffsetDateTime.now(ZoneOffset.ofHours(-1)), null);
+                when(userAccountService.existsById(customerId)).thenReturn(true);
+                when(businessEmployeeQueryService.findBusinessById(businessId)).thenReturn(Optional.empty());
 
-        // Act & Assert
-        assertThatThrownBy(() -> createAppointmentUseCase.execute(customerId, request))
-                .isInstanceOf(ResourceNotFoundException.class)
-                .hasMessage("Salão não encontrado.");
-        verify(appointmentRepository, never()).saveAndFlush(any());
-    }
+                // Act & Assert
+                assertThatThrownBy(() -> createAppointmentUseCase.execute(customerId, request))
+                                .isInstanceOf(ResourceNotFoundException.class)
+                                .hasMessage("Salão não encontrado.");
+                verify(appointmentRepository, never()).saveAndFlush(any());
+        }
 
-    @Test
-    @DisplayName("Deve lançar ResourceNotFoundException quando o profissional não pertencer ao salão")
-    void shouldThrowResourceNotFoundExceptionWhenEmployeeDoesNotBelongToBusiness() {
-        // Arrange
-        UUID customerId = UUID.randomUUID();
-        UUID businessId = UUID.randomUUID();
-        UUID employeeId = UUID.randomUUID();
-        CreateAppointmentRequest request = new CreateAppointmentRequest(
-                businessId, employeeId, UUID.randomUUID(),
-                OffsetDateTime.now(ZoneOffset.ofHours(-1)), null
-        );
-        BusinessResponse business = new BusinessResponse(
-                businessId, UUID.randomUUID(), "Salão Pérola", "Santiago", "Praia",
-                "Platô", "+2382610000", "Atlantic/Cape_Verde", true, Instant.now(), Instant.now()
-        );
-        when(userAccountService.existsById(customerId)).thenReturn(true);
-        when(businessEmployeeQueryService.findBusinessById(businessId)).thenReturn(Optional.of(business));
-        when(businessEmployeeQueryService.findEmployeeByIdAndBusinessId(employeeId, businessId)).thenReturn(Optional.empty());
+        @Test
+        @DisplayName("Deve lançar ResourceNotFoundException quando o profissional não pertencer ao salão")
+        void shouldThrowResourceNotFoundExceptionWhenEmployeeDoesNotBelongToBusiness() {
+                // Arrange
+                UUID customerId = UUID.randomUUID();
+                UUID businessId = UUID.randomUUID();
+                UUID employeeId = UUID.randomUUID();
+                CreateAppointmentRequest request = new CreateAppointmentRequest(
+                                businessId, employeeId, UUID.randomUUID(),
+                                OffsetDateTime.now(ZoneOffset.ofHours(-1)), null);
+                BusinessResponse business = new BusinessResponse(
+                                businessId, UUID.randomUUID(), "Salão Pérola", "Santiago", "Praia",
+                                "Platô", "+2382610000", "Atlantic/Cape_Verde", List.of(), true, Instant.now(),
+                                Instant.now());
+                when(userAccountService.existsById(customerId)).thenReturn(true);
+                when(businessEmployeeQueryService.findBusinessById(businessId)).thenReturn(Optional.of(business));
+                when(businessEmployeeQueryService.findEmployeeByIdAndBusinessId(employeeId, businessId))
+                                .thenReturn(Optional.empty());
 
-        // Act & Assert
-        assertThatThrownBy(() -> createAppointmentUseCase.execute(customerId, request))
-                .isInstanceOf(ResourceNotFoundException.class)
-                .hasMessage("Profissional não encontrado para o salão especificado.");
-        verify(appointmentRepository, never()).saveAndFlush(any());
-    }
+                // Act & Assert
+                assertThatThrownBy(() -> createAppointmentUseCase.execute(customerId, request))
+                                .isInstanceOf(ResourceNotFoundException.class)
+                                .hasMessage("Profissional não encontrado para o salão especificado.");
+                verify(appointmentRepository, never()).saveAndFlush(any());
+        }
 
-    @Test
-    @DisplayName("Deve lançar ValidationException quando o profissional não realizar o serviço selecionado")
-    void shouldThrowValidationExceptionWhenServiceIsNotAssignedToEmployee() {
-        // Arrange
-        UUID customerId = UUID.randomUUID();
-        UUID businessId = UUID.randomUUID();
-        UUID employeeId = UUID.randomUUID();
-        UUID serviceId = UUID.randomUUID();
-        CreateAppointmentRequest request = new CreateAppointmentRequest(
-                businessId, employeeId, serviceId,
-                OffsetDateTime.now(ZoneOffset.ofHours(-1)), null
-        );
-        BusinessResponse business = new BusinessResponse(
-                businessId, UUID.randomUUID(), "Salão Pérola", "Santiago", "Praia",
-                "Platô", "+2382610000", "Atlantic/Cape_Verde", true, Instant.now(), Instant.now()
-        );
-        EmployeeResponse employee = new EmployeeResponse(
-                employeeId, businessId, UUID.randomUUID(), "Carla", true, Instant.now(), Instant.now()
-        );
-        ServiceResponse service = new ServiceResponse(
-                serviceId, businessId, "Corte & Brushing", "Descrição", 60,
-                new BigDecimal("2500.00"), true, Instant.now(), Instant.now()
-        );
+        @Test
+        @DisplayName("Deve lançar ValidationException quando o profissional não realizar o serviço selecionado")
+        void shouldThrowValidationExceptionWhenServiceIsNotAssignedToEmployee() {
+                // Arrange
+                UUID customerId = UUID.randomUUID();
+                UUID businessId = UUID.randomUUID();
+                UUID employeeId = UUID.randomUUID();
+                UUID serviceId = UUID.randomUUID();
+                CreateAppointmentRequest request = new CreateAppointmentRequest(
+                                businessId, employeeId, serviceId,
+                                OffsetDateTime.now(ZoneOffset.ofHours(-1)), null);
+                BusinessResponse business = new BusinessResponse(
+                                businessId, UUID.randomUUID(), "Salão Pérola", "Santiago", "Praia",
+                                "Platô", "+2382610000", "Atlantic/Cape_Verde", List.of(), true, Instant.now(),
+                                Instant.now());
+                EmployeeResponse employee = new EmployeeResponse(
+                                employeeId, businessId, UUID.randomUUID(), "Carla", true, Instant.now(), Instant.now());
+                ServiceResponse service = new ServiceResponse(
+                                serviceId, businessId, UUID.randomUUID(), "hair", "Cabeleireiro & Tranças",
+                                "Corte & Brushing", "Descrição", 60,
+                                new BigDecimal("2500.00"), true, Instant.now(), Instant.now());
 
-        when(userAccountService.existsById(customerId)).thenReturn(true);
-        when(businessEmployeeQueryService.findBusinessById(businessId)).thenReturn(Optional.of(business));
-        when(businessEmployeeQueryService.findEmployeeByIdAndBusinessId(employeeId, businessId)).thenReturn(Optional.of(employee));
-        when(businessEmployeeQueryService.findServiceByIdAndBusinessId(serviceId, businessId)).thenReturn(Optional.of(service));
-        when(businessEmployeeQueryService.hasAnyAssignedServices(businessId, employeeId)).thenReturn(true);
-        when(businessEmployeeQueryService.isServiceAssignedToEmployee(businessId, employeeId, serviceId)).thenReturn(false);
+                when(userAccountService.existsById(customerId)).thenReturn(true);
+                when(businessEmployeeQueryService.findBusinessById(businessId)).thenReturn(Optional.of(business));
+                when(businessEmployeeQueryService.findEmployeeByIdAndBusinessId(employeeId, businessId))
+                                .thenReturn(Optional.of(employee));
+                when(businessEmployeeQueryService.findServiceByIdAndBusinessId(serviceId, businessId))
+                                .thenReturn(Optional.of(service));
+                when(businessEmployeeQueryService.hasAnyAssignedServices(businessId, employeeId)).thenReturn(true);
+                when(businessEmployeeQueryService.isServiceAssignedToEmployee(businessId, employeeId, serviceId))
+                                .thenReturn(false);
 
-        // Act & Assert
-        assertThatThrownBy(() -> createAppointmentUseCase.execute(customerId, request))
-                .isInstanceOf(ValidationException.class)
-                .hasMessage("O profissional selecionado não realiza este serviço.");
-        verify(appointmentRepository, never()).saveAndFlush(any());
-    }
+                // Act & Assert
+                assertThatThrownBy(() -> createAppointmentUseCase.execute(customerId, request))
+                                .isInstanceOf(ValidationException.class)
+                                .hasMessage("O profissional selecionado não realiza este serviço.");
+                verify(appointmentRepository, never()).saveAndFlush(any());
+        }
+
 }

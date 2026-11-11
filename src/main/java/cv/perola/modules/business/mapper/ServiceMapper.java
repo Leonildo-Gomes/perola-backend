@@ -1,7 +1,10 @@
 package cv.perola.modules.business.mapper;
 
+import cv.perola.modules.business.domain.BusinessEntity;
+import cv.perola.modules.business.domain.CategoryEntity;
 import cv.perola.modules.business.domain.ServiceEntity;
 import cv.perola.modules.business.dto.CreateServiceRequest;
+import cv.perola.modules.business.dto.MarketplaceServiceResponse;
 import cv.perola.modules.business.dto.ServiceResponse;
 import org.springframework.stereotype.Component;
 
@@ -10,9 +13,10 @@ import java.util.UUID;
 @Component
 public class ServiceMapper {
 
-    public ServiceEntity toEntity(CreateServiceRequest request, UUID businessId) {
+    public ServiceEntity toEntity(CreateServiceRequest request, UUID businessId, CategoryEntity category) {
         return ServiceEntity.builder()
                 .businessId(businessId)
+                .category(category)
                 .name(request.name() != null ? request.name().trim() : null)
                 .description(request.description() != null ? request.description().trim() : null)
                 .durationMinutes(request.durationMinutes())
@@ -25,35 +29,41 @@ public class ServiceMapper {
         if (entity == null) {
             return null;
         }
+        CategoryEntity category = entity.getCategory();
         return new ServiceResponse(
                 entity.getId(),
                 entity.getBusinessId(),
+                category != null ? category.getId() : null,
+                category != null ? category.getSlug() : null,
+                category != null ? category.getName() : null,
                 entity.getName(),
                 entity.getDescription(),
                 entity.getDurationMinutes(),
                 entity.getPrice(),
                 entity.isActive(),
                 entity.getCreatedAt(),
-                entity.getUpdatedAt()
-        );
+                entity.getUpdatedAt());
     }
 
-    public cv.perola.modules.business.dto.MarketplaceServiceResponse toMarketplaceResponse(
+    public MarketplaceServiceResponse toMarketplaceResponse(
             ServiceEntity entity,
-            cv.perola.modules.business.domain.BusinessEntity business) {
+            BusinessEntity business) {
         if (entity == null) {
             return null;
         }
-        return new cv.perola.modules.business.dto.MarketplaceServiceResponse(
+        CategoryEntity category = entity.getCategory();
+        return new MarketplaceServiceResponse(
                 entity.getId(),
                 entity.getBusinessId(),
+                category != null ? category.getId() : null,
+                category != null ? category.getSlug() : null,
+                category != null ? category.getName() : null,
                 business != null ? business.getName() : null,
                 business != null ? business.getIsland() : null,
                 business != null ? business.getCity() : null,
                 entity.getName(),
                 entity.getDescription(),
                 entity.getDurationMinutes(),
-                entity.getPrice()
-        );
+                entity.getPrice());
     }
 }

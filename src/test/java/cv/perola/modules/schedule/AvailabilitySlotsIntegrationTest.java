@@ -1,7 +1,9 @@
 package cv.perola.modules.schedule;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import cv.perola.modules.business.dto.BusinessCategoryItemRequest;
 import cv.perola.modules.business.dto.BusinessResponse;
+import cv.perola.modules.business.dto.CategoryResponse;
 import cv.perola.modules.business.dto.CreateBusinessRequest;
 import cv.perola.modules.business.dto.CreateServiceRequest;
 import cv.perola.modules.business.dto.ServiceResponse;
@@ -350,9 +352,21 @@ class AvailabilitySlotsIntegrationTest {
         return objectMapper.readValue(res.getResponse().getContentAsString(), AuthResponse.class);
     }
 
+    private UUID fetchDefaultCategoryId() throws Exception {
+        MvcResult res = mockMvc.perform(get("/api/v1/marketplace/categories"))
+                .andExpect(status().isOk())
+                .andReturn();
+        CategoryResponse[] categories = objectMapper.readValue(
+                res.getResponse().getContentAsString(), CategoryResponse[].class
+        );
+        return categories[0].id();
+    }
+
     private UUID createBusiness(String token, String name) throws Exception {
+        UUID categoryId = fetchDefaultCategoryId();
         CreateBusinessRequest req = new CreateBusinessRequest(
-                name, "Santiago", "Praia", "Platô", "+2382610011", "Atlantic/Cape_Verde"
+                name, "Santiago", "Praia", "Platô", "+2382610011", "Atlantic/Cape_Verde",
+                List.of(new BusinessCategoryItemRequest(categoryId, true))
         );
         MvcResult res = mockMvc.perform(post("/api/v1/businesses")
                         .header("Authorization", "Bearer " + token)
@@ -373,7 +387,8 @@ class AvailabilitySlotsIntegrationTest {
     }
 
     private UUID createService(String token, UUID bizId, String name, int durationMinutes, BigDecimal price) throws Exception {
-        CreateServiceRequest req = new CreateServiceRequest(name, "Serviço completo", durationMinutes, price);
+        UUID categoryId = fetchDefaultCategoryId();
+        CreateServiceRequest req = new CreateServiceRequest(categoryId, name, "Serviço completo", durationMinutes, price);
         MvcResult res = mockMvc.perform(post("/api/v1/businesses/{id}/services", bizId)
                         .header("Authorization", "Bearer " + token)
                         .header(TENANT_HEADER, bizId.toString())

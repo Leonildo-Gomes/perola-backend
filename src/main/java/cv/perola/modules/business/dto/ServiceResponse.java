@@ -15,6 +15,15 @@ public record ServiceResponse(
         @Schema(description = "Identificador do salão detentor do serviço", example = "3fa85f64-5717-4562-b3fc-2c963f66afa6")
         UUID businessId,
 
+        @Schema(description = "Identificador da categoria do serviço", example = "2fa85f64-5717-4562-b3fc-2c963f66afa6")
+        UUID categoryId,
+
+        @Schema(description = "Slug da categoria do serviço", example = "hair")
+        String categorySlug,
+
+        @Schema(description = "Nome da categoria do serviço", example = "Cabeleireiro & Tranças")
+        String categoryName,
+
         @Schema(description = "Nome do serviço", example = "Corte & Brushing")
         String name,
 

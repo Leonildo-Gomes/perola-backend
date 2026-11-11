@@ -29,6 +29,9 @@ public record MarketplaceBusinessDetailResponse(
         @Schema(description = "Fuso horário do salão", example = "Atlantic/Cape_Verde")
         String timezone,
 
+        @Schema(description = "Categorias de atuação do estabelecimento")
+        List<BusinessCategoryResponse> categories,
+
         @Schema(description = "Catálogo de serviços ativos oferecidos pelo salão")
         List<ServiceResponse> services,
 

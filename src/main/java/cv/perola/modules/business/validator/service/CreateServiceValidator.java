@@ -2,8 +2,10 @@ package cv.perola.modules.business.validator.service;
 
 import cv.perola.core.exception.ConflictException;
 import cv.perola.core.exception.ResourceNotFoundException;
+import cv.perola.modules.business.domain.CategoryEntity;
 import cv.perola.modules.business.dto.CreateServiceRequest;
 import cv.perola.modules.business.repository.BusinessRepository;
+import cv.perola.modules.business.repository.CategoryRepository;
 import cv.perola.modules.business.repository.ServiceRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
@@ -15,17 +17,23 @@ import java.util.UUID;
 public class CreateServiceValidator {
 
     private final BusinessRepository businessRepository;
+    private final CategoryRepository categoryRepository;
     private final ServiceRepository serviceRepository;
 
-    public void validate(UUID businessId, CreateServiceRequest request) {
+    public CategoryEntity validate(UUID businessId, CreateServiceRequest request) {
         if (!businessRepository.existsById(businessId)) {
             throw new ResourceNotFoundException("Salão não encontrado: " + businessId);
         }
+
+        CategoryEntity category = categoryRepository.findByIdAndIsActiveTrue(request.categoryId())
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "Categoria não encontrada ou inativa: " + request.categoryId()));
 
         String serviceName = request.name().trim();
         if (serviceRepository.existsByNameIgnoreCaseAndBusinessIdAndIsActiveTrue(serviceName, businessId)) {
             throw new ConflictException("Já existe um serviço ativo com o nome '" + serviceName + "' neste salão.");
         }
+
+        return category;
     }
 }
-

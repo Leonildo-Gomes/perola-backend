@@ -53,7 +53,7 @@ class ListBusinessReviewsUseCaseTest {
         UUID businessId = UUID.randomUUID();
         BusinessResponse business = new BusinessResponse(
                 businessId, UUID.randomUUID(), "Salão Pérola", "Santiago", "Praia",
-                "Platô", "+2389911223", "Atlantic/Cape_Verde", true, Instant.now(), Instant.now()
+                "Platô", "+2389911223", "Atlantic/Cape_Verde", List.of(), true, Instant.now(), Instant.now()
         );
         ReviewEntity entity = ReviewEntity.builder()
                 .appointmentId(UUID.randomUUID())

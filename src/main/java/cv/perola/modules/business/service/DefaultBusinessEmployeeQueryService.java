@@ -1,11 +1,14 @@
 package cv.perola.modules.business.service;
 
+import cv.perola.modules.business.dto.BusinessCategoryResponse;
 import cv.perola.modules.business.dto.BusinessResponse;
 import cv.perola.modules.business.dto.EmployeeResponse;
 import cv.perola.modules.business.dto.ServiceResponse;
 import cv.perola.modules.business.mapper.BusinessMapper;
+import cv.perola.modules.business.mapper.CategoryMapper;
 import cv.perola.modules.business.mapper.EmployeeMapper;
 import cv.perola.modules.business.mapper.ServiceMapper;
+import cv.perola.modules.business.repository.BusinessCategoryRepository;
 import cv.perola.modules.business.repository.BusinessRepository;
 import cv.perola.modules.business.repository.EmployeeRepository;
 import cv.perola.modules.business.repository.EmployeeServiceRepository;
@@ -14,6 +17,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -23,17 +27,24 @@ import java.util.UUID;
 public class DefaultBusinessEmployeeQueryService implements BusinessEmployeeQueryService {
 
     private final BusinessRepository businessRepository;
+    private final BusinessCategoryRepository businessCategoryRepository;
     private final EmployeeRepository employeeRepository;
     private final ServiceRepository serviceRepository;
     private final EmployeeServiceRepository employeeServiceRepository;
     private final BusinessMapper businessMapper;
+    private final CategoryMapper categoryMapper;
     private final EmployeeMapper employeeMapper;
     private final ServiceMapper serviceMapper;
 
     @Override
     public Optional<BusinessResponse> findBusinessById(UUID businessId) {
         return businessRepository.findById(businessId)
-                .map(businessMapper::toResponse);
+                .map(business -> {
+                    List<BusinessCategoryResponse> categories = categoryMapper.toBusinessCategoryResponses(
+                            businessCategoryRepository.findAllByBusinessId(businessId)
+                    );
+                    return businessMapper.toResponse(business, categories);
+                });
     }
 
     @Override

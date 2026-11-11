@@ -8,9 +8,14 @@ import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 
 import java.math.BigDecimal;
+import java.util.UUID;
 
 @Schema(description = "Payload para criação de um novo serviço no catálogo do salão")
 public record CreateServiceRequest(
+
+        @Schema(description = "UUID da categoria à qual o serviço pertence", example = "3fa85f64-5717-4562-b3fc-2c963f66afa6")
+        @NotNull(message = "A categoria do serviço é obrigatória")
+        UUID categoryId,
 
         @Schema(description = "Nome do serviço", example = "Corte & Brushing")
         @NotBlank(message = "O nome do serviço é obrigatório")

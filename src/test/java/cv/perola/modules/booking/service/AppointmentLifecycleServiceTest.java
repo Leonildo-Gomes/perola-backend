@@ -104,7 +104,7 @@ class AppointmentLifecycleServiceTest {
 
         BusinessResponse business = new BusinessResponse(
                 businessId, actorId, "Salão", "Santiago", "Praia", "Platô",
-                "+2382610000", "Atlantic/Cape_Verde", true, Instant.now(), Instant.now()
+                "+2382610000", "Atlantic/Cape_Verde", List.of(), true, Instant.now(), Instant.now()
         );
         AppointmentResponse expectedResponse = new AppointmentResponse(
                 appointmentId, businessId, customerId, employeeId, appointment.getServiceId(),
@@ -178,4 +178,3 @@ class AppointmentLifecycleServiceTest {
                 .isInstanceOf(TenantAccessDeniedException.class);
     }
 }
-

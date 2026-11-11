@@ -279,10 +279,11 @@ class CalculateAvailableSlotsUseCaseTest {
         );
         BusinessResponse business = new BusinessResponse(
                 businessId, UUID.randomUUID(), "Salão Pérola", "Santiago", "Praia",
-                "Platô", "+2389911223", "Atlantic/Cape_Verde", true, Instant.now(), Instant.now()
+                "Platô", "+2389911223", "Atlantic/Cape_Verde", List.of(), true, Instant.now(), Instant.now()
         );
         ServiceResponse service = new ServiceResponse(
-                serviceId, businessId, "Corte & Brushing", null, 60,
+                serviceId, businessId, UUID.randomUUID(), "hair", "Cabeleireiro & Tranças",
+                "Corte & Brushing", null, 60,
                 new BigDecimal("2500.00"), true, Instant.now(), Instant.now()
         );
 

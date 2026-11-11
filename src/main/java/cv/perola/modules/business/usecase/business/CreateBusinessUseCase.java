@@ -1,12 +1,17 @@
 package cv.perola.modules.business.usecase.business;
 
 import cv.perola.core.exception.ResourceNotFoundException;
+import cv.perola.modules.business.domain.BusinessCategoryEntity;
 import cv.perola.modules.business.domain.BusinessEntity;
+import cv.perola.modules.business.domain.CategoryEntity;
 import cv.perola.modules.business.domain.EmployeeEntity;
+import cv.perola.modules.business.dto.BusinessCategoryResponse;
 import cv.perola.modules.business.dto.BusinessResponse;
 import cv.perola.modules.business.dto.CreateBusinessRequest;
 import cv.perola.modules.business.mapper.BusinessMapper;
+import cv.perola.modules.business.mapper.CategoryMapper;
 import cv.perola.modules.business.mapper.EmployeeMapper;
+import cv.perola.modules.business.repository.BusinessCategoryRepository;
 import cv.perola.modules.business.repository.BusinessRepository;
 import cv.perola.modules.business.repository.EmployeeRepository;
 import cv.perola.modules.business.validator.business.CreateBusinessValidator;
@@ -16,6 +21,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 @Service
@@ -23,16 +30,18 @@ import java.util.UUID;
 public class CreateBusinessUseCase {
 
     private final BusinessRepository businessRepository;
+    private final BusinessCategoryRepository businessCategoryRepository;
     private final EmployeeRepository employeeRepository;
     private final UserAccountService userAccountService;
     private final BusinessMapper businessMapper;
+    private final CategoryMapper categoryMapper;
     private final EmployeeMapper employeeMapper;
     private final CreateBusinessValidator createBusinessValidator;
 
     @Transactional
     public BusinessResponse execute(UUID currentUserId, CreateBusinessRequest request) {
-        // 1. Validação isolada de elegibilidade e regras de negócio
-        createBusinessValidator.validate(currentUserId, request);
+        // 1. Validação isolada de elegibilidade, regras de negócio e categorias
+        Map<UUID, CategoryEntity> categoryMap = createBusinessValidator.validate(currentUserId, request);
 
         // 2. Obter nome do utilizador no módulo Identity
         String ownerName = userAccountService.findUserNameById(currentUserId)
@@ -42,17 +51,26 @@ public class CreateBusinessUseCase {
         BusinessEntity business = businessMapper.toEntity(request, currentUserId);
         BusinessEntity savedBusiness = businessRepository.save(business);
 
-        // 4. Concessão de papéis no módulo de identidade
+        // 4. Associar categorias ao estabelecimento (suporte a espaços mistos)
+        List<BusinessCategoryEntity> businessCategories = categoryMapper.toBusinessCategoryEntities(
+                savedBusiness.getId(),
+                request.categories(),
+                categoryMap
+        );
+        List<BusinessCategoryEntity> savedCategories = businessCategoryRepository.saveAll(businessCategories);
+
+        // 5. Concessão de papéis no módulo de identidade
         userAccountService.assignRole(currentUserId, UserRole.OWNER);
         userAccountService.assignRole(currentUserId, UserRole.EMPLOYEE);
 
-        // 5. Criação automática do perfil de funcionário inicial para o proprietário
+        // 6. Criação automática do perfil de funcionário inicial para o proprietário
         EmployeeEntity initialEmployee = employeeMapper.toEntity(
                 savedBusiness.getId(),
                 currentUserId,
                 ownerName);
         employeeRepository.save(initialEmployee);
 
-        return businessMapper.toResponse(savedBusiness);
+        List<BusinessCategoryResponse> categoryResponses = categoryMapper.toBusinessCategoryResponses(savedCategories);
+        return businessMapper.toResponse(savedBusiness, categoryResponses);
     }
 }

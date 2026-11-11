@@ -1,10 +1,17 @@
 package cv.perola.modules.business.mapper;
 
 import cv.perola.modules.business.domain.BusinessEntity;
+import cv.perola.modules.business.dto.BusinessCategoryResponse;
 import cv.perola.modules.business.dto.BusinessResponse;
 import cv.perola.modules.business.dto.CreateBusinessRequest;
+import cv.perola.modules.business.dto.EmployeeResponse;
+import cv.perola.modules.business.dto.MarketplaceBusinessDetailResponse;
+import cv.perola.modules.business.dto.MarketplaceBusinessSummaryResponse;
+import cv.perola.modules.business.dto.ServiceResponse;
 import org.springframework.stereotype.Component;
 
+import java.util.Collections;
+import java.util.List;
 import java.util.UUID;
 
 @Component
@@ -33,7 +40,7 @@ public class BusinessMapper {
                 .build();
     }
 
-    public BusinessResponse toResponse(BusinessEntity entity) {
+    public BusinessResponse toResponse(BusinessEntity entity, List<BusinessCategoryResponse> categories) {
         if (entity == null) {
             return null;
         }
@@ -46,17 +53,21 @@ public class BusinessMapper {
                 entity.getLocation(),
                 entity.getContactPhone(),
                 entity.getTimezone(),
+                categories != null ? categories : Collections.emptyList(),
                 entity.isActive(),
                 entity.getCreatedAt(),
                 entity.getUpdatedAt()
         );
     }
 
-    public cv.perola.modules.business.dto.MarketplaceBusinessSummaryResponse toSummaryResponse(BusinessEntity entity, long servicesCount) {
+    public MarketplaceBusinessSummaryResponse toSummaryResponse(
+            BusinessEntity entity,
+            List<BusinessCategoryResponse> categories,
+            long servicesCount) {
         if (entity == null) {
             return null;
         }
-        return new cv.perola.modules.business.dto.MarketplaceBusinessSummaryResponse(
+        return new MarketplaceBusinessSummaryResponse(
                 entity.getId(),
                 entity.getName(),
                 entity.getIsland(),
@@ -64,18 +75,20 @@ public class BusinessMapper {
                 entity.getLocation(),
                 entity.getContactPhone(),
                 entity.getTimezone(),
+                categories != null ? categories : Collections.emptyList(),
                 servicesCount
         );
     }
 
-    public cv.perola.modules.business.dto.MarketplaceBusinessDetailResponse toDetailResponse(
+    public MarketplaceBusinessDetailResponse toDetailResponse(
             BusinessEntity entity,
-            java.util.List<cv.perola.modules.business.dto.ServiceResponse> services,
-            java.util.List<cv.perola.modules.business.dto.EmployeeResponse> employees) {
+            List<BusinessCategoryResponse> categories,
+            List<ServiceResponse> services,
+            List<EmployeeResponse> employees) {
         if (entity == null) {
             return null;
         }
-        return new cv.perola.modules.business.dto.MarketplaceBusinessDetailResponse(
+        return new MarketplaceBusinessDetailResponse(
                 entity.getId(),
                 entity.getName(),
                 entity.getIsland(),
@@ -83,6 +96,7 @@ public class BusinessMapper {
                 entity.getLocation(),
                 entity.getContactPhone(),
                 entity.getTimezone(),
+                categories != null ? categories : Collections.emptyList(),
                 services,
                 employees
         );

@@ -3,6 +3,9 @@ package cv.perola.modules.business.domain;
 import cv.perola.core.shared.BaseEntity;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
@@ -19,7 +22,7 @@ import java.util.UUID;
 @Table(name = "services")
 @Getter
 @Setter
-@ToString(callSuper = true)
+@ToString(callSuper = true, exclude = "category")
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor
 @Builder
@@ -27,6 +30,10 @@ public class ServiceEntity extends BaseEntity {
 
     @Column(name = "business_id", nullable = false)
     private UUID businessId;
+
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "category_id", nullable = false)
+    private CategoryEntity category;
 
     @Column(name = "name", nullable = false, length = 150)
     private String name;

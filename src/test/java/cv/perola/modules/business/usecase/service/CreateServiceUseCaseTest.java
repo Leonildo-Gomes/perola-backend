@@ -2,11 +2,13 @@ package cv.perola.modules.business.usecase.service;
 
 import cv.perola.core.exception.ConflictException;
 import cv.perola.core.exception.ResourceNotFoundException;
+import cv.perola.modules.business.domain.CategoryEntity;
 import cv.perola.modules.business.domain.ServiceEntity;
 import cv.perola.modules.business.dto.CreateServiceRequest;
 import cv.perola.modules.business.dto.ServiceResponse;
 import cv.perola.modules.business.mapper.ServiceMapper;
 import cv.perola.modules.business.repository.BusinessRepository;
+import cv.perola.modules.business.repository.CategoryRepository;
 import cv.perola.modules.business.repository.ServiceRepository;
 import cv.perola.modules.business.validator.service.CreateServiceValidator;
 import org.junit.jupiter.api.BeforeEach;
@@ -19,6 +21,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.util.Optional;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -37,6 +40,9 @@ class CreateServiceUseCaseTest {
     @Mock
     private BusinessRepository businessRepository;
 
+    @Mock
+    private CategoryRepository categoryRepository;
+
     @Spy
     private ServiceMapper serviceMapper = new ServiceMapper();
 
@@ -45,7 +51,7 @@ class CreateServiceUseCaseTest {
 
     @BeforeEach
     void setUp() {
-        createServiceValidator = new CreateServiceValidator(businessRepository, serviceRepository);
+        createServiceValidator = new CreateServiceValidator(businessRepository, categoryRepository, serviceRepository);
         createServiceUseCase = new CreateServiceUseCase(
                 serviceRepository,
                 serviceMapper,
@@ -54,11 +60,22 @@ class CreateServiceUseCaseTest {
     }
 
     @Test
-    @DisplayName("Deve criar serviço com sucesso quando dados forem válidos")
+    @DisplayName("Deve criar serviço categorizado com sucesso quando dados forem válidos")
     void shouldCreateServiceSuccessfully() {
         // Arrange
         UUID businessId = UUID.randomUUID();
+        UUID categoryId = UUID.randomUUID();
+        CategoryEntity category = CategoryEntity.builder()
+                .slug("barbershop")
+                .name("Barbearia")
+                .icon("Scissors")
+                .displayOrder(1)
+                .isActive(true)
+                .build();
+        category.setId(categoryId);
+
         CreateServiceRequest request = new CreateServiceRequest(
+                categoryId,
                 "Corte Masculino",
                 "Corte com máquina e tesoura",
                 30,
@@ -66,6 +83,7 @@ class CreateServiceUseCaseTest {
         );
 
         when(businessRepository.existsById(businessId)).thenReturn(true);
+        when(categoryRepository.findByIdAndIsActiveTrue(categoryId)).thenReturn(Optional.of(category));
         when(serviceRepository.existsByNameIgnoreCaseAndBusinessIdAndIsActiveTrue("Corte Masculino", businessId))
                 .thenReturn(false);
 
@@ -84,6 +102,9 @@ class CreateServiceUseCaseTest {
         assertThat(response).isNotNull();
         assertThat(response.id()).isNotNull();
         assertThat(response.businessId()).isEqualTo(businessId);
+        assertThat(response.categoryId()).isEqualTo(categoryId);
+        assertThat(response.categorySlug()).isEqualTo("barbershop");
+        assertThat(response.categoryName()).isEqualTo("Barbearia");
         assertThat(response.name()).isEqualTo("Corte Masculino");
         assertThat(response.description()).isEqualTo("Corte com máquina e tesoura");
         assertThat(response.durationMinutes()).isEqualTo(30);
@@ -99,6 +120,7 @@ class CreateServiceUseCaseTest {
         // Arrange
         UUID businessId = UUID.randomUUID();
         CreateServiceRequest request = new CreateServiceRequest(
+                UUID.randomUUID(),
                 "Corte",
                 "Desc",
                 30,
@@ -116,11 +138,41 @@ class CreateServiceUseCaseTest {
     }
 
     @Test
+    @DisplayName("Deve lançar ResourceNotFoundException quando categoria não existir ou estiver inativa")
+    void shouldThrowResourceNotFoundWhenCategoryDoesNotExist() {
+        // Arrange
+        UUID businessId = UUID.randomUUID();
+        UUID categoryId = UUID.randomUUID();
+        CreateServiceRequest request = new CreateServiceRequest(
+                categoryId,
+                "Corte",
+                "Desc",
+                30,
+                new BigDecimal("1000.00")
+        );
+
+        when(businessRepository.existsById(businessId)).thenReturn(true);
+        when(categoryRepository.findByIdAndIsActiveTrue(categoryId)).thenReturn(Optional.empty());
+
+        // Act & Assert
+        assertThatThrownBy(() -> createServiceUseCase.execute(businessId, request))
+                .isInstanceOf(ResourceNotFoundException.class)
+                .hasMessageContaining("Categoria não encontrada ou inativa");
+
+        verify(serviceRepository, never()).save(any());
+    }
+
+    @Test
     @DisplayName("Deve lançar ConflictException quando já existir serviço ativo com mesmo nome")
     void shouldThrowConflictWhenServiceNameAlreadyExists() {
         // Arrange
         UUID businessId = UUID.randomUUID();
+        UUID categoryId = UUID.randomUUID();
+        CategoryEntity category = CategoryEntity.builder().slug("barbershop").name("Barbearia").build();
+        category.setId(categoryId);
+
         CreateServiceRequest request = new CreateServiceRequest(
+                categoryId,
                 "Corte Masculino",
                 "Desc",
                 30,
@@ -128,6 +180,7 @@ class CreateServiceUseCaseTest {
         );
 
         when(businessRepository.existsById(businessId)).thenReturn(true);
+        when(categoryRepository.findByIdAndIsActiveTrue(categoryId)).thenReturn(Optional.of(category));
         when(serviceRepository.existsByNameIgnoreCaseAndBusinessIdAndIsActiveTrue("Corte Masculino", businessId))
                 .thenReturn(true);
 

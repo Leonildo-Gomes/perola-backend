@@ -1,5 +1,6 @@
 package cv.perola.modules.business.mapper;
 
+import cv.perola.modules.business.domain.CategoryEntity;
 import cv.perola.modules.business.domain.ServiceEntity;
 import cv.perola.modules.business.dto.CreateServiceRequest;
 import cv.perola.modules.business.dto.ServiceResponse;
@@ -17,23 +18,32 @@ class ServiceMapperTest {
     private final ServiceMapper serviceMapper = new ServiceMapper();
 
     @Test
-    @DisplayName("Deve converter CreateServiceRequest para ServiceEntity com campos mapeados")
+    @DisplayName("Deve converter CreateServiceRequest para ServiceEntity com campos e categoria mapeados")
     void shouldConvertRequestToEntity() {
         // Arrange
         UUID businessId = UUID.randomUUID();
+        UUID categoryId = UUID.randomUUID();
+        CategoryEntity category = CategoryEntity.builder()
+                .slug("barbershop")
+                .name("Barbearia")
+                .icon("Scissors")
+                .displayOrder(1)
+                .build();
+        category.setId(categoryId);
+
         CreateServiceRequest request = new CreateServiceRequest(
+                categoryId,
                 "Corte e Barba",
                 "Corte masculino tradicional com finalização de barba",
                 45,
-                new BigDecimal("1500.00")
-        );
-
+                new BigDecimal("1500.00"));
         // Act
-        ServiceEntity entity = serviceMapper.toEntity(request, businessId);
+        ServiceEntity entity = serviceMapper.toEntity(request, businessId, category);
 
         // Assert
         assertThat(entity).isNotNull();
         assertThat(entity.getBusinessId()).isEqualTo(businessId);
+        assertThat(entity.getCategory()).isEqualTo(category);
         assertThat(entity.getName()).isEqualTo("Corte e Barba");
         assertThat(entity.getDescription()).isEqualTo("Corte masculino tradicional com finalização de barba");
         assertThat(entity.getDurationMinutes()).isEqualTo(45);
@@ -42,14 +52,24 @@ class ServiceMapperTest {
     }
 
     @Test
-    @DisplayName("Deve converter ServiceEntity para ServiceResponse com sucesso")
+    @DisplayName("Deve converter ServiceEntity para ServiceResponse com dados da categoria")
     void shouldConvertEntityToResponse() {
         // Arrange
         UUID id = UUID.randomUUID();
         UUID businessId = UUID.randomUUID();
+        UUID categoryId = UUID.randomUUID();
         Instant now = Instant.now();
+        CategoryEntity category = CategoryEntity.builder()
+                .slug("nails")
+                .name("Unhas (Manicure & Pedicure)")
+                .icon("Hand")
+                .displayOrder(3)
+                .build();
+        category.setId(categoryId);
+
         ServiceEntity entity = ServiceEntity.builder()
                 .businessId(businessId)
+                .category(category)
                 .name("Manicure & Pedicure")
                 .description("Unhas completas com esmaltação em gel")
                 .durationMinutes(60)
@@ -67,6 +87,9 @@ class ServiceMapperTest {
         assertThat(response).isNotNull();
         assertThat(response.id()).isEqualTo(id);
         assertThat(response.businessId()).isEqualTo(businessId);
+        assertThat(response.categoryId()).isEqualTo(categoryId);
+        assertThat(response.categorySlug()).isEqualTo("nails");
+        assertThat(response.categoryName()).isEqualTo("Unhas (Manicure & Pedicure)");
         assertThat(response.name()).isEqualTo("Manicure & Pedicure");
         assertThat(response.description()).isEqualTo("Unhas completas com esmaltação em gel");
         assertThat(response.durationMinutes()).isEqualTo(60);

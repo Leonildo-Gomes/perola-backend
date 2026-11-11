@@ -10,7 +10,9 @@ import cv.perola.modules.booking.dto.CreateReviewRequest;
 import cv.perola.modules.booking.dto.RejectRescheduleRequest;
 import cv.perola.modules.booking.dto.RescheduleAppointmentRequest;
 import cv.perola.modules.booking.repository.AppointmentRepository;
+import cv.perola.modules.business.dto.BusinessCategoryItemRequest;
 import cv.perola.modules.business.dto.BusinessResponse;
+import cv.perola.modules.business.dto.CategoryResponse;
 import cv.perola.modules.business.dto.CreateBusinessRequest;
 import cv.perola.modules.business.dto.CreateServiceRequest;
 import cv.perola.modules.business.dto.ServiceResponse;
@@ -35,6 +37,7 @@ import org.springframework.web.context.WebApplicationContext;
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
+import java.util.List;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -151,7 +154,7 @@ class BookingIntegrationTest {
 
         // Alterar preço e nome do serviço no catálogo e verificar que o snapshot permanece inalterado
         UpdateServiceRequest updateServiceRequest = new UpdateServiceRequest(
-                "Tranças Premium", "Nova descrição", 90, new BigDecimal("5000.00"), true
+                null, "Tranças Premium", "Nova descrição", 90, new BigDecimal("5000.00"), true
         );
         mockMvc.perform(patch("/api/v1/businesses/{id}/services/{serviceId}", businessId, serviceId)
                         .header("Authorization", "Bearer " + ownerToken)
@@ -521,9 +524,21 @@ class BookingIntegrationTest {
         return objectMapper.readValue(res.getResponse().getContentAsString(), AuthResponse.class);
     }
 
+    private UUID fetchDefaultCategoryId() throws Exception {
+        MvcResult res = mockMvc.perform(get("/api/v1/marketplace/categories"))
+                .andExpect(status().isOk())
+                .andReturn();
+        CategoryResponse[] categories = objectMapper.readValue(
+                res.getResponse().getContentAsString(), CategoryResponse[].class
+        );
+        return categories[0].id();
+    }
+
     private UUID createBusiness(String token, String name) throws Exception {
+        UUID categoryId = fetchDefaultCategoryId();
         CreateBusinessRequest req = new CreateBusinessRequest(
-                name, "Santiago", "Praia", "Achada Santo António", "+2382621122", "Atlantic/Cape_Verde"
+                name, "Santiago", "Praia", "Achada Santo António", "+2382621122", "Atlantic/Cape_Verde",
+                List.of(new BusinessCategoryItemRequest(categoryId, true))
         );
         MvcResult res = mockMvc.perform(post("/api/v1/businesses")
                         .header("Authorization", "Bearer " + token)
@@ -547,7 +562,8 @@ class BookingIntegrationTest {
 
     private UUID createService(String token, UUID bizId, String name, int duration, BigDecimal price)
             throws Exception {
-        CreateServiceRequest req = new CreateServiceRequest(name, "Serviço profissional", duration, price);
+        UUID categoryId = fetchDefaultCategoryId();
+        CreateServiceRequest req = new CreateServiceRequest(categoryId, name, "Serviço profissional", duration, price);
         MvcResult res = mockMvc.perform(post("/api/v1/businesses/{id}/services", bizId)
                         .header("Authorization", "Bearer " + token)
                         .header(TENANT_HEADER, bizId.toString())

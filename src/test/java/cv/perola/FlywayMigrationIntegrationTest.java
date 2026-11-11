@@ -24,18 +24,18 @@ class FlywayMigrationIntegrationTest {
     private JdbcTemplate jdbcTemplate;
 
     @Test
-    @DisplayName("Deve conter o histórico de migrações V1, V2, V3 e V4 com sucesso no Flyway")
+    @DisplayName("Deve conter o histórico de migrações V1, V2, V3, V4 e V5 com sucesso no Flyway")
     void flywayMigrationHistoryIsComplete() {
         List<String> versions = jdbcTemplate.query(
                 "SELECT version FROM flyway_schema_history WHERE success = true ORDER BY installed_rank",
                 (rs, rowNum) -> rs.getString("version")
         );
 
-        assertThat(versions).contains("1", "2", "3", "4");
+        assertThat(versions).contains("1", "2", "3", "4", "5");
     }
 
     @Test
-    @DisplayName("Deve conter todas as 16 tabelas de domínio criadas pelas migrações")
+    @DisplayName("Deve conter todas as 18 tabelas de domínio criadas pelas migrações")
     void allRequiredTablesExist() {
         List<String> tables = jdbcTemplate.query(
                 "SELECT table_name FROM information_schema.tables WHERE table_schema = 'public'",
@@ -46,7 +46,9 @@ class FlywayMigrationIntegrationTest {
                 "users",
                 "user_roles",
                 "refresh_tokens",
+                "categories",
                 "businesses",
+                "business_categories",
                 "services",
                 "employees",
                 "employee_services",
@@ -60,6 +62,54 @@ class FlywayMigrationIntegrationTest {
                 "appointment_histories",
                 "reviews"
         );
+    }
+
+    @Test
+    @DisplayName("Deve conter as 6 categorias oficiais semeadas pela migração V5 e proteger uk_business_categories_primary")
+    void categoriesAreSeededAndPrimaryIndexEnforced() {
+        List<String> slugs = jdbcTemplate.query(
+                "SELECT slug FROM categories WHERE is_active = true ORDER BY display_order ASC",
+                (rs, rowNum) -> rs.getString("slug")
+        );
+
+        assertThat(slugs).containsExactly(
+                "barbershop",
+                "hair",
+                "nails",
+                "spa_massage",
+                "aesthetics",
+                "makeup_brows"
+        );
+
+        UUID ownerId = UUID.randomUUID();
+        UUID businessId = UUID.randomUUID();
+        UUID cat1Id = jdbcTemplate.queryForObject("SELECT id FROM categories WHERE slug = 'barbershop'", UUID.class);
+        UUID cat2Id = jdbcTemplate.queryForObject("SELECT id FROM categories WHERE slug = 'hair'", UUID.class);
+
+        try {
+            jdbcTemplate.update(
+                    "INSERT INTO users (id, name, email, phone) VALUES (?, ?, ?, ?)",
+                    ownerId, "Dono Cat", "owner-cat-" + ownerId + "@test.cv", "+2389919999"
+            );
+            jdbcTemplate.update(
+                    "INSERT INTO businesses (id, owner_id, name, island, city, location, contact_phone) VALUES (?, ?, ?, ?, ?, ?, ?)",
+                    businessId, ownerId, "Salão Misto", "Santiago", "Praia", "Platô", "+2382619999"
+            );
+            jdbcTemplate.update(
+                    "INSERT INTO business_categories (business_id, category_id, is_primary) VALUES (?, ?, TRUE)",
+                    businessId, cat1Id
+            );
+
+            assertThatThrownBy(() -> jdbcTemplate.update(
+                    "INSERT INTO business_categories (business_id, category_id, is_primary) VALUES (?, ?, TRUE)",
+                    businessId, cat2Id
+            )).isInstanceOf(DataIntegrityViolationException.class)
+              .hasMessageContaining("uk_business_categories_primary");
+        } finally {
+            jdbcTemplate.update("DELETE FROM business_categories WHERE business_id = ?", businessId);
+            jdbcTemplate.update("DELETE FROM businesses WHERE id = ?", businessId);
+            jdbcTemplate.update("DELETE FROM users WHERE id = ?", ownerId);
+        }
     }
 
     @Test
@@ -108,9 +158,13 @@ class FlywayMigrationIntegrationTest {
                     "INSERT INTO businesses (id, owner_id, name, island, city, location, contact_phone) VALUES (?, ?, ?, ?, ?, ?, ?)",
                     businessId, ownerId, "Salão Beleza", "Santiago", "Praia", "Plateau", "+2382611111"
             );
+            UUID categoryId = jdbcTemplate.queryForObject(
+                    "SELECT id FROM categories WHERE slug = 'barbershop' LIMIT 1",
+                    UUID.class
+            );
             jdbcTemplate.update(
-                    "INSERT INTO services (id, business_id, name, duration_minutes, price) VALUES (?, ?, ?, ?, ?)",
-                    serviceId, businessId, "Corte Cabelo", 60, 1000.00
+                    "INSERT INTO services (id, business_id, category_id, name, duration_minutes, price) VALUES (?, ?, ?, ?, ?, ?)",
+                    serviceId, businessId, categoryId, "Corte Cabelo", 60, 1000.00
             );
             jdbcTemplate.update(
                     "INSERT INTO employees (id, business_id, display_name) VALUES (?, ?, ?)",

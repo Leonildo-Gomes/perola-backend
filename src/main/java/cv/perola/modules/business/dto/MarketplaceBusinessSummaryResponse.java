@@ -2,6 +2,7 @@ package cv.perola.modules.business.dto;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 
+import java.util.List;
 import java.util.UUID;
 
 @Schema(description = "Resumo público de um salão para listagem e busca no marketplace")
@@ -27,6 +28,9 @@ public record MarketplaceBusinessSummaryResponse(
 
         @Schema(description = "Fuso horário do salão", example = "Atlantic/Cape_Verde")
         String timezone,
+
+        @Schema(description = "Categorias de atuação do estabelecimento")
+        List<BusinessCategoryResponse> categories,
 
         @Schema(description = "Quantidade de serviços ativos disponíveis no salão", example = "12")
         long servicesCount

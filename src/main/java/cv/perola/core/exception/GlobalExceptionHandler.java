@@ -130,6 +130,8 @@ public class GlobalExceptionHandler {
             detail = "O utilizador já possui um salão registado. No MVP é permitido apenas 1 negócio por proprietário.";
         } else if (ex.getMessage() != null && ex.getMessage().contains("uk_reviews_appointment")) {
             detail = "Já existe uma avaliação registada para este agendamento.";
+        } else if (ex.getMessage() != null && ex.getMessage().contains("uk_business_categories_primary")) {
+            detail = "O estabelecimento pode ter apenas uma categoria principal.";
         }
         ProblemDetail problem = ProblemDetail.forStatusAndDetail(
                 HttpStatus.CONFLICT,

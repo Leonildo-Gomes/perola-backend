@@ -1,8 +1,12 @@
 package cv.perola.modules.business.dto;
 
 import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.Size;
+
+import java.util.List;
 
 @Schema(description = "Dados para criação e registo de um novo salão")
 public record CreateBusinessRequest(
@@ -31,6 +35,11 @@ public record CreateBusinessRequest(
         String contactPhone,
 
         @Schema(description = "Fuso horário IANA (padrão Atlantic/Cape_Verde)", example = "Atlantic/Cape_Verde")
-        String timezone
+        String timezone,
+
+        @NotEmpty(message = "Deve selecionar pelo menos uma categoria para o estabelecimento.")
+        @Valid
+        @Schema(description = "Categorias de atuação do estabelecimento (suporta espaços mistos, com exatamente 1 isPrimary = true)")
+        List<BusinessCategoryItemRequest> categories
 ) {
 }

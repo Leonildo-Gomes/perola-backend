@@ -2,11 +2,13 @@ package cv.perola.modules.business.validator.business;
 
 import cv.perola.core.exception.AuthenticationFailedException;
 import cv.perola.core.exception.ConflictException;
+import cv.perola.modules.business.domain.CategoryEntity;
 import cv.perola.modules.business.dto.CreateBusinessRequest;
 import cv.perola.modules.business.repository.BusinessRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
+import java.util.Map;
 import java.util.UUID;
 
 @Component
@@ -14,8 +16,9 @@ import java.util.UUID;
 public class CreateBusinessValidator {
 
     private final BusinessRepository businessRepository;
+    private final BusinessCategoryValidator businessCategoryValidator;
 
-    public void validate(UUID currentUserId, CreateBusinessRequest request) {
+    public Map<UUID, CategoryEntity> validate(UUID currentUserId, CreateBusinessRequest request) {
         if (currentUserId == null) {
             throw new AuthenticationFailedException("Autenticação necessária.");
         }
@@ -24,6 +27,7 @@ public class CreateBusinessValidator {
             throw new ConflictException(
                     "O utilizador já possui um salão registado. No MVP é permitido apenas 1 negócio por proprietário.");
         }
+
+        return businessCategoryValidator.validateAndResolveCategories(request.categories());
     }
 }
-

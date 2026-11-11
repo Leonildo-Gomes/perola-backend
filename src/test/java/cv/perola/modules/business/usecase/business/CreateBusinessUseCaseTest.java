@@ -3,17 +3,24 @@ package cv.perola.modules.business.usecase.business;
 import cv.perola.core.exception.AuthenticationFailedException;
 import cv.perola.core.exception.ConflictException;
 import cv.perola.core.exception.ResourceNotFoundException;
+import cv.perola.modules.business.domain.BusinessCategoryEntity;
 import cv.perola.modules.business.domain.BusinessEntity;
+import cv.perola.modules.business.domain.CategoryEntity;
 import cv.perola.modules.business.domain.EmployeeEntity;
+import cv.perola.modules.business.dto.BusinessCategoryItemRequest;
 import cv.perola.modules.business.dto.BusinessResponse;
 import cv.perola.modules.business.dto.CreateBusinessRequest;
+import cv.perola.modules.business.mapper.BusinessMapper;
+import cv.perola.modules.business.mapper.CategoryMapper;
+import cv.perola.modules.business.mapper.EmployeeMapper;
+import cv.perola.modules.business.repository.BusinessCategoryRepository;
 import cv.perola.modules.business.repository.BusinessRepository;
+import cv.perola.modules.business.repository.CategoryRepository;
 import cv.perola.modules.business.repository.EmployeeRepository;
+import cv.perola.modules.business.validator.business.BusinessCategoryValidator;
+import cv.perola.modules.business.validator.business.CreateBusinessValidator;
 import cv.perola.modules.identity.domain.enums.UserRole;
 import cv.perola.modules.identity.service.UserAccountService;
-import cv.perola.modules.business.mapper.BusinessMapper;
-import cv.perola.modules.business.mapper.EmployeeMapper;
-import cv.perola.modules.business.validator.business.CreateBusinessValidator;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -24,12 +31,15 @@ import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.Instant;
+import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -41,6 +51,12 @@ class CreateBusinessUseCaseTest {
     private BusinessRepository businessRepository;
 
     @Mock
+    private BusinessCategoryRepository businessCategoryRepository;
+
+    @Mock
+    private CategoryRepository categoryRepository;
+
+    @Mock
     private EmployeeRepository employeeRepository;
 
     @Mock
@@ -50,40 +66,61 @@ class CreateBusinessUseCaseTest {
     private BusinessMapper businessMapper = new BusinessMapper();
 
     @Spy
+    private CategoryMapper categoryMapper = new CategoryMapper();
+
+    @Spy
     private EmployeeMapper employeeMapper = new EmployeeMapper();
 
+    private BusinessCategoryValidator businessCategoryValidator;
     private CreateBusinessValidator createBusinessValidator;
     private CreateBusinessUseCase createBusinessUseCase;
 
     @BeforeEach
     void setUp() {
-        createBusinessValidator = new CreateBusinessValidator(businessRepository);
+        businessCategoryValidator = new BusinessCategoryValidator(categoryRepository);
+        createBusinessValidator = new CreateBusinessValidator(businessRepository, businessCategoryValidator);
         createBusinessUseCase = new CreateBusinessUseCase(
                 businessRepository,
+                businessCategoryRepository,
                 employeeRepository,
                 userAccountService,
                 businessMapper,
+                categoryMapper,
                 employeeMapper,
                 createBusinessValidator
         );
     }
 
     @Test
-    @DisplayName("Deve criar salão, atribuir papéis OWNER/EMPLOYEE e criar perfil de funcionário inicial com sucesso")
+    @DisplayName("Deve criar salão misto com categorias, atribuir papéis OWNER/EMPLOYEE e criar funcionário inicial")
     void shouldCreateBusinessAndAssignOwnerRoleAndCreateInitialEmployee() {
         // Arrange
         UUID userId = UUID.randomUUID();
         UUID businessId = UUID.randomUUID();
+        UUID catHairId = UUID.randomUUID();
+        UUID catNailsId = UUID.randomUUID();
+
+        CategoryEntity catHair = CategoryEntity.builder().slug("hair").name("Cabeleireiro & Tranças").icon("Sparkles").displayOrder(2).isActive(true).build();
+        catHair.setId(catHairId);
+        CategoryEntity catNails = CategoryEntity.builder().slug("nails").name("Unhas (Manicure & Pedicure)").icon("Hand").displayOrder(3).isActive(true).build();
+        catNails.setId(catNailsId);
+
         CreateBusinessRequest request = new CreateBusinessRequest(
                 "Salão Beleza Pura",
                 "Santiago",
                 "Praia",
                 "Achada Santo António, Rua 5",
                 "+2389912233",
-                null
+                null,
+                List.of(
+                        new BusinessCategoryItemRequest(catHairId, true),
+                        new BusinessCategoryItemRequest(catNailsId, false)
+                )
         );
 
         when(businessRepository.existsByOwnerId(userId)).thenReturn(false);
+        when(categoryRepository.findAllByIdInAndIsActiveTrue(Set.of(catHairId, catNailsId)))
+                .thenReturn(List.of(catHair, catNails));
         when(userAccountService.findUserNameById(userId)).thenReturn(Optional.of("Carlos Mendes"));
 
         BusinessEntity savedBusiness = BusinessEntity.builder()
@@ -101,6 +138,7 @@ class CreateBusinessUseCaseTest {
         savedBusiness.setUpdatedAt(Instant.now());
 
         when(businessRepository.save(any(BusinessEntity.class))).thenReturn(savedBusiness);
+        when(businessCategoryRepository.saveAll(anyList())).thenAnswer(inv -> inv.getArgument(0));
 
         // Act
         BusinessResponse response = createBusinessUseCase.execute(userId, request);
@@ -112,6 +150,9 @@ class CreateBusinessUseCaseTest {
         assertThat(response.name()).isEqualTo("Salão Beleza Pura");
         assertThat(response.timezone()).isEqualTo("Atlantic/Cape_Verde");
         assertThat(response.isActive()).isTrue();
+        assertThat(response.categories()).hasSize(2);
+        assertThat(response.categories().get(0).isPrimary()).isTrue();
+        assertThat(response.categories().get(0).slug()).isEqualTo("hair");
 
         ArgumentCaptor<BusinessEntity> businessCaptor = ArgumentCaptor.forClass(BusinessEntity.class);
         verify(businessRepository).save(businessCaptor.capture());
@@ -142,7 +183,8 @@ class CreateBusinessUseCaseTest {
                 "Mindelo",
                 "Rua de Lisboa",
                 "+2389923344",
-                "Atlantic/Cape_Verde"
+                "Atlantic/Cape_Verde",
+                List.of(new BusinessCategoryItemRequest(UUID.randomUUID(), true))
         );
         when(businessRepository.existsByOwnerId(userId)).thenReturn(true);
 
@@ -161,15 +203,21 @@ class CreateBusinessUseCaseTest {
     void shouldThrowResourceNotFoundExceptionWhenUserNotFound() {
         // Arrange
         UUID userId = UUID.randomUUID();
+        UUID catId = UUID.randomUUID();
+        CategoryEntity category = CategoryEntity.builder().slug("hair").name("Cabeleireiro").build();
+        category.setId(catId);
+
         CreateBusinessRequest request = new CreateBusinessRequest(
                 "Salão Teste",
                 "Sal",
                 "Santa Maria",
                 "Centro",
                 "+2389934455",
-                null
+                null,
+                List.of(new BusinessCategoryItemRequest(catId, true))
         );
         when(businessRepository.existsByOwnerId(userId)).thenReturn(false);
+        when(categoryRepository.findAllByIdInAndIsActiveTrue(Set.of(catId))).thenReturn(List.of(category));
         when(userAccountService.findUserNameById(userId)).thenReturn(Optional.empty());
 
         // Act & Assert
@@ -191,7 +239,8 @@ class CreateBusinessUseCaseTest {
                 "Praia",
                 "Platô",
                 "+2389945566",
-                null
+                null,
+                List.of(new BusinessCategoryItemRequest(UUID.randomUUID(), true))
         );
 
         // Act & Assert
@@ -207,16 +256,22 @@ class CreateBusinessUseCaseTest {
     void shouldRespectCustomTimezoneWhenProvided() {
         // Arrange
         UUID userId = UUID.randomUUID();
+        UUID catId = UUID.randomUUID();
+        CategoryEntity category = CategoryEntity.builder().slug("barbershop").name("Barbearia").displayOrder(1).build();
+        category.setId(catId);
+
         CreateBusinessRequest request = new CreateBusinessRequest(
                 "Salão Internacional",
                 "Sal",
                 "Espargos",
                 "Avenida Principal",
                 "+2389956677",
-                "UTC"
+                "UTC",
+                List.of(new BusinessCategoryItemRequest(catId, true))
         );
 
         when(businessRepository.existsByOwnerId(userId)).thenReturn(false);
+        when(categoryRepository.findAllByIdInAndIsActiveTrue(Set.of(catId))).thenReturn(List.of(category));
         when(userAccountService.findUserNameById(userId)).thenReturn(Optional.of("Ana Santos"));
 
         BusinessEntity saved = BusinessEntity.builder()
@@ -231,6 +286,7 @@ class CreateBusinessUseCaseTest {
                 .build();
         saved.setId(UUID.randomUUID());
         when(businessRepository.save(any(BusinessEntity.class))).thenReturn(saved);
+        when(businessCategoryRepository.saveAll(anyList())).thenAnswer(inv -> inv.getArgument(0));
 
         // Act
         BusinessResponse response = createBusinessUseCase.execute(userId, request);

@@ -3,8 +3,10 @@ package cv.perola.modules.business.usecase.business;
 import cv.perola.core.exception.ResourceNotFoundException;
 import cv.perola.modules.business.domain.BusinessEntity;
 import cv.perola.modules.business.dto.BusinessResponse;
-import cv.perola.modules.business.repository.BusinessRepository;
 import cv.perola.modules.business.mapper.BusinessMapper;
+import cv.perola.modules.business.mapper.CategoryMapper;
+import cv.perola.modules.business.repository.BusinessCategoryRepository;
+import cv.perola.modules.business.repository.BusinessRepository;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -14,6 +16,7 @@ import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.Instant;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -28,8 +31,14 @@ class GetBusinessUseCaseTest {
     @Mock
     private BusinessRepository businessRepository;
 
+    @Mock
+    private BusinessCategoryRepository businessCategoryRepository;
+
     @Spy
     private BusinessMapper businessMapper = new BusinessMapper();
+
+    @Spy
+    private CategoryMapper categoryMapper = new CategoryMapper();
 
     @InjectMocks
     private GetBusinessUseCase getBusinessUseCase;
@@ -55,6 +64,7 @@ class GetBusinessUseCaseTest {
         business.setUpdatedAt(Instant.now());
 
         when(businessRepository.findByIdAndIsActiveTrue(businessId)).thenReturn(Optional.of(business));
+        when(businessCategoryRepository.findAllByBusinessId(businessId)).thenReturn(List.of());
 
         // Act
         BusinessResponse response = getBusinessUseCase.execute(businessId);

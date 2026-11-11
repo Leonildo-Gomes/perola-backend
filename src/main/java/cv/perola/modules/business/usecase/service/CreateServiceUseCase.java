@@ -1,5 +1,6 @@
 package cv.perola.modules.business.usecase.service;
 
+import cv.perola.modules.business.domain.CategoryEntity;
 import cv.perola.modules.business.domain.ServiceEntity;
 import cv.perola.modules.business.dto.CreateServiceRequest;
 import cv.perola.modules.business.dto.ServiceResponse;
@@ -22,9 +23,9 @@ public class CreateServiceUseCase {
 
     @Transactional
     public ServiceResponse execute(UUID businessId, CreateServiceRequest request) {
-        createServiceValidator.validate(businessId, request);
+        CategoryEntity category = createServiceValidator.validate(businessId, request);
 
-        ServiceEntity service = serviceMapper.toEntity(request, businessId);
+        ServiceEntity service = serviceMapper.toEntity(request, businessId, category);
         ServiceEntity saved = serviceRepository.save(service);
 
         return serviceMapper.toResponse(saved);

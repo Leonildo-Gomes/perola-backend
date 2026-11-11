@@ -109,7 +109,7 @@ public class BusinessServiceController {
                         @PathVariable UUID businessId,
                         @PathVariable UUID serviceId,
                         @Valid @RequestBody UpdateServiceRequest request) {
-                ServiceResponse response = updateServiceUseCase.execute(businessId, serviceId, request);
+                ServiceResponse response = updateServiceUseCase.execute(businessId, serviceId, request, true);
                 return ResponseEntity.ok(response);
         }
 

@@ -1,15 +1,23 @@
 package cv.perola.modules.business.usecase.business;
 
 import cv.perola.core.exception.ResourceNotFoundException;
+import cv.perola.modules.business.domain.BusinessCategoryEntity;
 import cv.perola.modules.business.domain.BusinessEntity;
+import cv.perola.modules.business.domain.CategoryEntity;
+import cv.perola.modules.business.dto.BusinessCategoryResponse;
 import cv.perola.modules.business.dto.BusinessResponse;
 import cv.perola.modules.business.dto.UpdateBusinessRequest;
 import cv.perola.modules.business.mapper.BusinessMapper;
+import cv.perola.modules.business.mapper.CategoryMapper;
+import cv.perola.modules.business.repository.BusinessCategoryRepository;
 import cv.perola.modules.business.repository.BusinessRepository;
+import cv.perola.modules.business.validator.business.BusinessCategoryValidator;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 @Service
@@ -17,7 +25,10 @@ import java.util.UUID;
 public class UpdateBusinessUseCase {
 
     private final BusinessRepository businessRepository;
+    private final BusinessCategoryRepository businessCategoryRepository;
     private final BusinessMapper businessMapper;
+    private final CategoryMapper categoryMapper;
+    private final BusinessCategoryValidator businessCategoryValidator;
 
     @Transactional
     public BusinessResponse execute(UUID businessId, UpdateBusinessRequest request) {
@@ -50,6 +61,23 @@ public class UpdateBusinessUseCase {
         }
 
         BusinessEntity updated = businessRepository.save(business);
-        return businessMapper.toResponse(updated);
+
+        List<BusinessCategoryEntity> categories;
+        if (request != null && request.categories() != null) {
+            Map<UUID, CategoryEntity> categoryMap = businessCategoryValidator.validateAndResolveCategories(request.categories());
+            businessCategoryRepository.deleteAllByBusinessId(businessId);
+            businessCategoryRepository.flush();
+            List<BusinessCategoryEntity> newCategories = categoryMapper.toBusinessCategoryEntities(
+                    businessId,
+                    request.categories(),
+                    categoryMap
+            );
+            categories = businessCategoryRepository.saveAll(newCategories);
+        } else {
+            categories = businessCategoryRepository.findAllByBusinessId(businessId);
+        }
+
+        List<BusinessCategoryResponse> categoryResponses = categoryMapper.toBusinessCategoryResponses(categories);
+        return businessMapper.toResponse(updated, categoryResponses);
     }
 }

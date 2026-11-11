@@ -18,6 +18,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.OffsetDateTime;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -57,11 +58,12 @@ class CreateAppointmentValidatorTest {
         CreateAppointmentRequest request = buildSampleRequest(businessId, employeeId, serviceId);
 
         BusinessResponse business = new BusinessResponse(businessId, UUID.randomUUID(), "Salão", "Santiago", "Praia",
-                "Rua 1", "+23899", "Atlantic/Cape_Verde", true, Instant.now(), Instant.now());
+                "Rua 1", "+23899", "Atlantic/Cape_Verde", List.of(), true, Instant.now(), Instant.now());
         EmployeeResponse employee = new EmployeeResponse(employeeId, businessId, UUID.randomUUID(), "Func", true,
                 Instant.now(), Instant.now());
-        ServiceResponse service = new ServiceResponse(serviceId, businessId, "Corte", "Desc", 45,
-                BigDecimal.valueOf(1000), true, Instant.now(), Instant.now());
+        ServiceResponse service = new ServiceResponse(serviceId, businessId, UUID.randomUUID(), "hair",
+                "Cabeleireiro & Tranças", "Corte", "Desc", 45, BigDecimal.valueOf(1000), true, Instant.now(),
+                Instant.now());
 
         when(userAccountService.existsById(customerId)).thenReturn(true);
         when(businessEmployeeQueryService.findBusinessById(businessId)).thenReturn(Optional.of(business));
@@ -95,7 +97,8 @@ class CreateAppointmentValidatorTest {
         CreateAppointmentRequest request = buildSampleRequest(businessId, UUID.randomUUID(), UUID.randomUUID());
 
         BusinessResponse inactiveBusiness = new BusinessResponse(businessId, UUID.randomUUID(), "Salão Inativo",
-                "Santiago", "Praia", "Rua 1", "+23899", "Atlantic/Cape_Verde", false, Instant.now(), Instant.now());
+                "Santiago", "Praia", "Rua 1", "+23899", "Atlantic/Cape_Verde", List.of(), false, Instant.now(),
+                Instant.now());
 
         when(userAccountService.existsById(customerId)).thenReturn(true);
         when(businessEmployeeQueryService.findBusinessById(businessId)).thenReturn(Optional.of(inactiveBusiness));

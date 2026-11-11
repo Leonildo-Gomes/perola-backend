@@ -33,5 +33,25 @@ public interface BusinessRepository extends JpaRepository<BusinessEntity, UUID> 
             @Param("city") String city,
             Pageable pageable
     );
+
+    @Query("""
+        SELECT b FROM BusinessEntity b
+        WHERE b.isActive = true
+          AND (CAST(:search AS string) IS NULL OR LOWER(b.name) LIKE LOWER(CONCAT('%', CAST(:search AS string), '%')) OR LOWER(b.location) LIKE LOWER(CONCAT('%', CAST(:search AS string), '%')))
+          AND (CAST(:island AS string) IS NULL OR LOWER(b.island) = LOWER(CAST(:island AS string)))
+          AND (CAST(:city AS string) IS NULL OR LOWER(b.city) = LOWER(CAST(:city AS string)))
+          AND EXISTS (
+              SELECT 1 FROM BusinessCategoryEntity bc
+              WHERE bc.businessId = b.id
+                AND bc.categoryId = :categoryId
+          )
+    """)
+    Page<BusinessEntity> searchMarketplaceBusinessesByCategory(
+            @Param("search") String search,
+            @Param("island") String island,
+            @Param("city") String city,
+            @Param("categoryId") UUID categoryId,
+            Pageable pageable
+    );
 }
 

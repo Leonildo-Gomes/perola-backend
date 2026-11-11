@@ -1,12 +1,15 @@
 package cv.perola.modules.business.mapper;
 
 import cv.perola.modules.business.domain.BusinessEntity;
+import cv.perola.modules.business.dto.BusinessCategoryItemRequest;
+import cv.perola.modules.business.dto.BusinessCategoryResponse;
 import cv.perola.modules.business.dto.BusinessResponse;
 import cv.perola.modules.business.dto.CreateBusinessRequest;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 import java.time.Instant;
+import java.util.List;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -37,8 +40,12 @@ class BusinessMapperTest {
         entity.setCreatedAt(now);
         entity.setUpdatedAt(now);
 
+        List<BusinessCategoryResponse> categories = List.of(
+                new BusinessCategoryResponse(UUID.randomUUID(), "hair", "Cabeleireiro & Tranças", "Sparkles", true)
+        );
+
         // Act
-        BusinessResponse response = businessMapper.toResponse(entity);
+        BusinessResponse response = businessMapper.toResponse(entity, categories);
 
         // Assert
         assertNotNull(response);
@@ -50,6 +57,7 @@ class BusinessMapperTest {
         assertEquals("Palmarejo, Rua 3", response.location());
         assertEquals("+2389912345", response.contactPhone());
         assertEquals("Atlantic/Cape_Verde", response.timezone());
+        assertEquals(categories, response.categories());
         assertTrue(response.isActive());
         assertEquals(now, response.createdAt());
         assertEquals(now, response.updatedAt());
@@ -59,7 +67,7 @@ class BusinessMapperTest {
     @DisplayName("Should return null when mapping null BusinessEntity to response")
     void shouldReturnNullWhenEntityIsNull() {
         // Arrange & Act
-        BusinessResponse response = businessMapper.toResponse(null);
+        BusinessResponse response = businessMapper.toResponse(null, List.of());
 
         // Assert
         assertNull(response);
@@ -76,7 +84,8 @@ class BusinessMapperTest {
                 "Mindelo",
                 "Rua de Lisboa",
                 "+2389918877",
-                "Atlantic/Azores"
+                "Atlantic/Azores",
+                List.of(new BusinessCategoryItemRequest(UUID.randomUUID(), true))
         );
 
         // Act
@@ -105,7 +114,8 @@ class BusinessMapperTest {
                 "Santa Maria",
                 "Pedonal",
                 "+2389934455",
-                null
+                null,
+                List.of(new BusinessCategoryItemRequest(UUID.randomUUID(), true))
         );
 
         // Act
