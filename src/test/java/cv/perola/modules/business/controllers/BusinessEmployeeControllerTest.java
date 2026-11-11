@@ -166,7 +166,7 @@ class BusinessEmployeeControllerTest {
         AssignEmployeeServicesRequest request = new AssignEmployeeServicesRequest(List.of(serviceId));
         ServiceResponse s = new ServiceResponse(
                 serviceId, businessId, UUID.randomUUID(), "hair", "Cabeleireiro & Tranças",
-                "Corte", null, 30, new BigDecimal("1000.00"), true, Instant.now(), Instant.now()
+                "Corte", null, 30, new BigDecimal("1000.00"), true, List.of(employeeId), Instant.now(), Instant.now()
         );
         EmployeeServicesResponse expected = new EmployeeServicesResponse(employeeId, businessId, List.of(s));
         when(assignEmployeeServicesUseCase.execute(businessId, employeeId, request)).thenReturn(expected);

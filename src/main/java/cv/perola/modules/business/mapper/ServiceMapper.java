@@ -8,6 +8,7 @@ import cv.perola.modules.business.dto.MarketplaceServiceResponse;
 import cv.perola.modules.business.dto.ServiceResponse;
 import org.springframework.stereotype.Component;
 
+import java.util.List;
 import java.util.UUID;
 
 @Component
@@ -26,10 +27,15 @@ public class ServiceMapper {
     }
 
     public ServiceResponse toResponse(ServiceEntity entity) {
+        return toResponse(entity, List.of());
+    }
+
+    public ServiceResponse toResponse(ServiceEntity entity, List<UUID> assignedEmployeeIds) {
         if (entity == null) {
             return null;
         }
         CategoryEntity category = entity.getCategory();
+        List<UUID> safeAssignedIds = assignedEmployeeIds != null ? List.copyOf(assignedEmployeeIds) : List.of();
         return new ServiceResponse(
                 entity.getId(),
                 entity.getBusinessId(),
@@ -41,6 +47,7 @@ public class ServiceMapper {
                 entity.getDurationMinutes(),
                 entity.getPrice(),
                 entity.isActive(),
+                safeAssignedIds,
                 entity.getCreatedAt(),
                 entity.getUpdatedAt());
     }
@@ -64,6 +71,7 @@ public class ServiceMapper {
                 entity.getName(),
                 entity.getDescription(),
                 entity.getDurationMinutes(),
-                entity.getPrice());
+                entity.getPrice()
+        );
     }
 }

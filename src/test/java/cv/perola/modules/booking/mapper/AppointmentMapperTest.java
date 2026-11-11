@@ -60,6 +60,7 @@ class AppointmentMapperTest {
                                 60,
                                 new BigDecimal("2500.00"),
                                 true,
+                                java.util.List.of(employeeId),
                                 Instant.now(),
                                 Instant.now());
 

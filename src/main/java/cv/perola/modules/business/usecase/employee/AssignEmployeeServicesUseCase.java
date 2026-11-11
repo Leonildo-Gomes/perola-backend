@@ -11,12 +11,14 @@ import cv.perola.modules.business.mapper.ServiceMapper;
 import cv.perola.modules.business.repository.EmployeeRepository;
 import cv.perola.modules.business.repository.EmployeeServiceRepository;
 import cv.perola.modules.business.repository.ServiceRepository;
+import cv.perola.modules.business.service.ServiceAssignmentLookupService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 @Service
@@ -26,6 +28,7 @@ public class AssignEmployeeServicesUseCase {
     private final EmployeeRepository employeeRepository;
     private final ServiceRepository serviceRepository;
     private final EmployeeServiceRepository employeeServiceRepository;
+    private final ServiceAssignmentLookupService serviceAssignmentLookupService;
     private final ServiceMapper serviceMapper;
 
     @Transactional
@@ -43,8 +46,9 @@ public class AssignEmployeeServicesUseCase {
             }
         }
 
-        // Limpar atribuições anteriores do colaborador neste salão
+        // Limpar atribuições anteriores do colaborador neste salão e sincronizar antes de inserir
         employeeServiceRepository.deleteAllByBusinessIdAndEmployeeId(businessId, employeeId);
+        employeeServiceRepository.flush();
 
         // Atribuir novos serviços
         if (!validServices.isEmpty()) {
@@ -56,10 +60,18 @@ public class AssignEmployeeServicesUseCase {
                             .build())
                     .toList();
             employeeServiceRepository.saveAll(relations);
+            employeeServiceRepository.flush();
         }
 
+        List<UUID> serviceIds = validServices.stream().map(ServiceEntity::getId).toList();
+        Map<UUID, List<UUID>> assignedByService = serviceAssignmentLookupService
+                .findAssignedEmployeeIdsByService(businessId, serviceIds);
+
         List<ServiceResponse> serviceResponses = validServices.stream()
-                .map(serviceMapper::toResponse)
+                .map(service -> serviceMapper.toResponse(
+                        service,
+                        assignedByService.getOrDefault(service.getId(), List.of())
+                ))
                 .toList();
 
         return new EmployeeServicesResponse(employeeId, businessId, serviceResponses);

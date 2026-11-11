@@ -585,14 +585,38 @@ class BusinessIntegrationTest {
                         .content(objectMapper.writeValueAsString(assignRequest)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.employeeId").value(employeeId.toString()))
-                .andExpect(jsonPath("$.services.length()").value(2));
+                .andExpect(jsonPath("$.services.length()").value(2))
+                .andExpect(jsonPath("$.services[0].assignedEmployeeIds[0]").value(employeeId.toString()));
 
         // Act 3: Consultar serviços atribuídos
         mockMvc.perform(get("/api/v1/businesses/" + business.getId() + "/employees/" + employeeId + "/services")
                         .header("Authorization", "Bearer " + ownerToken)
                         .header("X-Business-Id", business.getId().toString()))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.services.length()").value(2));
+                .andExpect(jsonPath("$.services.length()").value(2))
+                .andExpect(jsonPath("$.services[0].assignedEmployeeIds[0]").value(employeeId.toString()));
+
+        // Act 4: Listar serviços do salão deve incluir assignedEmployeeIds com o colaborador ativo
+        mockMvc.perform(get("/api/v1/businesses/" + business.getId() + "/services")
+                        .header("Authorization", "Bearer " + ownerToken)
+                        .header("X-Business-Id", business.getId().toString()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(2))
+                .andExpect(jsonPath("$[0].assignedEmployeeIds[0]").value(employeeId.toString()))
+                .andExpect(jsonPath("$[1].assignedEmployeeIds[0]").value(employeeId.toString()));
+
+        // Act 5: Ao desativar colaborador, assignedEmployeeIds deve omitir o colaborador inativo
+        mockMvc.perform(post("/api/v1/businesses/" + business.getId() + "/employees/" + employeeId + "/status")
+                        .header("Authorization", "Bearer " + ownerToken)
+                        .header("X-Business-Id", business.getId().toString()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.isActive").value(false));
+
+        mockMvc.perform(get("/api/v1/businesses/" + business.getId() + "/services/active")
+                        .header("Authorization", "Bearer " + ownerToken)
+                        .header("X-Business-Id", business.getId().toString()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].assignedEmployeeIds").isEmpty());
     }
 
     @Test

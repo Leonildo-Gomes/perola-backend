@@ -9,6 +9,7 @@ import cv.perola.modules.business.mapper.ServiceMapper;
 import cv.perola.modules.business.repository.EmployeeRepository;
 import cv.perola.modules.business.repository.EmployeeServiceRepository;
 import cv.perola.modules.business.repository.ServiceRepository;
+import cv.perola.modules.business.service.ServiceAssignmentLookupService;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -20,6 +21,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -39,6 +41,9 @@ class GetEmployeeServicesUseCaseTest {
 
     @Mock
     private EmployeeServiceRepository employeeServiceRepository;
+
+    @Mock
+    private ServiceAssignmentLookupService serviceAssignmentLookupService;
 
     @Spy
     private ServiceMapper serviceMapper = new ServiceMapper();
@@ -81,6 +86,8 @@ class GetEmployeeServicesUseCaseTest {
         when(employeeRepository.findByIdAndBusinessIdAndIsActiveTrue(employeeId, businessId)).thenReturn(Optional.of(employee));
         when(employeeServiceRepository.findAllByBusinessIdAndEmployeeId(businessId, employeeId)).thenReturn(List.of(relation));
         when(serviceRepository.findAllByBusinessIdAndIdIn(businessId, List.of(serviceId))).thenReturn(List.of(service));
+        when(serviceAssignmentLookupService.findAssignedEmployeeIdsByService(businessId, List.of(serviceId)))
+                .thenReturn(Map.of(serviceId, List.of(employeeId)));
 
         // Act
         EmployeeServicesResponse response = getEmployeeServicesUseCase.execute(businessId, employeeId);
@@ -91,6 +98,7 @@ class GetEmployeeServicesUseCaseTest {
         assertThat(response.businessId()).isEqualTo(businessId);
         assertThat(response.services()).hasSize(1);
         assertThat(response.services().get(0).name()).isEqualTo("Manicure");
+        assertThat(response.services().get(0).assignedEmployeeIds()).containsExactly(employeeId);
 
         verify(employeeServiceRepository).findAllByBusinessIdAndEmployeeId(businessId, employeeId);
     }

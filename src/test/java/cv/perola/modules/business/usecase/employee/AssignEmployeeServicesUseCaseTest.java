@@ -10,6 +10,7 @@ import cv.perola.modules.business.mapper.ServiceMapper;
 import cv.perola.modules.business.repository.EmployeeRepository;
 import cv.perola.modules.business.repository.EmployeeServiceRepository;
 import cv.perola.modules.business.repository.ServiceRepository;
+import cv.perola.modules.business.service.ServiceAssignmentLookupService;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -21,6 +22,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -43,6 +45,9 @@ class AssignEmployeeServicesUseCaseTest {
 
     @Mock
     private EmployeeServiceRepository employeeServiceRepository;
+
+    @Mock
+    private ServiceAssignmentLookupService serviceAssignmentLookupService;
 
     @Spy
     private ServiceMapper serviceMapper = new ServiceMapper();
@@ -92,6 +97,8 @@ class AssignEmployeeServicesUseCaseTest {
 
         when(employeeRepository.findByIdAndBusinessIdAndIsActiveTrue(employeeId, businessId)).thenReturn(Optional.of(employee));
         when(serviceRepository.findAllByBusinessIdAndIdIn(businessId, List.of(s1Id, s2Id))).thenReturn(List.of(s1, s2));
+        when(serviceAssignmentLookupService.findAssignedEmployeeIdsByService(businessId, List.of(s1Id, s2Id)))
+                .thenReturn(Map.of(s1Id, List.of(employeeId), s2Id, List.of(employeeId)));
 
         // Act
         EmployeeServicesResponse response = assignEmployeeServicesUseCase.execute(businessId, employeeId, request);
@@ -100,6 +107,7 @@ class AssignEmployeeServicesUseCaseTest {
         assertThat(response.employeeId()).isEqualTo(employeeId);
         assertThat(response.businessId()).isEqualTo(businessId);
         assertThat(response.services()).hasSize(2);
+        assertThat(response.services().get(0).assignedEmployeeIds()).containsExactly(employeeId);
 
         verify(employeeServiceRepository).deleteAllByBusinessIdAndEmployeeId(businessId, employeeId);
         verify(employeeServiceRepository).saveAll(anyList());

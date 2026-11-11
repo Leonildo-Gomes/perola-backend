@@ -4,6 +4,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
 
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.util.List;
 import java.util.UUID;
 
 @Schema(description = "Dados do serviço no catálogo do salão")
@@ -38,6 +39,9 @@ public record ServiceResponse(
 
         @Schema(description = "Estado de ativação do serviço", example = "true")
         boolean isActive,
+
+        @Schema(description = "Identificadores dos profissionais ativos associados ao serviço")
+        List<UUID> assignedEmployeeIds,
 
         @Schema(description = "Data e hora de criação em UTC", example = "2026-10-27T10:00:00Z")
         Instant createdAt,

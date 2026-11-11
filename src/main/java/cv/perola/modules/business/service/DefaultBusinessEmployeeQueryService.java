@@ -31,6 +31,7 @@ public class DefaultBusinessEmployeeQueryService implements BusinessEmployeeQuer
     private final EmployeeRepository employeeRepository;
     private final ServiceRepository serviceRepository;
     private final EmployeeServiceRepository employeeServiceRepository;
+    private final ServiceAssignmentLookupService serviceAssignmentLookupService;
     private final BusinessMapper businessMapper;
     private final CategoryMapper categoryMapper;
     private final EmployeeMapper employeeMapper;
@@ -68,7 +69,11 @@ public class DefaultBusinessEmployeeQueryService implements BusinessEmployeeQuer
     @Override
     public Optional<ServiceResponse> findServiceByIdAndBusinessId(UUID serviceId, UUID businessId) {
         return serviceRepository.findByIdAndBusinessId(serviceId, businessId)
-                .map(serviceMapper::toResponse);
+                .map(service -> {
+                    List<UUID> assignedIds = serviceAssignmentLookupService
+                            .findAssignedEmployeeIds(businessId, serviceId);
+                    return serviceMapper.toResponse(service, assignedIds);
+                });
     }
 
     @Override

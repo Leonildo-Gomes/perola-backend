@@ -6,6 +6,7 @@ import cv.perola.modules.business.domain.ServiceEntity;
 import cv.perola.modules.business.dto.ServiceResponse;
 import cv.perola.modules.business.mapper.ServiceMapper;
 import cv.perola.modules.business.repository.ServiceRepository;
+import cv.perola.modules.business.service.ServiceAssignmentLookupService;
 import cv.perola.modules.business.validator.service.ServiceStatusValidator;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -16,12 +17,14 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
@@ -33,6 +36,9 @@ class ToggleServiceStatusUseCaseTest {
 
     @Mock
     private ServiceRepository serviceRepository;
+
+    @Mock
+    private ServiceAssignmentLookupService serviceAssignmentLookupService;
 
     @Mock
     private ServiceMapper serviceMapper;
@@ -62,12 +68,13 @@ class ToggleServiceStatusUseCaseTest {
         ServiceResponse expectedResponse = new ServiceResponse(
                 serviceId, businessId, UUID.randomUUID(), "barbershop", "Barbearia",
                 "Corte Masculino", "Corte com máquina e tesoura",
-                30, BigDecimal.valueOf(800), false, Instant.now(), Instant.now()
+                30, BigDecimal.valueOf(800), false, List.of(), Instant.now(), Instant.now()
         );
 
         when(serviceRepository.findByIdAndBusinessId(serviceId, businessId)).thenReturn(Optional.of(service));
         when(serviceRepository.save(any(ServiceEntity.class))).thenAnswer(invocation -> invocation.getArgument(0));
-        when(serviceMapper.toResponse(any(ServiceEntity.class))).thenReturn(expectedResponse);
+        when(serviceAssignmentLookupService.findAssignedEmployeeIds(businessId, serviceId)).thenReturn(List.of());
+        when(serviceMapper.toResponse(any(ServiceEntity.class), anyList())).thenReturn(expectedResponse);
 
         // Act
         ServiceResponse response = useCase.execute(businessId, serviceId);
@@ -101,13 +108,14 @@ class ToggleServiceStatusUseCaseTest {
         ServiceResponse expectedResponse = new ServiceResponse(
                 serviceId, businessId, UUID.randomUUID(), "barbershop", "Barbearia",
                 "Corte Masculino", "Corte com máquina e tesoura",
-                30, BigDecimal.valueOf(800), true, Instant.now(), Instant.now()
+                30, BigDecimal.valueOf(800), true, List.of(), Instant.now(), Instant.now()
         );
 
         when(serviceRepository.findByIdAndBusinessId(serviceId, businessId)).thenReturn(Optional.of(service));
         doNothing().when(serviceStatusValidator).validateActivation(businessId, service);
         when(serviceRepository.save(any(ServiceEntity.class))).thenAnswer(invocation -> invocation.getArgument(0));
-        when(serviceMapper.toResponse(any(ServiceEntity.class))).thenReturn(expectedResponse);
+        when(serviceAssignmentLookupService.findAssignedEmployeeIds(businessId, serviceId)).thenReturn(List.of());
+        when(serviceMapper.toResponse(any(ServiceEntity.class), anyList())).thenReturn(expectedResponse);
 
         // Act
         ServiceResponse response = useCase.execute(businessId, serviceId);

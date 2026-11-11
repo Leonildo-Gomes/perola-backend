@@ -10,6 +10,7 @@ import cv.perola.modules.business.dto.UpdateServiceRequest;
 import cv.perola.modules.business.mapper.ServiceMapper;
 import cv.perola.modules.business.repository.CategoryRepository;
 import cv.perola.modules.business.repository.ServiceRepository;
+import cv.perola.modules.business.service.ServiceAssignmentLookupService;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -20,6 +21,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -38,6 +40,9 @@ class UpdateServiceUseCaseTest {
 
     @Mock
     private CategoryRepository categoryRepository;
+
+    @Mock
+    private ServiceAssignmentLookupService serviceAssignmentLookupService;
 
     @Spy
     private ServiceMapper serviceMapper = new ServiceMapper();
@@ -79,10 +84,12 @@ class UpdateServiceUseCaseTest {
                 true
         );
 
+        UUID empId = UUID.randomUUID();
         when(serviceRepository.findByIdAndBusinessId(serviceId, businessId)).thenReturn(Optional.of(existing));
         when(categoryRepository.findByIdAndIsActiveTrue(newCategoryId)).thenReturn(Optional.of(newCategory));
         when(serviceRepository.existsByNameIgnoreCaseAndBusinessIdAndIsActiveTrue("Corte Especial", businessId)).thenReturn(false);
         when(serviceRepository.save(any(ServiceEntity.class))).thenAnswer(inv -> inv.getArgument(0));
+        when(serviceAssignmentLookupService.findAssignedEmployeeIds(businessId, serviceId)).thenReturn(List.of(empId));
 
         // Act
         ServiceResponse response = updateServiceUseCase.execute(businessId, serviceId, request, true);
@@ -94,6 +101,7 @@ class UpdateServiceUseCaseTest {
         assertThat(response.description()).isEqualTo("Corte detalhado com lavagem");
         assertThat(response.durationMinutes()).isEqualTo(40);
         assertThat(response.price()).isEqualByComparingTo(new BigDecimal("1200.00"));
+        assertThat(response.assignedEmployeeIds()).containsExactly(empId);
 
         verify(serviceRepository).save(existing);
     }

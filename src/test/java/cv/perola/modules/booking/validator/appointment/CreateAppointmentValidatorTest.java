@@ -62,7 +62,7 @@ class CreateAppointmentValidatorTest {
         EmployeeResponse employee = new EmployeeResponse(employeeId, businessId, UUID.randomUUID(), "Func", true,
                 Instant.now(), Instant.now());
         ServiceResponse service = new ServiceResponse(serviceId, businessId, UUID.randomUUID(), "hair",
-                "Cabeleireiro & Tranças", "Corte", "Desc", 45, BigDecimal.valueOf(1000), true, Instant.now(),
+                "Cabeleireiro & Tranças", "Corte", "Desc", 45, BigDecimal.valueOf(1000), true, List.of(), Instant.now(),
                 Instant.now());
 
         when(userAccountService.existsById(customerId)).thenReturn(true);

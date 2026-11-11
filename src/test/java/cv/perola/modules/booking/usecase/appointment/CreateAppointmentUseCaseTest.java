@@ -109,7 +109,7 @@ class CreateAppointmentUseCaseTest {
                 ServiceResponse service = new ServiceResponse(
                                 serviceId, businessId, UUID.randomUUID(), "hair", "Cabeleireiro & Tranças",
                                 "Corte & Brushing", "Descrição", 60,
-                                new BigDecimal("2500.00"), true, Instant.now(), Instant.now());
+                                new BigDecimal("2500.00"), true, List.of(), Instant.now(), Instant.now());
 
                 AppointmentEntity mappedEntity = AppointmentEntity.builder()
                                 .businessId(businessId)
@@ -267,7 +267,7 @@ class CreateAppointmentUseCaseTest {
                 ServiceResponse service = new ServiceResponse(
                                 serviceId, businessId, UUID.randomUUID(), "hair", "Cabeleireiro & Tranças",
                                 "Corte & Brushing", "Descrição", 60,
-                                new BigDecimal("2500.00"), true, Instant.now(), Instant.now());
+                                new BigDecimal("2500.00"), true, List.of(), Instant.now(), Instant.now());
 
                 when(userAccountService.existsById(customerId)).thenReturn(true);
                 when(businessEmployeeQueryService.findBusinessById(businessId)).thenReturn(Optional.of(business));

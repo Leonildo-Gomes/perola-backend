@@ -61,7 +61,7 @@ class BusinessServiceControllerTest {
                 new BigDecimal("1000.00"));
         ServiceResponse expected = new ServiceResponse(
                 UUID.randomUUID(), businessId, categoryId, "hair", "Cabeleireiro & Tranças",
-                "Corte", "Desc", 30, new BigDecimal("1000.00"), true, Instant.now(), Instant.now());
+                "Corte", "Desc", 30, new BigDecimal("1000.00"), true, List.of(), Instant.now(), Instant.now());
         when(createServiceUseCase.execute(businessId, request)).thenReturn(expected);
 
         // Act
@@ -80,7 +80,7 @@ class BusinessServiceControllerTest {
         UUID businessId = UUID.randomUUID();
         ServiceResponse s1 = new ServiceResponse(
                 UUID.randomUUID(), businessId, UUID.randomUUID(), "hair", "Cabeleireiro & Tranças",
-                "Corte", "Desc", 30, new BigDecimal("1000.00"), true, Instant.now(), Instant.now());
+                "Corte", "Desc", 30, new BigDecimal("1000.00"), true, List.of(), Instant.now(), Instant.now());
         when(listServicesUseCase.execute(businessId)).thenReturn(List.of(s1));
 
         // Act
@@ -99,7 +99,7 @@ class BusinessServiceControllerTest {
         UUID businessId = UUID.randomUUID();
         ServiceResponse s1 = new ServiceResponse(
                 UUID.randomUUID(), businessId, UUID.randomUUID(), "hair", "Cabeleireiro & Tranças",
-                "Corte", "Desc", 30, new BigDecimal("1000.00"), true, Instant.now(), Instant.now());
+                "Corte", "Desc", 30, new BigDecimal("1000.00"), true, List.of(), Instant.now(), Instant.now());
         when(listActiveServicesUseCase.execute(businessId)).thenReturn(List.of(s1));
 
         // Act
@@ -123,7 +123,7 @@ class BusinessServiceControllerTest {
                 new BigDecimal("1200.00"), true);
         ServiceResponse expected = new ServiceResponse(
                 serviceId, businessId, categoryId, "hair", "Cabeleireiro & Tranças",
-                "Corte Novo", "Desc Nova", 40, new BigDecimal("1200.00"), true, Instant.now(), Instant.now());
+                "Corte Novo", "Desc Nova", 40, new BigDecimal("1200.00"), true, List.of(), Instant.now(), Instant.now());
         when(updateServiceUseCase.execute(businessId, serviceId, request, true)).thenReturn(expected);
 
         // Act
@@ -158,7 +158,7 @@ class BusinessServiceControllerTest {
         UUID serviceId = UUID.randomUUID();
         ServiceResponse expected = new ServiceResponse(
                 serviceId, businessId, UUID.randomUUID(), "hair", "Cabeleireiro & Tranças",
-                "Corte", "Desc", 30, new BigDecimal("1000.00"), false, Instant.now(), Instant.now()
+                "Corte", "Desc", 30, new BigDecimal("1000.00"), false, List.of(), Instant.now(), Instant.now()
         );
         when(toggleServiceStatusUseCase.execute(businessId, serviceId)).thenReturn(expected);
 

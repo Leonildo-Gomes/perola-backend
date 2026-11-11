@@ -4,6 +4,7 @@ import cv.perola.modules.business.domain.ServiceEntity;
 import cv.perola.modules.business.dto.ServiceResponse;
 import cv.perola.modules.business.mapper.ServiceMapper;
 import cv.perola.modules.business.repository.ServiceRepository;
+import cv.perola.modules.business.service.ServiceAssignmentLookupService;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -15,6 +16,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -27,6 +29,9 @@ class ListServicesUseCaseTest {
     @Mock
     private ServiceRepository serviceRepository;
 
+    @Mock
+    private ServiceAssignmentLookupService serviceAssignmentLookupService;
+
     @Spy
     private ServiceMapper serviceMapper = new ServiceMapper();
 
@@ -34,10 +39,11 @@ class ListServicesUseCaseTest {
     private ListServicesUseCase listServicesUseCase;
 
     @Test
-    @DisplayName("Deve listar todos os serviços (ativos e inativos) de um salão")
+    @DisplayName("Deve listar todos os serviços (ativos e inativos) com assignedEmployeeIds")
     void shouldListAllServicesForBusiness() {
         // Arrange
         UUID businessId = UUID.randomUUID();
+        UUID empId = UUID.randomUUID();
         ServiceEntity s1 = ServiceEntity.builder()
                 .businessId(businessId)
                 .name("Corte Masculino")
@@ -61,6 +67,8 @@ class ListServicesUseCaseTest {
         s2.setUpdatedAt(Instant.now());
 
         when(serviceRepository.findAllByBusinessId(businessId)).thenReturn(List.of(s1, s2));
+        when(serviceAssignmentLookupService.findAssignedEmployeeIdsByService(businessId, List.of(s1.getId(), s2.getId())))
+                .thenReturn(Map.of(s1.getId(), List.of(empId)));
 
         // Act
         List<ServiceResponse> result = listServicesUseCase.execute(businessId);
@@ -69,8 +77,10 @@ class ListServicesUseCaseTest {
         assertThat(result).hasSize(2);
         assertThat(result.get(0).name()).isEqualTo("Corte Masculino");
         assertThat(result.get(0).isActive()).isTrue();
+        assertThat(result.get(0).assignedEmployeeIds()).containsExactly(empId);
         assertThat(result.get(1).name()).isEqualTo("Barba");
         assertThat(result.get(1).isActive()).isFalse();
+        assertThat(result.get(1).assignedEmployeeIds()).isEmpty();
 
         verify(serviceRepository).findAllByBusinessId(businessId);
     }

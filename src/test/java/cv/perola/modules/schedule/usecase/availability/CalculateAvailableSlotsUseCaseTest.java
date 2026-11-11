@@ -284,7 +284,7 @@ class CalculateAvailableSlotsUseCaseTest {
         ServiceResponse service = new ServiceResponse(
                 serviceId, businessId, UUID.randomUUID(), "hair", "Cabeleireiro & Tranças",
                 "Corte & Brushing", null, 60,
-                new BigDecimal("2500.00"), true, Instant.now(), Instant.now()
+                new BigDecimal("2500.00"), true, List.of(), Instant.now(), Instant.now()
         );
 
         when(businessEmployeeQueryService.findEmployeeByIdAndBusinessId(employeeId, businessId))
@@ -295,4 +295,3 @@ class CalculateAvailableSlotsUseCaseTest {
                 .thenReturn(Optional.of(service));
     }
 }
-

@@ -4,11 +4,13 @@ import cv.perola.modules.business.domain.BusinessCategoryEntity;
 import cv.perola.modules.business.domain.BusinessEntity;
 import cv.perola.modules.business.domain.CategoryEntity;
 import cv.perola.modules.business.domain.EmployeeEntity;
+import cv.perola.modules.business.domain.EmployeeServiceEntity;
 import cv.perola.modules.business.domain.ServiceEntity;
 import cv.perola.modules.business.repository.BusinessCategoryRepository;
 import cv.perola.modules.business.repository.BusinessRepository;
 import cv.perola.modules.business.repository.CategoryRepository;
 import cv.perola.modules.business.repository.EmployeeRepository;
+import cv.perola.modules.business.repository.EmployeeServiceRepository;
 import cv.perola.modules.business.repository.ServiceRepository;
 import cv.perola.modules.identity.domain.UserEntity;
 import cv.perola.modules.identity.repository.UserRepository;
@@ -58,6 +60,9 @@ class MarketplaceIntegrationTest {
 
     @Autowired
     private EmployeeRepository employeeRepository;
+
+    @Autowired
+    private EmployeeServiceRepository employeeServiceRepository;
 
     @BeforeEach
     void setUp() {
@@ -115,11 +120,22 @@ class MarketplaceIntegrationTest {
         UserEntity owner = createTestUser("owner.detail@perola.cv", "Owner Detail");
         BusinessEntity business = createTestBusiness(owner, "Salão Morabeza VIP", "Sal", "Santa Maria", true);
 
-        createTestService(business.getId(), "Escova VIP", new BigDecimal("2000.00"), true);
+        ServiceEntity activeService = createTestService(business.getId(), "Escova VIP", new BigDecimal("2000.00"), true);
         createTestService(business.getId(), "Serviço Desativado", new BigDecimal("1000.00"), false);
 
-        createTestEmployee(business.getId(), "Rita Profissional", true);
-        createTestEmployee(business.getId(), "Colaborador Inativo", false);
+        EmployeeEntity activeEmp = createTestEmployee(business.getId(), "Rita Profissional", true);
+        EmployeeEntity inactiveEmp = createTestEmployee(business.getId(), "Colaborador Inativo", false);
+
+        employeeServiceRepository.save(EmployeeServiceEntity.builder()
+                .businessId(business.getId())
+                .employeeId(activeEmp.getId())
+                .serviceId(activeService.getId())
+                .build());
+        employeeServiceRepository.save(EmployeeServiceEntity.builder()
+                .businessId(business.getId())
+                .employeeId(inactiveEmp.getId())
+                .serviceId(activeService.getId())
+                .build());
 
         // Act & Assert
         mockMvc.perform(get("/api/v1/marketplace/businesses/" + business.getId()))
@@ -130,6 +146,8 @@ class MarketplaceIntegrationTest {
                 .andExpect(jsonPath("$.city").value("Santa Maria"))
                 .andExpect(jsonPath("$.services.length()").value(1))
                 .andExpect(jsonPath("$.services[0].name").value("Escova VIP"))
+                .andExpect(jsonPath("$.services[0].assignedEmployeeIds.length()").value(1))
+                .andExpect(jsonPath("$.services[0].assignedEmployeeIds[0]").value(activeEmp.getId().toString()))
                 .andExpect(jsonPath("$.employees.length()").value(1))
                 .andExpect(jsonPath("$.employees[0].displayName").value("Rita Profissional"));
     }

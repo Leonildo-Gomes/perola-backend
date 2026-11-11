@@ -4,6 +4,7 @@ import cv.perola.modules.business.domain.ServiceEntity;
 import cv.perola.modules.business.dto.ServiceResponse;
 import cv.perola.modules.business.mapper.ServiceMapper;
 import cv.perola.modules.business.repository.ServiceRepository;
+import cv.perola.modules.business.service.ServiceAssignmentLookupService;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -15,6 +16,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -27,6 +29,9 @@ class ListActiveServicesUseCaseTest {
     @Mock
     private ServiceRepository serviceRepository;
 
+    @Mock
+    private ServiceAssignmentLookupService serviceAssignmentLookupService;
+
     @Spy
     private ServiceMapper serviceMapper = new ServiceMapper();
 
@@ -34,10 +39,11 @@ class ListActiveServicesUseCaseTest {
     private ListActiveServicesUseCase listActiveServicesUseCase;
 
     @Test
-    @DisplayName("Deve listar exclusivamente os serviços ativos do salão com sucesso")
+    @DisplayName("Deve listar exclusivamente os serviços ativos com assignedEmployeeIds")
     void shouldListActiveServicesSuccessfully() {
         // Arrange
         UUID businessId = UUID.randomUUID();
+        UUID empId = UUID.randomUUID();
         ServiceEntity s1 = ServiceEntity.builder()
                 .businessId(businessId)
                 .name("Corte Masculino")
@@ -50,6 +56,8 @@ class ListActiveServicesUseCaseTest {
         s1.setUpdatedAt(Instant.now());
 
         when(serviceRepository.findAllByBusinessIdAndIsActiveTrue(businessId)).thenReturn(List.of(s1));
+        when(serviceAssignmentLookupService.findAssignedEmployeeIdsByService(businessId, List.of(s1.getId())))
+                .thenReturn(Map.of(s1.getId(), List.of(empId)));
 
         // Act
         List<ServiceResponse> result = listActiveServicesUseCase.execute(businessId);
@@ -58,6 +66,7 @@ class ListActiveServicesUseCaseTest {
         assertThat(result).hasSize(1);
         assertThat(result.get(0).name()).isEqualTo("Corte Masculino");
         assertThat(result.get(0).isActive()).isTrue();
+        assertThat(result.get(0).assignedEmployeeIds()).containsExactly(empId);
 
         verify(serviceRepository).findAllByBusinessIdAndIsActiveTrue(businessId);
     }

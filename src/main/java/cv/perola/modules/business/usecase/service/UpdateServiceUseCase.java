@@ -10,10 +10,12 @@ import cv.perola.modules.business.dto.UpdateServiceRequest;
 import cv.perola.modules.business.mapper.ServiceMapper;
 import cv.perola.modules.business.repository.CategoryRepository;
 import cv.perola.modules.business.repository.ServiceRepository;
+import cv.perola.modules.business.service.ServiceAssignmentLookupService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
 import java.util.UUID;
 
 @Service
@@ -22,6 +24,7 @@ public class UpdateServiceUseCase {
 
     private final ServiceRepository serviceRepository;
     private final CategoryRepository categoryRepository;
+    private final ServiceAssignmentLookupService serviceAssignmentLookupService;
     private final ServiceMapper serviceMapper;
 
     @Transactional
@@ -71,6 +74,7 @@ public class UpdateServiceUseCase {
         }
 
         ServiceEntity updated = serviceRepository.save(service);
-        return serviceMapper.toResponse(updated);
+        List<UUID> assignedEmployeeIds = serviceAssignmentLookupService.findAssignedEmployeeIds(businessId, serviceId);
+        return serviceMapper.toResponse(updated, assignedEmployeeIds);
     }
 }

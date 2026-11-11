@@ -81,7 +81,7 @@ class ServiceMapperTest {
         entity.setUpdatedAt(now);
 
         // Act
-        ServiceResponse response = serviceMapper.toResponse(entity);
+        ServiceResponse response = serviceMapper.toResponse(entity, java.util.List.of());
 
         // Assert
         assertThat(response).isNotNull();
@@ -95,8 +95,31 @@ class ServiceMapperTest {
         assertThat(response.durationMinutes()).isEqualTo(60);
         assertThat(response.price()).isEqualByComparingTo(new BigDecimal("2000.00"));
         assertThat(response.isActive()).isTrue();
+        assertThat(response.assignedEmployeeIds()).isEmpty();
         assertThat(response.createdAt()).isEqualTo(now);
         assertThat(response.updatedAt()).isEqualTo(now);
+    }
+
+    @Test
+    @DisplayName("Deve mapear assignedEmployeeIds quando informados no ServiceMapper")
+    void shouldMapAssignedEmployeeIdsWhenProvided() {
+        // Arrange
+        UUID emp1 = UUID.randomUUID();
+        UUID emp2 = UUID.randomUUID();
+        ServiceEntity entity = ServiceEntity.builder()
+                .businessId(UUID.randomUUID())
+                .name("Corte")
+                .durationMinutes(30)
+                .price(new BigDecimal("1000.00"))
+                .isActive(true)
+                .build();
+        entity.setId(UUID.randomUUID());
+
+        // Act
+        ServiceResponse response = serviceMapper.toResponse(entity, java.util.List.of(emp1, emp2));
+
+        // Assert
+        assertThat(response.assignedEmployeeIds()).containsExactly(emp1, emp2);
     }
 
     @Test

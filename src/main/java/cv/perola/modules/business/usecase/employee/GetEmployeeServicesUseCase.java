@@ -10,12 +10,14 @@ import cv.perola.modules.business.mapper.ServiceMapper;
 import cv.perola.modules.business.repository.EmployeeRepository;
 import cv.perola.modules.business.repository.EmployeeServiceRepository;
 import cv.perola.modules.business.repository.ServiceRepository;
+import cv.perola.modules.business.service.ServiceAssignmentLookupService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 @Service
@@ -25,6 +27,7 @@ public class GetEmployeeServicesUseCase {
     private final EmployeeRepository employeeRepository;
     private final ServiceRepository serviceRepository;
     private final EmployeeServiceRepository employeeServiceRepository;
+    private final ServiceAssignmentLookupService serviceAssignmentLookupService;
     private final ServiceMapper serviceMapper;
 
     @Transactional(readOnly = true)
@@ -42,8 +45,14 @@ public class GetEmployeeServicesUseCase {
                 .toList();
 
         List<ServiceEntity> services = serviceRepository.findAllByBusinessIdAndIdIn(businessId, serviceIds);
+        Map<UUID, List<UUID>> assignedByService = serviceAssignmentLookupService
+                .findAssignedEmployeeIdsByService(businessId, serviceIds);
+
         List<ServiceResponse> serviceResponses = services.stream()
-                .map(serviceMapper::toResponse)
+                .map(service -> serviceMapper.toResponse(
+                        service,
+                        assignedByService.getOrDefault(service.getId(), List.of())
+                ))
                 .toList();
 
         return new EmployeeServicesResponse(employeeId, businessId, serviceResponses);

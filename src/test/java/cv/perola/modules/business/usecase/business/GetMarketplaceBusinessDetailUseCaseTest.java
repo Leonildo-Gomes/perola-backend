@@ -13,6 +13,7 @@ import cv.perola.modules.business.repository.BusinessCategoryRepository;
 import cv.perola.modules.business.repository.BusinessRepository;
 import cv.perola.modules.business.repository.EmployeeRepository;
 import cv.perola.modules.business.repository.ServiceRepository;
+import cv.perola.modules.business.service.ServiceAssignmentLookupService;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -24,6 +25,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -46,6 +48,9 @@ class GetMarketplaceBusinessDetailUseCaseTest {
 
     @Mock
     private EmployeeRepository employeeRepository;
+
+    @Mock
+    private ServiceAssignmentLookupService serviceAssignmentLookupService;
 
     @Spy
     private BusinessMapper businessMapper = new BusinessMapper();
@@ -102,6 +107,8 @@ class GetMarketplaceBusinessDetailUseCaseTest {
         when(businessRepository.findByIdAndIsActiveTrue(businessId)).thenReturn(Optional.of(business));
         when(businessCategoryRepository.findAllByBusinessId(businessId)).thenReturn(List.of());
         when(serviceRepository.findAllByBusinessIdAndIsActiveTrue(businessId)).thenReturn(List.of(service));
+        when(serviceAssignmentLookupService.findAssignedEmployeeIdsByService(businessId, List.of(service.getId())))
+                .thenReturn(Map.of(service.getId(), List.of(employee.getId())));
         when(employeeRepository.findAllByBusinessIdAndIsActiveTrue(businessId)).thenReturn(List.of(employee));
 
         // Act
@@ -113,6 +120,7 @@ class GetMarketplaceBusinessDetailUseCaseTest {
         assertThat(response.name()).isEqualTo("Salão Morabeza");
         assertThat(response.services()).hasSize(1);
         assertThat(response.services().get(0).name()).isEqualTo("Penteado Tradicional");
+        assertThat(response.services().get(0).assignedEmployeeIds()).containsExactly(employee.getId());
         assertThat(response.employees()).hasSize(1);
         assertThat(response.employees().get(0).displayName()).isEqualTo("Nair Silva");
 

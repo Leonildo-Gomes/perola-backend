@@ -5,11 +5,13 @@ import cv.perola.modules.business.domain.ServiceEntity;
 import cv.perola.modules.business.dto.ServiceResponse;
 import cv.perola.modules.business.mapper.ServiceMapper;
 import cv.perola.modules.business.repository.ServiceRepository;
+import cv.perola.modules.business.service.ServiceAssignmentLookupService;
 import cv.perola.modules.business.validator.service.ServiceStatusValidator;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
 import java.util.UUID;
 
 @Service
@@ -17,6 +19,7 @@ import java.util.UUID;
 public class ToggleServiceStatusUseCase {
 
     private final ServiceRepository serviceRepository;
+    private final ServiceAssignmentLookupService serviceAssignmentLookupService;
     private final ServiceMapper serviceMapper;
     private final ServiceStatusValidator serviceStatusValidator;
 
@@ -33,7 +36,8 @@ public class ToggleServiceStatusUseCase {
 
         service.setActive(targetStatus);
         ServiceEntity updated = serviceRepository.save(service);
+        List<UUID> assignedEmployeeIds = serviceAssignmentLookupService.findAssignedEmployeeIds(businessId, serviceId);
 
-        return serviceMapper.toResponse(updated);
+        return serviceMapper.toResponse(updated, assignedEmployeeIds);
     }
 }

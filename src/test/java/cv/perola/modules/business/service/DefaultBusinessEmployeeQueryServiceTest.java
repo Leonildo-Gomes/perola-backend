@@ -54,6 +54,9 @@ class DefaultBusinessEmployeeQueryServiceTest {
     private EmployeeServiceRepository employeeServiceRepository;
 
     @Mock
+    private ServiceAssignmentLookupService serviceAssignmentLookupService;
+
+    @Mock
     private BusinessMapper businessMapper;
 
     @Mock
@@ -177,10 +180,11 @@ class DefaultBusinessEmployeeQueryServiceTest {
                 .build();
         ServiceResponse expectedResponse = new ServiceResponse(
                 serviceId, businessId, UUID.randomUUID(), "hair", "Cabeleireiro & Tranças",
-                "Corte", null, 60, new BigDecimal("1500.00"), true, Instant.now(), Instant.now()
+                "Corte", null, 60, new BigDecimal("1500.00"), true, List.of(), Instant.now(), Instant.now()
         );
         when(serviceRepository.findByIdAndBusinessId(serviceId, businessId)).thenReturn(Optional.of(entity));
-        when(serviceMapper.toResponse(entity)).thenReturn(expectedResponse);
+        when(serviceAssignmentLookupService.findAssignedEmployeeIds(businessId, serviceId)).thenReturn(List.of());
+        when(serviceMapper.toResponse(entity, List.of())).thenReturn(expectedResponse);
 
         // Act
         Optional<ServiceResponse> result = employeeQueryService.findServiceByIdAndBusinessId(serviceId, businessId);
