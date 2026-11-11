@@ -69,7 +69,7 @@ class DeleteTimeOffUseCaseTest {
                 List.of(new TenantMembership(businessId, "OWNER")), true
         );
         EmployeeResponse employee = new EmployeeResponse(
-                employeeId, businessId, UUID.randomUUID(), "Carlos", true, Instant.now(), Instant.now()
+                employeeId, businessId, UUID.randomUUID(), "Carlos", null, true, Instant.now(), Instant.now()
         );
         EmployeeTimeOffEntity entity = EmployeeTimeOffEntity.builder()
                 .employeeId(employeeId)
@@ -96,7 +96,7 @@ class DeleteTimeOffUseCaseTest {
                 List.of(new TenantMembership(businessId, "OWNER")), true
         );
         EmployeeResponse employee = new EmployeeResponse(
-                employeeId, businessId, UUID.randomUUID(), "Carlos", true, Instant.now(), Instant.now()
+                employeeId, businessId, UUID.randomUUID(), "Carlos", null, true, Instant.now(), Instant.now()
         );
         when(employeeQueryService.findEmployeeById(employeeId)).thenReturn(Optional.of(employee));
         when(timeOffRepository.findByIdAndEmployeeId(timeOffId, employeeId)).thenReturn(Optional.empty());

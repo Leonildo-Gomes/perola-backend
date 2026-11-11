@@ -77,7 +77,7 @@ class GetEmployeeScheduleUseCaseTest {
     @DisplayName("Deve obter um perfil de horário específico por scheduleId e employeeId")
     void shouldGetEmployeeScheduleByIdSuccessfully() {
         EmployeeResponse employee = new EmployeeResponse(
-                employeeId, businessId, ownerUserId, "Maria", true, Instant.now(), Instant.now()
+                employeeId, businessId, ownerUserId, "Maria", null, true, Instant.now(), Instant.now()
         );
         UserPrincipal principal = new UserPrincipal(
                 ownerUserId, "maria@perola.cv", "hash",
@@ -119,7 +119,7 @@ class GetEmployeeScheduleUseCaseTest {
     @DisplayName("Deve lançar ResourceNotFoundException quando perfil não existir para o colaborador")
     void shouldThrowResourceNotFoundExceptionWhenScheduleNotFound() {
         EmployeeResponse employee = new EmployeeResponse(
-                employeeId, businessId, ownerUserId, "Maria", true, Instant.now(), Instant.now()
+                employeeId, businessId, ownerUserId, "Maria", null, true, Instant.now(), Instant.now()
         );
         UserPrincipal principal = new UserPrincipal(
                 ownerUserId, "maria@perola.cv", "hash",

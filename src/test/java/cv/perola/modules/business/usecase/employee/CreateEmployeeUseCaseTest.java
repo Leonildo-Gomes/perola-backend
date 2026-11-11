@@ -49,13 +49,13 @@ class CreateEmployeeUseCaseTest {
 
     @BeforeEach
     void setUp() {
-        createEmployeeValidator = new CreateEmployeeValidator(businessRepository, employeeRepository, userAccountService);
+        createEmployeeValidator = new CreateEmployeeValidator(businessRepository, employeeRepository,
+                userAccountService);
         createEmployeeUseCase = new CreateEmployeeUseCase(
                 employeeRepository,
                 userAccountService,
                 employeeMapper,
-                createEmployeeValidator
-        );
+                createEmployeeValidator);
     }
 
     @Test
@@ -64,7 +64,8 @@ class CreateEmployeeUseCaseTest {
         // Arrange
         UUID businessId = UUID.randomUUID();
         UUID userId = UUID.randomUUID();
-        CreateEmployeeRequest request = new CreateEmployeeRequest(userId, "Ana Cabral");
+        CreateEmployeeRequest request = new CreateEmployeeRequest(userId, "Ana Cabral",
+                "Cabeleireira Sénior & Trancista");
 
         when(businessRepository.existsById(businessId)).thenReturn(true);
         when(userAccountService.existsById(userId)).thenReturn(true);
@@ -84,6 +85,7 @@ class CreateEmployeeUseCaseTest {
         // Assert
         assertThat(response).isNotNull();
         assertThat(response.displayName()).isEqualTo("Ana Cabral");
+        assertThat(response.specialty()).isEqualTo("Cabeleireira Sénior & Trancista");
         assertThat(response.userId()).isEqualTo(userId);
         assertThat(response.businessId()).isEqualTo(businessId);
         assertThat(response.isActive()).isTrue();
@@ -97,7 +99,7 @@ class CreateEmployeeUseCaseTest {
     void shouldCreateEmployeeWithoutAssociatedUser() {
         // Arrange
         UUID businessId = UUID.randomUUID();
-        CreateEmployeeRequest request = new CreateEmployeeRequest(null, "Carlos Lima");
+        CreateEmployeeRequest request = new CreateEmployeeRequest(null, "Carlos Lima", null);
 
         when(businessRepository.existsById(businessId)).thenReturn(true);
         when(employeeRepository.save(any(EmployeeEntity.class))).thenAnswer(inv -> {
@@ -114,6 +116,7 @@ class CreateEmployeeUseCaseTest {
         // Assert
         assertThat(response).isNotNull();
         assertThat(response.displayName()).isEqualTo("Carlos Lima");
+        assertThat(response.specialty()).isNull();
         assertThat(response.userId()).isNull();
 
         verify(userAccountService, never()).assignRole(any(), any());
@@ -125,7 +128,7 @@ class CreateEmployeeUseCaseTest {
     void shouldThrowResourceNotFoundWhenBusinessDoesNotExist() {
         // Arrange
         UUID businessId = UUID.randomUUID();
-        CreateEmployeeRequest request = new CreateEmployeeRequest(null, "Carlos Lima");
+        CreateEmployeeRequest request = new CreateEmployeeRequest(null, "Carlos Lima", null);
 
         when(businessRepository.existsById(businessId)).thenReturn(false);
 
@@ -143,7 +146,7 @@ class CreateEmployeeUseCaseTest {
         // Arrange
         UUID businessId = UUID.randomUUID();
         UUID userId = UUID.randomUUID();
-        CreateEmployeeRequest request = new CreateEmployeeRequest(userId, "Ana Cabral");
+        CreateEmployeeRequest request = new CreateEmployeeRequest(userId, "Ana Cabral", null);
 
         when(businessRepository.existsById(businessId)).thenReturn(true);
         when(userAccountService.existsById(userId)).thenReturn(true);

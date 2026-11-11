@@ -63,9 +63,9 @@ class BusinessEmployeeControllerTest {
     void shouldCreateEmployeeAndReturn201() {
         // Arrange
         UUID businessId = UUID.randomUUID();
-        CreateEmployeeRequest request = new CreateEmployeeRequest(null, "Maria Silva");
+        CreateEmployeeRequest request = new CreateEmployeeRequest(null, "Maria Silva", "Cabeleireira Sénior");
         EmployeeResponse expected = new EmployeeResponse(
-                UUID.randomUUID(), businessId, null, "Maria Silva", true, Instant.now(), Instant.now()
+                UUID.randomUUID(), businessId, null, "Maria Silva", "Cabeleireira Sénior", true, Instant.now(), Instant.now()
         );
         when(createEmployeeUseCase.execute(businessId, request)).thenReturn(expected);
 
@@ -84,7 +84,7 @@ class BusinessEmployeeControllerTest {
         // Arrange
         UUID businessId = UUID.randomUUID();
         EmployeeResponse e1 = new EmployeeResponse(
-                UUID.randomUUID(), businessId, null, "Maria Silva", true, Instant.now(), Instant.now()
+                UUID.randomUUID(), businessId, null, "Maria Silva", "Cabeleireira", true, Instant.now(), Instant.now()
         );
         when(listEmployeesUseCase.execute(businessId)).thenReturn(List.of(e1));
 
@@ -103,7 +103,7 @@ class BusinessEmployeeControllerTest {
         // Arrange
         UUID businessId = UUID.randomUUID();
         EmployeeResponse e1 = new EmployeeResponse(
-                UUID.randomUUID(), businessId, null, "Maria Silva", true, Instant.now(), Instant.now()
+                UUID.randomUUID(), businessId, null, "Maria Silva", "Cabeleireira", true, Instant.now(), Instant.now()
         );
         when(listActiveEmployeesUseCase.execute(businessId)).thenReturn(List.of(e1));
 
@@ -123,9 +123,9 @@ class BusinessEmployeeControllerTest {
         // Arrange
         UUID businessId = UUID.randomUUID();
         UUID employeeId = UUID.randomUUID();
-        UpdateEmployeeRequest request = new UpdateEmployeeRequest("Maria Silva - Estilista", true);
+        UpdateEmployeeRequest request = new UpdateEmployeeRequest("Maria Silva - Estilista", "Estilista Sénior", true);
         EmployeeResponse expected = new EmployeeResponse(
-                employeeId, businessId, null, "Maria Silva - Estilista", true, Instant.now(), Instant.now()
+                employeeId, businessId, null, "Maria Silva - Estilista", "Estilista Sénior", true, Instant.now(), Instant.now()
         );
         when(updateEmployeeUseCase.execute(businessId, employeeId, request)).thenReturn(expected);
 
@@ -187,7 +187,7 @@ class BusinessEmployeeControllerTest {
         UUID businessId = UUID.randomUUID();
         UUID employeeId = UUID.randomUUID();
         EmployeeResponse expected = new EmployeeResponse(
-                employeeId, businessId, null, "Carlos Cabeleireiro", false, Instant.now(), Instant.now()
+                employeeId, businessId, null, "Carlos Cabeleireiro", null, false, Instant.now(), Instant.now()
         );
 
         when(toggleEmployeeStatusUseCase.execute(businessId, employeeId)).thenReturn(expected);

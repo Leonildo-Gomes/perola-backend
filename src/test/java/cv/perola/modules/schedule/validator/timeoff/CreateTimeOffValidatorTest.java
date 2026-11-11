@@ -29,7 +29,7 @@ class CreateTimeOffValidatorTest {
     void shouldValidatePermissionsForOwner() {
         UUID businessId = UUID.randomUUID();
         UUID ownerId = UUID.randomUUID();
-        EmployeeResponse employee = new EmployeeResponse(UUID.randomUUID(), businessId, UUID.randomUUID(), "Func", true, Instant.now(), Instant.now());
+        EmployeeResponse employee = new EmployeeResponse(UUID.randomUUID(), businessId, UUID.randomUUID(), "Func", null, true, Instant.now(), Instant.now());
         UserPrincipal principal = new UserPrincipal(ownerId, "owner@perola.cv", "hash", List.of(UserRole.OWNER.name()), List.of(new TenantMembership(businessId, UserRole.OWNER.name())), true);
 
         assertDoesNotThrow(() -> validator.validatePermissions(employee, principal, businessId));
@@ -40,7 +40,7 @@ class CreateTimeOffValidatorTest {
     void shouldThrowWhenOtherEmployeeTriesToCreateTimeOff() {
         UUID businessId = UUID.randomUUID();
         UUID userId = UUID.randomUUID();
-        EmployeeResponse employee = new EmployeeResponse(UUID.randomUUID(), businessId, UUID.randomUUID(), "Outro", true, Instant.now(), Instant.now());
+        EmployeeResponse employee = new EmployeeResponse(UUID.randomUUID(), businessId, UUID.randomUUID(), "Outro", null, true, Instant.now(), Instant.now());
         UserPrincipal principal = new UserPrincipal(userId, "emp@perola.cv", "hash", List.of(UserRole.EMPLOYEE.name()), List.of(new TenantMembership(businessId, UserRole.EMPLOYEE.name())), true);
 
         assertThrows(TenantAccessDeniedException.class, () -> validator.validatePermissions(employee, principal, businessId));

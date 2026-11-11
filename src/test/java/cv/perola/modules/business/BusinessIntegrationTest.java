@@ -14,6 +14,7 @@ import cv.perola.modules.business.dto.CreateBusinessRequest;
 import cv.perola.modules.business.dto.CreateEmployeeRequest;
 import cv.perola.modules.business.dto.CreateServiceRequest;
 import cv.perola.modules.business.dto.UpdateBusinessRequest;
+import cv.perola.modules.business.dto.UpdateEmployeeRequest;
 import cv.perola.modules.business.dto.UpdateServiceRequest;
 import cv.perola.modules.business.repository.BusinessCategoryRepository;
 import cv.perola.modules.business.repository.BusinessRepository;
@@ -558,7 +559,7 @@ class BusinessIntegrationTest {
         UserEntity employeeUser = createTestUser("claudia.staff@perola.cv", "Cláudia Staff");
 
         // Act 1: Adicionar colaborador à equipa
-        CreateEmployeeRequest empRequest = new CreateEmployeeRequest(employeeUser.getId(), "Cláudia Especialista em Unhas");
+        CreateEmployeeRequest empRequest = new CreateEmployeeRequest(employeeUser.getId(), "Cláudia Especialista em Unhas", "Especialista em Unhas de Gel");
         MvcResult empResult = mockMvc.perform(post("/api/v1/businesses/" + business.getId() + "/employees")
                         .header("Authorization", "Bearer " + ownerToken)
                         .header("X-Business-Id", business.getId().toString())
@@ -774,6 +775,65 @@ class BusinessIntegrationTest {
                         .header("Authorization", "Bearer " + token)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.type").value("https://perola.cv/errors/validation-error"));
+    }
+
+    @Test
+    @DisplayName("BE-019: Deve criar, atualizar e listar especialidade (specialty) no perfil do funcionário")
+    void shouldCreateUpdateAndListEmployeeSpecialty() throws Exception {
+        // Arrange
+        UserEntity owner = createTestUser("owner.specialty@perola.cv", "Owner Specialty");
+        BusinessEntity business = createTestBusiness(owner, "Salão Specialty", "Santiago", "Praia");
+        String ownerToken = generateToken(owner, List.of(new TenantMembership(business.getId(), UserRole.OWNER.name())));
+
+        CreateEmployeeRequest createReq = new CreateEmployeeRequest(
+                null,
+                "Helena Silva",
+                "Cabeleireira Sénior & Trancista"
+        );
+
+        // Act 1: Criar funcionário com specialty (POST)
+        MvcResult createResult = mockMvc.perform(post("/api/v1/businesses/" + business.getId() + "/employees")
+                        .header("Authorization", "Bearer " + ownerToken)
+                        .header("X-Business-Id", business.getId().toString())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(createReq)))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.displayName").value("Helena Silva"))
+                .andExpect(jsonPath("$.specialty").value("Cabeleireira Sénior & Trancista"))
+                .andReturn();
+
+        UUID employeeId = UUID.fromString(
+                objectMapper.readTree(createResult.getResponse().getContentAsString()).get("id").asText()
+        );
+
+        // Act 2: Atualizar specialty (PATCH)
+        UpdateEmployeeRequest updateReq = new UpdateEmployeeRequest(null, "Master Stylist & Trancista", null);
+        mockMvc.perform(patch("/api/v1/businesses/" + business.getId() + "/employees/" + employeeId)
+                        .header("Authorization", "Bearer " + ownerToken)
+                        .header("X-Business-Id", business.getId().toString())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(updateReq)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.displayName").value("Helena Silva"))
+                .andExpect(jsonPath("$.specialty").value("Master Stylist & Trancista"));
+
+        // Act 3: Listar funcionários (GET) e validar persistência de specialty
+        mockMvc.perform(get("/api/v1/businesses/" + business.getId() + "/employees")
+                        .header("Authorization", "Bearer " + ownerToken)
+                        .header("X-Business-Id", business.getId().toString()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[?(@.id=='" + employeeId + "')].specialty").value("Master Stylist & Trancista"));
+
+        // Act 4: Verificar validação @Size(max = 120)
+        String oversizedSpecialty = "A".repeat(121);
+        CreateEmployeeRequest invalidReq = new CreateEmployeeRequest(null, "Nome Válido", oversizedSpecialty);
+        mockMvc.perform(post("/api/v1/businesses/" + business.getId() + "/employees")
+                        .header("Authorization", "Bearer " + ownerToken)
+                        .header("X-Business-Id", business.getId().toString())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(invalidReq)))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.type").value("https://perola.cv/errors/validation-error"));
     }

@@ -81,7 +81,7 @@ class CreateTimeOffUseCaseTest {
                 List.of(new TenantMembership(businessId, "OWNER")), true
         );
         EmployeeResponse employee = new EmployeeResponse(
-                employeeId, businessId, UUID.randomUUID(), "Carlos", true, Instant.now(), Instant.now()
+                employeeId, businessId, UUID.randomUUID(), "Carlos", null, true, Instant.now(), Instant.now()
         );
         CreateTimeOffRequest request = new CreateTimeOffRequest(
                 LocalDate.of(2026, 11, 10), LocalDate.of(2026, 11, 15), true, null, null,
@@ -123,7 +123,7 @@ class CreateTimeOffUseCaseTest {
                 List.of(new TenantMembership(businessId, "EMPLOYEE")), true
         );
         EmployeeResponse employee = new EmployeeResponse(
-                employeeId, businessId, userId, "Carlos", true, Instant.now(), Instant.now()
+                employeeId, businessId, userId, "Carlos", null, true, Instant.now(), Instant.now()
         );
         CreateTimeOffRequest request = new CreateTimeOffRequest(
                 LocalDate.of(2026, 11, 10), LocalDate.of(2026, 11, 10), false,
@@ -168,7 +168,7 @@ class CreateTimeOffUseCaseTest {
                 List.of(new TenantMembership(businessId, "EMPLOYEE")), true
         );
         EmployeeResponse employee = new EmployeeResponse(
-                employeeId, businessId, otherUserId, "Outro", true, Instant.now(), Instant.now()
+                employeeId, businessId, otherUserId, "Outro", null, true, Instant.now(), Instant.now()
         );
         CreateTimeOffRequest request = new CreateTimeOffRequest(
                 LocalDate.of(2026, 11, 10), LocalDate.of(2026, 11, 15), true, null, null,
@@ -212,7 +212,7 @@ class CreateTimeOffUseCaseTest {
                 List.of(new TenantMembership(businessId, "OWNER")), true
         );
         EmployeeResponse employee = new EmployeeResponse(
-                employeeId, otherBusinessId, userId, "Carlos", true, Instant.now(), Instant.now()
+                employeeId, otherBusinessId, userId, "Carlos", null, true, Instant.now(), Instant.now()
         );
         CreateTimeOffRequest request = new CreateTimeOffRequest(
                 LocalDate.of(2026, 11, 10), LocalDate.of(2026, 11, 15), true, null, null,
@@ -235,7 +235,7 @@ class CreateTimeOffUseCaseTest {
                 List.of(new TenantMembership(businessId, "OWNER")), true
         );
         EmployeeResponse employee = new EmployeeResponse(
-                employeeId, businessId, userId, "Carlos", true, Instant.now(), Instant.now()
+                employeeId, businessId, userId, "Carlos", null, true, Instant.now(), Instant.now()
         );
         CreateTimeOffRequest request = new CreateTimeOffRequest(
                 LocalDate.of(2026, 11, 15), LocalDate.of(2026, 11, 10), true, null, null,
@@ -258,7 +258,7 @@ class CreateTimeOffUseCaseTest {
                 List.of(new TenantMembership(businessId, "OWNER")), true
         );
         EmployeeResponse employee = new EmployeeResponse(
-                employeeId, businessId, userId, "Carlos", true, Instant.now(), Instant.now()
+                employeeId, businessId, userId, "Carlos", null, true, Instant.now(), Instant.now()
         );
         CreateTimeOffRequest request = new CreateTimeOffRequest(
                 LocalDate.of(2026, 11, 10), LocalDate.of(2026, 11, 10), false, null, null,
@@ -281,7 +281,7 @@ class CreateTimeOffUseCaseTest {
                 List.of(new TenantMembership(businessId, "OWNER")), true
         );
         EmployeeResponse employee = new EmployeeResponse(
-                employeeId, businessId, userId, "Carlos", true, Instant.now(), Instant.now()
+                employeeId, businessId, userId, "Carlos", null, true, Instant.now(), Instant.now()
         );
         CreateTimeOffRequest request = new CreateTimeOffRequest(
                 LocalDate.of(2026, 11, 10), LocalDate.of(2026, 11, 10), false,

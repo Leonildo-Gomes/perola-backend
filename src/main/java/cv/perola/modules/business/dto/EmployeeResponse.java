@@ -20,6 +20,9 @@ public record EmployeeResponse(
         @Schema(description = "Nome de exibição do profissional", example = "Maria Silva")
         String displayName,
 
+        @Schema(description = "Título ou especialidade exibida no perfil do profissional", example = "Cabeleireira Sénior & Trancista", nullable = true)
+        String specialty,
+
         @Schema(description = "Estado de ativação do profissional", example = "true")
         boolean isActive,
 

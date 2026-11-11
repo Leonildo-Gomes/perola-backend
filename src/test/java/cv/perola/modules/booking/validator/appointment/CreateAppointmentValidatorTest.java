@@ -59,7 +59,7 @@ class CreateAppointmentValidatorTest {
 
         BusinessResponse business = new BusinessResponse(businessId, UUID.randomUUID(), "Salão", "Santiago", "Praia",
                 "Rua 1", "+23899", "Atlantic/Cape_Verde", List.of(), true, Instant.now(), Instant.now());
-        EmployeeResponse employee = new EmployeeResponse(employeeId, businessId, UUID.randomUUID(), "Func", true,
+        EmployeeResponse employee = new EmployeeResponse(employeeId, businessId, UUID.randomUUID(), "Func", null, true,
                 Instant.now(), Instant.now());
         ServiceResponse service = new ServiceResponse(serviceId, businessId, UUID.randomUUID(), "hair",
                 "Cabeleireiro & Tranças", "Corte", "Desc", 45, BigDecimal.valueOf(1000), true, List.of(), Instant.now(),

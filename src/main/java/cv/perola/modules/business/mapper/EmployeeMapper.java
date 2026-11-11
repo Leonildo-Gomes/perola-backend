@@ -24,8 +24,21 @@ public class EmployeeMapper {
                 .businessId(businessId)
                 .userId(request.userId())
                 .displayName(request.displayName() != null ? request.displayName().trim() : null)
+                .specialty(normalizeSpecialty(request.specialty()))
                 .isActive(true)
                 .build();
+    }
+
+    /**
+     * Normaliza o campo opcional de especialidade removendo espaços em excesso
+     * e convertendo valores em branco para {@code null}.
+     */
+    public String normalizeSpecialty(String specialty) {
+        if (specialty == null) {
+            return null;
+        }
+        String trimmed = specialty.trim();
+        return trimmed.isEmpty() ? null : trimmed;
     }
 
     public EmployeeResponse toResponse(EmployeeEntity entity) {
@@ -37,6 +50,7 @@ public class EmployeeMapper {
                 entity.getBusinessId(),
                 entity.getUserId(),
                 entity.getDisplayName(),
+                entity.getSpecialty(),
                 entity.isActive(),
                 entity.getCreatedAt(),
                 entity.getUpdatedAt()

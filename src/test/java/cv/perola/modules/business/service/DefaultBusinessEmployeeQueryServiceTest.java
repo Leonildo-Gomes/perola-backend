@@ -112,7 +112,7 @@ class DefaultBusinessEmployeeQueryServiceTest {
                 .isActive(true)
                 .build();
         EmployeeResponse expectedResponse = new EmployeeResponse(
-                employeeId, businessId, UUID.randomUUID(), "Carlos", true, Instant.now(), Instant.now()
+                employeeId, businessId, UUID.randomUUID(), "Carlos", null, true, Instant.now(), Instant.now()
         );
         when(employeeRepository.findById(employeeId)).thenReturn(Optional.of(entity));
         when(employeeMapper.toResponse(entity)).thenReturn(expectedResponse);
@@ -152,7 +152,7 @@ class DefaultBusinessEmployeeQueryServiceTest {
                 .isActive(true)
                 .build();
         EmployeeResponse expectedResponse = new EmployeeResponse(
-                employeeId, businessId, UUID.randomUUID(), "Ana", true, Instant.now(), Instant.now()
+                employeeId, businessId, UUID.randomUUID(), "Ana", null, true, Instant.now(), Instant.now()
         );
         when(employeeRepository.findByIdAndBusinessId(employeeId, businessId)).thenReturn(Optional.of(entity));
         when(employeeMapper.toResponse(entity)).thenReturn(expectedResponse);
@@ -234,7 +234,7 @@ class DefaultBusinessEmployeeQueryServiceTest {
                 .isActive(true)
                 .build();
         EmployeeResponse expectedResponse = new EmployeeResponse(
-                employeeId, businessId, userId, "Carla", true, Instant.now(), Instant.now()
+                employeeId, businessId, userId, "Carla", null, true, Instant.now(), Instant.now()
         );
         when(employeeRepository.findByBusinessIdAndUserId(businessId, userId)).thenReturn(Optional.of(entity));
         when(employeeMapper.toResponse(entity)).thenReturn(expectedResponse);

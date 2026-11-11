@@ -48,7 +48,7 @@ class ToggleEmployeeStatusUseCaseTest {
                 .build();
 
         EmployeeResponse expectedResponse = new EmployeeResponse(
-                employeeId, businessId, null, "Carlos Cabeleireiro", false, Instant.now(), Instant.now()
+                employeeId, businessId, null, "Carlos Cabeleireiro", null, false, Instant.now(), Instant.now()
         );
 
         when(employeeRepository.findByIdAndBusinessId(employeeId, businessId)).thenReturn(Optional.of(employee));
@@ -81,7 +81,7 @@ class ToggleEmployeeStatusUseCaseTest {
                 .build();
 
         EmployeeResponse expectedResponse = new EmployeeResponse(
-                employeeId, businessId, null, "Carlos Cabeleireiro", true, Instant.now(), Instant.now()
+                employeeId, businessId, null, "Carlos Cabeleireiro", null, true, Instant.now(), Instant.now()
         );
 
         when(employeeRepository.findByIdAndBusinessId(employeeId, businessId)).thenReturn(Optional.of(employee));

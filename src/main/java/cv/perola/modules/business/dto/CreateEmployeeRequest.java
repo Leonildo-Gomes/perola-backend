@@ -15,6 +15,10 @@ public record CreateEmployeeRequest(
         @Schema(description = "Nome de exibição pública do profissional", example = "Maria Silva")
         @NotBlank(message = "O nome de exibição é obrigatório")
         @Size(max = 150, message = "O nome de exibição não pode exceder 150 caracteres")
-        String displayName
+        String displayName,
+
+        @Schema(description = "Título ou especialidade exibida no perfil do profissional", example = "Cabeleireira Sénior & Trancista", nullable = true)
+        @Size(max = 120, message = "A especialidade não pode exceder 120 caracteres")
+        String specialty
 ) {
 }

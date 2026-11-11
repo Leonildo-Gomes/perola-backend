@@ -86,7 +86,7 @@ class OpenMonthlyScheduleUseCaseTest {
         @DisplayName("Deve abrir a agenda mensal vinculando o scheduleId e criando folga para feriado com workOnHoliday=false")
         void shouldOpenMonthlyScheduleAndCreateHolidayTimeOffWhenNotWorkingOnHoliday() {
                 EmployeeResponse employee = new EmployeeResponse(
-                                employeeId, businessId, ownerUserId, "Maria", true, Instant.now(), Instant.now());
+                                employeeId, businessId, ownerUserId, "Maria", null, true, Instant.now(), Instant.now());
                 UserPrincipal principal = new UserPrincipal(
                                 ownerUserId, "maria@perola.cv", "hash",
                                 List.of("OWNER"), List.of(new TenantMembership(businessId, "OWNER")), true);
@@ -142,7 +142,7 @@ class OpenMonthlyScheduleUseCaseTest {
         @DisplayName("Deve atualizar o scheduleId quando o mês já estava aberto anteriormente")
         void shouldUpdateExistingMonthlyScheduleWithNewScheduleProfile() {
                 EmployeeResponse employee = new EmployeeResponse(
-                                employeeId, businessId, ownerUserId, "Maria", true, Instant.now(), Instant.now());
+                                employeeId, businessId, ownerUserId, "Maria", null, true, Instant.now(), Instant.now());
                 UserPrincipal principal = new UserPrincipal(
                                 ownerUserId, "maria@perola.cv", "hash",
                                 List.of("OWNER"), List.of(new TenantMembership(businessId, "OWNER")), true);
@@ -188,7 +188,7 @@ class OpenMonthlyScheduleUseCaseTest {
         @DisplayName("Deve rejeitar abertura mensal quando o perfil de horário estiver inativo")
         void shouldThrowValidationExceptionWhenScheduleProfileIsInactive() {
                 EmployeeResponse employee = new EmployeeResponse(
-                                employeeId, businessId, ownerUserId, "Maria", true, Instant.now(), Instant.now());
+                                employeeId, businessId, ownerUserId, "Maria", null, true, Instant.now(), Instant.now());
                 UserPrincipal principal = new UserPrincipal(
                                 ownerUserId, "maria@perola.cv", "hash",
                                 List.of("OWNER"), List.of(new TenantMembership(businessId, "OWNER")), true);
@@ -217,7 +217,7 @@ class OpenMonthlyScheduleUseCaseTest {
         @DisplayName("Deve rejeitar abertura mensal quando data de feriado não pertencer ao mês/ano solicitado")
         void shouldThrowValidationExceptionWhenHolidayDateDoesNotBelongToMonth() {
                 EmployeeResponse employee = new EmployeeResponse(
-                                employeeId, businessId, ownerUserId, "Maria", true, Instant.now(), Instant.now());
+                                employeeId, businessId, ownerUserId, "Maria", null, true, Instant.now(), Instant.now());
                 UserPrincipal principal = new UserPrincipal(
                                 ownerUserId, "maria@perola.cv", "hash",
                                 List.of("OWNER"), List.of(new TenantMembership(businessId, "OWNER")), true);
@@ -249,7 +249,7 @@ class OpenMonthlyScheduleUseCaseTest {
         @DisplayName("Deve rejeitar com TenantAccessDeniedException quando funcionário tenta abrir agenda de outro colega")
         void shouldThrowTenantAccessDeniedExceptionWhenEmployeeOpensAnotherEmployeeMonth() {
                 EmployeeResponse employee = new EmployeeResponse(
-                                employeeId, businessId, ownerUserId, "Maria", true, Instant.now(), Instant.now());
+                                employeeId, businessId, ownerUserId, "Maria", null, true, Instant.now(), Instant.now());
                 UserPrincipal otherPrincipal = new UserPrincipal(
                                 UUID.randomUUID(), "outro@perola.cv", "hash",
                                 List.of("EMPLOYEE"), List.of(new TenantMembership(businessId, "EMPLOYEE")), true);
@@ -267,7 +267,7 @@ class OpenMonthlyScheduleUseCaseTest {
         @DisplayName("Deve rejeitar com ResourceNotFoundException quando perfil de horário não existir")
         void shouldThrowResourceNotFoundExceptionWhenScheduleDoesNotExist() {
                 EmployeeResponse employee = new EmployeeResponse(
-                                employeeId, businessId, ownerUserId, "Maria", true, Instant.now(), Instant.now());
+                                employeeId, businessId, ownerUserId, "Maria", null, true, Instant.now(), Instant.now());
                 UserPrincipal principal = new UserPrincipal(
                                 ownerUserId, "maria@perola.cv", "hash",
                                 List.of("OWNER"), List.of(new TenantMembership(businessId, "OWNER")), true);

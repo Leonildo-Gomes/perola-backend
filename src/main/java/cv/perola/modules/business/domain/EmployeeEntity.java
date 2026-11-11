@@ -33,6 +33,9 @@ public class EmployeeEntity extends BaseEntity {
     @Column(name = "display_name", nullable = false, length = 150)
     private String displayName;
 
+    @Column(name = "specialty", length = 120)
+    private String specialty;
+
     @Builder.Default
     @Column(name = "is_active", nullable = false)
     private boolean isActive = true;

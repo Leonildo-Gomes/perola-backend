@@ -49,7 +49,7 @@ class EmployeeScheduleValidatorTest {
         UUID businessId = UUID.randomUUID();
         UUID ownerId = UUID.randomUUID();
         EmployeeResponse employee = new EmployeeResponse(
-                UUID.randomUUID(), businessId, UUID.randomUUID(), "Func", true, java.time.Instant.now(), java.time.Instant.now()
+                UUID.randomUUID(), businessId, UUID.randomUUID(), "Func", null, true, java.time.Instant.now(), java.time.Instant.now()
         );
         UserPrincipal principal = new UserPrincipal(
                 ownerId, "owner@perola.cv", "hash",
@@ -65,7 +65,7 @@ class EmployeeScheduleValidatorTest {
         UUID businessId = UUID.randomUUID();
         UUID userId = UUID.randomUUID();
         EmployeeResponse employee = new EmployeeResponse(
-                UUID.randomUUID(), businessId, UUID.randomUUID(), "Outro Func", true, java.time.Instant.now(), java.time.Instant.now()
+                UUID.randomUUID(), businessId, UUID.randomUUID(), "Outro Func", null, true, java.time.Instant.now(), java.time.Instant.now()
         );
         UserPrincipal principal = new UserPrincipal(
                 userId, "emp@perola.cv", "hash",

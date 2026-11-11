@@ -28,6 +28,10 @@ public class UpdateEmployeeUseCase {
             employee.setDisplayName(request.displayName().trim());
         }
 
+        if (request.specialty() != null) {
+            employee.setSpecialty(employeeMapper.normalizeSpecialty(request.specialty()));
+        }
+
         if (request.isActive() != null) {
             employee.setActive(request.isActive());
         }

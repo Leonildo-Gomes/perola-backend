@@ -87,7 +87,7 @@ class CreateEmployeeScheduleUseCaseTest {
     @DisplayName("Deve criar perfil de horário semanal com 7 dias e pausas com sucesso")
     void shouldCreateEmployeeScheduleWithSevenDaysAndBreaksSuccessfully() {
         EmployeeResponse employee = new EmployeeResponse(
-                employeeId, businessId, ownerUserId, "Maria", true, Instant.now(), Instant.now()
+                employeeId, businessId, ownerUserId, "Maria", null, true, Instant.now(), Instant.now()
         );
         UserPrincipal principal = new UserPrincipal(
                 ownerUserId, "maria@perola.cv", "hash",
@@ -133,7 +133,7 @@ class CreateEmployeeScheduleUseCaseTest {
     @DisplayName("Deve desmarcar perfil padrão anterior ao criar novo perfil marcado como isDefault=true")
     void shouldUnsetPreviousDefaultWhenCreatingNewDefaultSchedule() {
         EmployeeResponse employee = new EmployeeResponse(
-                employeeId, businessId, ownerUserId, "Maria", true, Instant.now(), Instant.now()
+                employeeId, businessId, ownerUserId, "Maria", null, true, Instant.now(), Instant.now()
         );
         UserPrincipal principal = new UserPrincipal(
                 ownerUserId, "maria@perola.cv", "hash",
@@ -177,7 +177,7 @@ class CreateEmployeeScheduleUseCaseTest {
     @DisplayName("Deve rejeitar com ValidationException quando menos de 7 dias forem informados")
     void shouldThrowValidationExceptionWhenFewerThanSevenDaysProvided() {
         EmployeeResponse employee = new EmployeeResponse(
-                employeeId, businessId, ownerUserId, "Maria", true, Instant.now(), Instant.now()
+                employeeId, businessId, ownerUserId, "Maria", null, true, Instant.now(), Instant.now()
         );
         UserPrincipal principal = new UserPrincipal(
                 ownerUserId, "maria@perola.cv", "hash",
@@ -202,7 +202,7 @@ class CreateEmployeeScheduleUseCaseTest {
     @DisplayName("Deve rejeitar com ValidationException quando dia de folga contiver horas ou pausas")
     void shouldThrowValidationExceptionWhenNonWorkingDayHasTimesOrBreaks() {
         EmployeeResponse employee = new EmployeeResponse(
-                employeeId, businessId, ownerUserId, "Maria", true, Instant.now(), Instant.now()
+                employeeId, businessId, ownerUserId, "Maria", null, true, Instant.now(), Instant.now()
         );
         UserPrincipal principal = new UserPrincipal(
                 ownerUserId, "maria@perola.cv", "hash",
@@ -229,7 +229,7 @@ class CreateEmployeeScheduleUseCaseTest {
     @DisplayName("Deve rejeitar com ValidationException quando pausa estiver fora do expediente ou sobreposta")
     void shouldThrowValidationExceptionWhenBreakIsOutsideWorkingHours() {
         EmployeeResponse employee = new EmployeeResponse(
-                employeeId, businessId, ownerUserId, "Maria", true, Instant.now(), Instant.now()
+                employeeId, businessId, ownerUserId, "Maria", null, true, Instant.now(), Instant.now()
         );
         UserPrincipal principal = new UserPrincipal(
                 ownerUserId, "maria@perola.cv", "hash",
@@ -261,7 +261,7 @@ class CreateEmployeeScheduleUseCaseTest {
     void shouldThrowTenantAccessDeniedExceptionWhenEmployeeModifiesAnotherEmployeeSchedule() {
         UUID otherUserId = UUID.randomUUID();
         EmployeeResponse employee = new EmployeeResponse(
-                employeeId, businessId, ownerUserId, "Maria", true, Instant.now(), Instant.now()
+                employeeId, businessId, ownerUserId, "Maria", null, true, Instant.now(), Instant.now()
         );
         UserPrincipal otherEmployeePrincipal = new UserPrincipal(
                 otherUserId, "outro@perola.cv", "hash",

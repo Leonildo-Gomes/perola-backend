@@ -53,7 +53,7 @@ class ListEmployeeReviewsUseCaseTest {
         UUID employeeId = UUID.randomUUID();
         UUID businessId = UUID.randomUUID();
         EmployeeResponse employee = new EmployeeResponse(
-                employeeId, businessId, UUID.randomUUID(), "Ana", true, Instant.now(), Instant.now()
+                employeeId, businessId, UUID.randomUUID(), "Ana", null, true, Instant.now(), Instant.now()
         );
         ReviewEntity entity = ReviewEntity.builder()
                 .appointmentId(UUID.randomUUID())

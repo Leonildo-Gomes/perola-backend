@@ -40,7 +40,7 @@ class CreateEmployeeValidatorTest {
     void shouldValidateSuccessfully() {
         UUID businessId = UUID.randomUUID();
         UUID userId = UUID.randomUUID();
-        CreateEmployeeRequest request = new CreateEmployeeRequest(userId, "Maria");
+        CreateEmployeeRequest request = new CreateEmployeeRequest(userId, "Maria", "Cabeleireira");
 
         when(businessRepository.existsById(businessId)).thenReturn(true);
         when(userAccountService.existsById(userId)).thenReturn(true);
@@ -57,7 +57,7 @@ class CreateEmployeeValidatorTest {
     @DisplayName("Deve lançar ResourceNotFoundException quando o salão não existir")
     void shouldThrowWhenBusinessNotFound() {
         UUID businessId = UUID.randomUUID();
-        CreateEmployeeRequest request = new CreateEmployeeRequest(null, "Maria");
+        CreateEmployeeRequest request = new CreateEmployeeRequest(null, "Maria", null);
 
         when(businessRepository.existsById(businessId)).thenReturn(false);
 
@@ -69,7 +69,7 @@ class CreateEmployeeValidatorTest {
     void shouldThrowWhenUserAlreadyEmployee() {
         UUID businessId = UUID.randomUUID();
         UUID userId = UUID.randomUUID();
-        CreateEmployeeRequest request = new CreateEmployeeRequest(userId, "Maria");
+        CreateEmployeeRequest request = new CreateEmployeeRequest(userId, "Maria", "Cabeleireira");
 
         when(businessRepository.existsById(businessId)).thenReturn(true);
         when(userAccountService.existsById(userId)).thenReturn(true);

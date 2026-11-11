@@ -114,7 +114,7 @@ class ListSalonAppointmentsUseCaseTest {
                 List.of("EMPLOYEE"), List.of(new TenantMembership(businessId, "EMPLOYEE")), true
         );
         EmployeeResponse ownEmployee = new EmployeeResponse(
-                ownEmployeeId, businessId, userId, "Carla", true, Instant.now(), Instant.now()
+                ownEmployeeId, businessId, userId, "Carla", null, true, Instant.now(), Instant.now()
         );
 
         when(lifecycleService.isBusinessOwner(principal, businessId)).thenReturn(false);

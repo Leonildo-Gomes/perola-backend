@@ -34,110 +34,104 @@ import static org.mockito.Mockito.when;
 @ExtendWith(MockitoExtension.class)
 class GetMonthlyScheduleUseCaseTest {
 
-    @Mock
-    private EmployeeMonthlyScheduleRepository monthlyScheduleRepository;
+        @Mock
+        private EmployeeMonthlyScheduleRepository monthlyScheduleRepository;
 
-    @Mock
-    private EmployeeScheduleRepository scheduleRepository;
+        @Mock
+        private EmployeeScheduleRepository scheduleRepository;
 
-    @Mock
-    private BusinessEmployeeQueryService employeeQueryService;
+        @Mock
+        private BusinessEmployeeQueryService employeeQueryService;
 
-    private GetMonthlyScheduleUseCase useCase;
+        private GetMonthlyScheduleUseCase useCase;
 
-    private final UUID businessId = UUID.randomUUID();
-    private final UUID employeeId = UUID.randomUUID();
-    private final UUID scheduleId = UUID.randomUUID();
-    private final UUID ownerUserId = UUID.randomUUID();
+        private final UUID businessId = UUID.randomUUID();
+        private final UUID employeeId = UUID.randomUUID();
+        private final UUID scheduleId = UUID.randomUUID();
+        private final UUID ownerUserId = UUID.randomUUID();
 
-    @BeforeEach
-    void setUp() {
-        TenantContext.setTenantId(businessId);
-        useCase = new GetMonthlyScheduleUseCase(
-                monthlyScheduleRepository,
-                scheduleRepository,
-                employeeQueryService,
-                new MonthlyScheduleMapper()
-        );
-    }
+        @BeforeEach
+        void setUp() {
+                TenantContext.setTenantId(businessId);
+                useCase = new GetMonthlyScheduleUseCase(
+                                monthlyScheduleRepository,
+                                scheduleRepository,
+                                employeeQueryService,
+                                new MonthlyScheduleMapper());
+        }
 
-    @AfterEach
-    void tearDown() {
-        TenantContext.clear();
-    }
+        @AfterEach
+        void tearDown() {
+                TenantContext.clear();
+        }
 
-    @Test
-    @DisplayName("Deve consultar agenda mensal aberta retornando dados do horário associado")
-    void shouldGetOpenedMonthlyScheduleSuccessfully() {
-        EmployeeResponse employee = new EmployeeResponse(
-                employeeId, businessId, ownerUserId, "Maria", true, Instant.now(), Instant.now()
-        );
-        UserPrincipal principal = new UserPrincipal(
-                ownerUserId, "maria@perola.cv", "hash",
-                List.of("OWNER"), List.of(new TenantMembership(businessId, "OWNER")), true
-        );
+        @Test
+        @DisplayName("Deve consultar agenda mensal aberta retornando dados do horário associado")
+        void shouldGetOpenedMonthlyScheduleSuccessfully() {
+                EmployeeResponse employee = new EmployeeResponse(
+                                employeeId, businessId, ownerUserId, "Maria", null, true, Instant.now(), Instant.now());
+                UserPrincipal principal = new UserPrincipal(
+                                ownerUserId, "maria@perola.cv", "hash",
+                                List.of("OWNER"), List.of(new TenantMembership(businessId, "OWNER")), true);
 
-        EmployeeMonthlyScheduleEntity monthlyEntity = EmployeeMonthlyScheduleEntity.builder()
-                .employeeId(employeeId)
-                .employeeScheduleId(scheduleId)
-                .year(2026)
-                .month(11)
-                .isOpened(true)
-                .openedAt(Instant.parse("2026-10-29T18:00:00Z"))
-                .build();
-        monthlyEntity.setId(UUID.randomUUID());
+                EmployeeMonthlyScheduleEntity monthlyEntity = EmployeeMonthlyScheduleEntity.builder()
+                                .employeeId(employeeId)
+                                .employeeScheduleId(scheduleId)
+                                .year(2026)
+                                .month(11)
+                                .isOpened(true)
+                                .openedAt(Instant.parse("2026-10-29T18:00:00Z"))
+                                .build();
+                monthlyEntity.setId(UUID.randomUUID());
 
-        EmployeeScheduleEntity scheduleEntity = EmployeeScheduleEntity.builder()
-                .employeeId(employeeId)
-                .name("Horário Padrão")
-                .isDefault(true)
-                .isActive(true)
-                .build();
-        scheduleEntity.setId(scheduleId);
+                EmployeeScheduleEntity scheduleEntity = EmployeeScheduleEntity.builder()
+                                .employeeId(employeeId)
+                                .name("Horário Padrão")
+                                .isDefault(true)
+                                .isActive(true)
+                                .build();
+                scheduleEntity.setId(scheduleId);
 
-        when(employeeQueryService.findEmployeeById(employeeId)).thenReturn(Optional.of(employee));
-        when(monthlyScheduleRepository.findByEmployeeIdAndYearAndMonth(employeeId, 2026, 11))
-                .thenReturn(Optional.of(monthlyEntity));
-        when(scheduleRepository.findById(scheduleId)).thenReturn(Optional.of(scheduleEntity));
+                when(employeeQueryService.findEmployeeById(employeeId)).thenReturn(Optional.of(employee));
+                when(monthlyScheduleRepository.findByEmployeeIdAndYearAndMonth(employeeId, 2026, 11))
+                                .thenReturn(Optional.of(monthlyEntity));
+                when(scheduleRepository.findById(scheduleId)).thenReturn(Optional.of(scheduleEntity));
 
-        MonthlyScheduleResponse response = useCase.execute(employeeId, 2026, 11, principal);
+                MonthlyScheduleResponse response = useCase.execute(employeeId, 2026, 11, principal);
 
-        assertThat(response.employeeId()).isEqualTo(employeeId);
-        assertThat(response.scheduleId()).isEqualTo(scheduleId);
-        assertThat(response.scheduleName()).isEqualTo("Horário Padrão");
-        assertThat(response.year()).isEqualTo(2026);
-        assertThat(response.month()).isEqualTo(11);
-        assertThat(response.isOpened()).isTrue();
-    }
+                assertThat(response.employeeId()).isEqualTo(employeeId);
+                assertThat(response.scheduleId()).isEqualTo(scheduleId);
+                assertThat(response.scheduleName()).isEqualTo("Horário Padrão");
+                assertThat(response.year()).isEqualTo(2026);
+                assertThat(response.month()).isEqualTo(11);
+                assertThat(response.isOpened()).isTrue();
+        }
 
-    @Test
-    @DisplayName("Deve lançar ResourceNotFoundException quando o mês ainda não tiver sido aberto")
-    void shouldThrowResourceNotFoundExceptionWhenMonthIsNotOpened() {
-        EmployeeResponse employee = new EmployeeResponse(
-                employeeId, businessId, ownerUserId, "Maria", true, Instant.now(), Instant.now()
-        );
-        UserPrincipal principal = new UserPrincipal(
-                ownerUserId, "maria@perola.cv", "hash",
-                List.of("OWNER"), List.of(new TenantMembership(businessId, "OWNER")), true
-        );
+        @Test
+        @DisplayName("Deve lançar ResourceNotFoundException quando o mês ainda não tiver sido aberto")
+        void shouldThrowResourceNotFoundExceptionWhenMonthIsNotOpened() {
+                EmployeeResponse employee = new EmployeeResponse(
+                                employeeId, businessId, ownerUserId, "Maria", null, true, Instant.now(), Instant.now());
+                UserPrincipal principal = new UserPrincipal(
+                                ownerUserId, "maria@perola.cv", "hash",
+                                List.of("OWNER"), List.of(new TenantMembership(businessId, "OWNER")), true);
 
-        when(employeeQueryService.findEmployeeById(employeeId)).thenReturn(Optional.of(employee));
-        when(monthlyScheduleRepository.findByEmployeeIdAndYearAndMonth(employeeId, 2026, 11))
-                .thenReturn(Optional.empty());
+                when(employeeQueryService.findEmployeeById(employeeId)).thenReturn(Optional.of(employee));
+                when(monthlyScheduleRepository.findByEmployeeIdAndYearAndMonth(employeeId, 2026, 11))
+                                .thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> useCase.execute(employeeId, 2026, 11, principal))
-                .isInstanceOf(ResourceNotFoundException.class);
-    }
+                assertThatThrownBy(() -> useCase.execute(employeeId, 2026, 11, principal))
+                                .isInstanceOf(ResourceNotFoundException.class);
+        }
 
-    @Test
-    @DisplayName("Deve lançar ValidationException quando mês ou ano forem inválidos")
-    void shouldThrowValidationExceptionWhenMonthOrYearInvalid() {
-        UserPrincipal principal = new UserPrincipal(
-                ownerUserId, "maria@perola.cv", "hash",
-                List.of("OWNER"), List.of(new TenantMembership(businessId, "OWNER")), true
-        );
+        @Test
+        @DisplayName("Deve lançar ValidationException quando mês ou ano forem inválidos")
+        void shouldThrowValidationExceptionWhenMonthOrYearInvalid() {
+                UserPrincipal principal = new UserPrincipal(
+                                ownerUserId, "maria@perola.cv", "hash",
+                                List.of("OWNER"), List.of(new TenantMembership(businessId, "OWNER")), true);
 
-        assertThatThrownBy(() -> useCase.execute(employeeId, 2026, 13, principal))
-                .isInstanceOf(ValidationException.class);
-    }
+                assertThatThrownBy(() -> useCase.execute(employeeId, 2026, 13, principal))
+                                .isInstanceOf(ValidationException.class);
+        }
 }

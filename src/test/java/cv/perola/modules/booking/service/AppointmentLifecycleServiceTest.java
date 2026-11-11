@@ -153,7 +153,7 @@ class AppointmentLifecycleServiceTest {
                 UUID.randomUUID(), "stranger@perola.cv", "hash", List.of("CUSTOMER"), List.of(), true
         );
         when(businessEmployeeQueryService.findEmployeeByIdAndBusinessId(employeeId, businessId))
-                .thenReturn(Optional.of(new EmployeeResponse(employeeId, businessId, UUID.randomUUID(), "Carla", true, Instant.now(), Instant.now())));
+                .thenReturn(Optional.of(new EmployeeResponse(employeeId, businessId, UUID.randomUUID(), "Carla", null, true, Instant.now(), Instant.now())));
 
         // Act & Assert
         assertThatThrownBy(() -> lifecycleService.validateParticipantAccess(appointment, stranger))

@@ -73,7 +73,7 @@ class ListTimeOffUseCaseTest {
                 List.of(new TenantMembership(businessId, "OWNER")), true
         );
         EmployeeResponse employee = new EmployeeResponse(
-                employeeId, businessId, UUID.randomUUID(), "Carlos", true, Instant.now(), Instant.now()
+                employeeId, businessId, UUID.randomUUID(), "Carlos", null, true, Instant.now(), Instant.now()
         );
         EmployeeTimeOffEntity entity = EmployeeTimeOffEntity.builder()
                 .employeeId(employeeId)
@@ -109,7 +109,7 @@ class ListTimeOffUseCaseTest {
                 List.of(new TenantMembership(businessId, "EMPLOYEE")), true
         );
         EmployeeResponse employee = new EmployeeResponse(
-                employeeId, businessId, otherUserId, "Outro", true, Instant.now(), Instant.now()
+                employeeId, businessId, otherUserId, "Outro", null, true, Instant.now(), Instant.now()
         );
         when(employeeQueryService.findEmployeeById(employeeId)).thenReturn(Optional.of(employee));
 

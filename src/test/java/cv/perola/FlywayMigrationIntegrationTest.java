@@ -24,14 +24,35 @@ class FlywayMigrationIntegrationTest {
     private JdbcTemplate jdbcTemplate;
 
     @Test
-    @DisplayName("Deve conter o histórico de migrações V1, V2, V3, V4 e V5 com sucesso no Flyway")
+    @DisplayName("Deve conter o histórico de migrações V1, V2, V3, V4, V5 e V6 com sucesso no Flyway")
     void flywayMigrationHistoryIsComplete() {
         List<String> versions = jdbcTemplate.query(
                 "SELECT version FROM flyway_schema_history WHERE success = true ORDER BY installed_rank",
                 (rs, rowNum) -> rs.getString("version")
         );
 
-        assertThat(versions).contains("1", "2", "3", "4", "5");
+        assertThat(versions).contains("1", "2", "3", "4", "5", "6");
+    }
+
+    @Test
+    @DisplayName("Deve conter a coluna specialty (VARCHAR 120 nullable) na tabela employees criada pela migração V6")
+    void employeesSpecialtyColumnExists() {
+        String dataType = jdbcTemplate.queryForObject(
+                "SELECT data_type FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'employees' AND column_name = 'specialty'",
+                String.class
+        );
+        Integer maxLength = jdbcTemplate.queryForObject(
+                "SELECT character_maximum_length FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'employees' AND column_name = 'specialty'",
+                Integer.class
+        );
+        String isNullable = jdbcTemplate.queryForObject(
+                "SELECT is_nullable FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'employees' AND column_name = 'specialty'",
+                String.class
+        );
+
+        assertThat(dataType).isEqualTo("character varying");
+        assertThat(maxLength).isEqualTo(120);
+        assertThat(isNullable).isEqualTo("YES");
     }
 
     @Test

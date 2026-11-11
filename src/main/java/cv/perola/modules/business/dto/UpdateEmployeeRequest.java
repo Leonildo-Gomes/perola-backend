@@ -10,6 +10,10 @@ public record UpdateEmployeeRequest(
         @Size(max = 150, message = "O nome de exibição não pode exceder 150 caracteres")
         String displayName,
 
+        @Schema(description = "Título ou especialidade exibida no perfil do profissional", example = "Barbeiro Sénior", nullable = true)
+        @Size(max = 120, message = "A especialidade não pode exceder 120 caracteres")
+        String specialty,
+
         @Schema(description = "Estado de ativação do profissional", example = "true")
         Boolean isActive
 ) {

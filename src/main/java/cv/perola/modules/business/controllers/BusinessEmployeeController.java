@@ -102,7 +102,7 @@ public class BusinessEmployeeController {
 
         @PatchMapping(value = "/{employeeId}", version = "v1")
         @PreAuthorize("hasRole('OWNER')")
-        @Operation(summary = "Atualizar dados do profissional", description = "Permite alterar nome de exibição e estado de ativação.")
+        @Operation(summary = "Atualizar dados do profissional", description = "Permite alterar nome de exibição, especialidade e estado de ativação.")
         @Parameter(name = TenantFilter.TENANT_HEADER, in = ParameterIn.HEADER, required = true, description = "UUID do salão ativo")
         @ApiResponses({
                         @ApiResponse(responseCode = "200", description = "Colaborador atualizado", content = @Content(schema = @Schema(implementation = EmployeeResponse.class))),

@@ -105,7 +105,7 @@ class CreateAppointmentUseCaseTest {
                                 "Platô", "+2382610000", "Atlantic/Cape_Verde", List.of(), true, Instant.now(),
                                 Instant.now());
                 EmployeeResponse employee = new EmployeeResponse(
-                                employeeId, businessId, UUID.randomUUID(), "Carla", true, Instant.now(), Instant.now());
+                                employeeId, businessId, UUID.randomUUID(), "Carla", null, true, Instant.now(), Instant.now());
                 ServiceResponse service = new ServiceResponse(
                                 serviceId, businessId, UUID.randomUUID(), "hair", "Cabeleireiro & Tranças",
                                 "Corte & Brushing", "Descrição", 60,
@@ -263,7 +263,7 @@ class CreateAppointmentUseCaseTest {
                                 "Platô", "+2382610000", "Atlantic/Cape_Verde", List.of(), true, Instant.now(),
                                 Instant.now());
                 EmployeeResponse employee = new EmployeeResponse(
-                                employeeId, businessId, UUID.randomUUID(), "Carla", true, Instant.now(), Instant.now());
+                                employeeId, businessId, UUID.randomUUID(), "Carla", null, true, Instant.now(), Instant.now());
                 ServiceResponse service = new ServiceResponse(
                                 serviceId, businessId, UUID.randomUUID(), "hair", "Cabeleireiro & Tranças",
                                 "Corte & Brushing", "Descrição", 60,

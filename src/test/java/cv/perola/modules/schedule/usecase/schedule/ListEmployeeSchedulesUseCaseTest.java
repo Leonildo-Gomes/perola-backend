@@ -74,7 +74,7 @@ class ListEmployeeSchedulesUseCaseTest {
     @DisplayName("Deve listar todos os perfis de horário do colaborador com dias e pausas")
     void shouldListEmployeeSchedulesWithDaysAndBreaks() {
         EmployeeResponse employee = new EmployeeResponse(
-                employeeId, businessId, ownerUserId, "Maria", true, Instant.now(), Instant.now()
+                employeeId, businessId, ownerUserId, "Maria", null, true, Instant.now(), Instant.now()
         );
         UserPrincipal principal = new UserPrincipal(
                 ownerUserId, "maria@perola.cv", "hash",

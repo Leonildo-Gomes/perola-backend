@@ -46,13 +46,14 @@ class UpdateEmployeeUseCaseTest {
         EmployeeEntity existing = EmployeeEntity.builder()
                 .businessId(businessId)
                 .displayName("Ana Antiga")
+                .specialty("Cabeleireira")
                 .isActive(true)
                 .build();
         existing.setId(employeeId);
         existing.setCreatedAt(Instant.now());
         existing.setUpdatedAt(Instant.now());
 
-        UpdateEmployeeRequest request = new UpdateEmployeeRequest("Ana Nova - Master Stylist", true);
+        UpdateEmployeeRequest request = new UpdateEmployeeRequest("Ana Nova - Master Stylist", "  Master Stylist & Colorista  ", true);
 
         when(employeeRepository.findByIdAndBusinessId(employeeId, businessId)).thenReturn(Optional.of(existing));
         when(employeeRepository.save(any(EmployeeEntity.class))).thenAnswer(inv -> inv.getArgument(0));
@@ -62,6 +63,62 @@ class UpdateEmployeeUseCaseTest {
 
         // Assert
         assertThat(response.displayName()).isEqualTo("Ana Nova - Master Stylist");
+        assertThat(response.specialty()).isEqualTo("Master Stylist & Colorista");
+        verify(employeeRepository).save(existing);
+    }
+
+    @Test
+    @DisplayName("Deve preservar especialidade existente quando specialty for null no UpdateEmployeeRequest")
+    void shouldPreserveSpecialtyWhenNullInUpdateRequest() {
+        // Arrange
+        UUID businessId = UUID.randomUUID();
+        UUID employeeId = UUID.randomUUID();
+        EmployeeEntity existing = EmployeeEntity.builder()
+                .businessId(businessId)
+                .displayName("Carlos")
+                .specialty("Barbeiro Sénior")
+                .isActive(true)
+                .build();
+        existing.setId(employeeId);
+
+        UpdateEmployeeRequest request = new UpdateEmployeeRequest("Carlos Silva", null, null);
+
+        when(employeeRepository.findByIdAndBusinessId(employeeId, businessId)).thenReturn(Optional.of(existing));
+        when(employeeRepository.save(any(EmployeeEntity.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        // Act
+        EmployeeResponse response = updateEmployeeUseCase.execute(businessId, employeeId, request);
+
+        // Assert
+        assertThat(response.displayName()).isEqualTo("Carlos Silva");
+        assertThat(response.specialty()).isEqualTo("Barbeiro Sénior");
+        verify(employeeRepository).save(existing);
+    }
+
+    @Test
+    @DisplayName("Deve limpar especialidade quando specialty for string em branco no UpdateEmployeeRequest")
+    void shouldClearSpecialtyWhenBlankInUpdateRequest() {
+        // Arrange
+        UUID businessId = UUID.randomUUID();
+        UUID employeeId = UUID.randomUUID();
+        EmployeeEntity existing = EmployeeEntity.builder()
+                .businessId(businessId)
+                .displayName("Carlos")
+                .specialty("Barbeiro Sénior")
+                .isActive(true)
+                .build();
+        existing.setId(employeeId);
+
+        UpdateEmployeeRequest request = new UpdateEmployeeRequest(null, "   ", null);
+
+        when(employeeRepository.findByIdAndBusinessId(employeeId, businessId)).thenReturn(Optional.of(existing));
+        when(employeeRepository.save(any(EmployeeEntity.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        // Act
+        EmployeeResponse response = updateEmployeeUseCase.execute(businessId, employeeId, request);
+
+        // Assert
+        assertThat(response.specialty()).isNull();
         verify(employeeRepository).save(existing);
     }
 
@@ -71,7 +128,7 @@ class UpdateEmployeeUseCaseTest {
         // Arrange
         UUID businessId = UUID.randomUUID();
         UUID employeeId = UUID.randomUUID();
-        UpdateEmployeeRequest request = new UpdateEmployeeRequest("Novo Nome", null);
+        UpdateEmployeeRequest request = new UpdateEmployeeRequest("Novo Nome", null, null);
 
         when(employeeRepository.findByIdAndBusinessId(employeeId, businessId)).thenReturn(Optional.empty());
 

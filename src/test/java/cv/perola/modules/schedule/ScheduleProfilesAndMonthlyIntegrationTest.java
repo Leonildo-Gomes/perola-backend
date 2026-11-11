@@ -337,7 +337,7 @@ class ScheduleProfilesAndMonthlyIntegrationTest {
         JsonNode empUserJson = objectMapper.readTree(regRes.getResponse().getContentAsString()).get("user");
         UUID empUserId = UUID.fromString(empUserJson.get("id").asText());
 
-        CreateEmployeeRequest addEmpReq = new CreateEmployeeRequest(empUserId, "Colaborador Dois");
+        CreateEmployeeRequest addEmpReq = new CreateEmployeeRequest(empUserId, "Colaborador Dois", null);
         mockMvc.perform(post("/api/v1/businesses/" + businessId + "/employees")
                         .header("Authorization", "Bearer " + ownerToken)
                         .header("X-Business-Id", businessId)
