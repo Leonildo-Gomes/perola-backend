@@ -149,7 +149,10 @@ class MarketplaceIntegrationTest {
                 .andExpect(jsonPath("$.services[0].assignedEmployeeIds.length()").value(1))
                 .andExpect(jsonPath("$.services[0].assignedEmployeeIds[0]").value(activeEmp.getId().toString()))
                 .andExpect(jsonPath("$.employees.length()").value(1))
-                .andExpect(jsonPath("$.employees[0].displayName").value("Rita Profissional"));
+                .andExpect(jsonPath("$.employees[0].displayName").value("Rita Profissional"))
+                .andExpect(jsonPath("$.employees[0].email").doesNotExist())
+                .andExpect(jsonPath("$.employees[0].phone").doesNotExist())
+                .andExpect(jsonPath("$.employees[0].accessRole").doesNotExist());
     }
 
     @Test

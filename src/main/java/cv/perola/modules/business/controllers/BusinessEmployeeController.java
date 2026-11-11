@@ -2,8 +2,8 @@ package cv.perola.modules.business.controllers;
 
 import cv.perola.core.security.TenantFilter;
 import cv.perola.modules.business.dto.AssignEmployeeServicesRequest;
+import cv.perola.modules.business.dto.BusinessEmployeeResponse;
 import cv.perola.modules.business.dto.CreateEmployeeRequest;
-import cv.perola.modules.business.dto.EmployeeResponse;
 import cv.perola.modules.business.dto.EmployeeServicesResponse;
 import cv.perola.modules.business.dto.UpdateEmployeeRequest;
 import cv.perola.modules.business.usecase.employee.AssignEmployeeServicesUseCase;
@@ -62,15 +62,15 @@ public class BusinessEmployeeController {
         @Operation(summary = "Adicionar novo colaborador à equipa", description = "Regista um novo profissional no salão e atribui papel EMPLOYEE caso possua conta de utilizador associada.")
         @Parameter(name = TenantFilter.TENANT_HEADER, in = ParameterIn.HEADER, required = true, description = "UUID do salão ativo")
         @ApiResponses({
-                        @ApiResponse(responseCode = "201", description = "Colaborador adicionado com sucesso", content = @Content(schema = @Schema(implementation = EmployeeResponse.class))),
+                        @ApiResponse(responseCode = "201", description = "Colaborador adicionado com sucesso", content = @Content(schema = @Schema(implementation = BusinessEmployeeResponse.class))),
                         @ApiResponse(responseCode = "400", description = "Dados inválidos"),
                         @ApiResponse(responseCode = "403", description = "Acesso negado ao salão"),
                         @ApiResponse(responseCode = "409", description = "Utilizador já associado a um colaborador")
         })
-        public ResponseEntity<EmployeeResponse> createEmployee(
+        public ResponseEntity<BusinessEmployeeResponse> createEmployee(
                         @PathVariable UUID businessId,
                         @Valid @RequestBody CreateEmployeeRequest request) {
-                EmployeeResponse response = createEmployeeUseCase.execute(businessId, request);
+                BusinessEmployeeResponse response = createEmployeeUseCase.execute(businessId, request);
                 return ResponseEntity.status(HttpStatus.CREATED).body(response);
         }
 
@@ -79,11 +79,11 @@ public class BusinessEmployeeController {
         @Operation(summary = "Listar todos os profissionais do salão", description = "Retorna todos os profissionais da equipa do salão, incluindo ativos e inativos.")
         @Parameter(name = TenantFilter.TENANT_HEADER, in = ParameterIn.HEADER, required = true, description = "UUID do salão ativo")
         @ApiResponses({
-                        @ApiResponse(responseCode = "200", description = "Lista de colaboradores", content = @Content(array = @ArraySchema(schema = @Schema(implementation = EmployeeResponse.class)))),
+                        @ApiResponse(responseCode = "200", description = "Lista de colaboradores", content = @Content(array = @ArraySchema(schema = @Schema(implementation = BusinessEmployeeResponse.class)))),
                         @ApiResponse(responseCode = "403", description = "Acesso negado ao salão")
         })
-        public ResponseEntity<List<EmployeeResponse>> listEmployees(@PathVariable UUID businessId) {
-                List<EmployeeResponse> employees = listEmployeesUseCase.execute(businessId);
+        public ResponseEntity<List<BusinessEmployeeResponse>> listEmployees(@PathVariable UUID businessId) {
+                List<BusinessEmployeeResponse> employees = listEmployeesUseCase.execute(businessId);
                 return ResponseEntity.ok(employees);
         }
 
@@ -92,11 +92,11 @@ public class BusinessEmployeeController {
         @Operation(summary = "Listar profissionais ativos do salão", description = "Retorna exclusivamente os profissionais ativos da equipa do salão.")
         @Parameter(name = TenantFilter.TENANT_HEADER, in = ParameterIn.HEADER, required = true, description = "UUID do salão ativo")
         @ApiResponses({
-                        @ApiResponse(responseCode = "200", description = "Lista de colaboradores ativos", content = @Content(array = @ArraySchema(schema = @Schema(implementation = EmployeeResponse.class)))),
+                        @ApiResponse(responseCode = "200", description = "Lista de colaboradores ativos", content = @Content(array = @ArraySchema(schema = @Schema(implementation = BusinessEmployeeResponse.class)))),
                         @ApiResponse(responseCode = "403", description = "Acesso negado ao salão")
         })
-        public ResponseEntity<List<EmployeeResponse>> listActiveEmployees(@PathVariable UUID businessId) {
-                List<EmployeeResponse> employees = listActiveEmployeesUseCase.execute(businessId);
+        public ResponseEntity<List<BusinessEmployeeResponse>> listActiveEmployees(@PathVariable UUID businessId) {
+                List<BusinessEmployeeResponse> employees = listActiveEmployeesUseCase.execute(businessId);
                 return ResponseEntity.ok(employees);
         }
 
@@ -105,14 +105,14 @@ public class BusinessEmployeeController {
         @Operation(summary = "Atualizar dados do profissional", description = "Permite alterar nome de exibição, especialidade e estado de ativação.")
         @Parameter(name = TenantFilter.TENANT_HEADER, in = ParameterIn.HEADER, required = true, description = "UUID do salão ativo")
         @ApiResponses({
-                        @ApiResponse(responseCode = "200", description = "Colaborador atualizado", content = @Content(schema = @Schema(implementation = EmployeeResponse.class))),
+                        @ApiResponse(responseCode = "200", description = "Colaborador atualizado", content = @Content(schema = @Schema(implementation = BusinessEmployeeResponse.class))),
                         @ApiResponse(responseCode = "404", description = "Colaborador não encontrado")
         })
-        public ResponseEntity<EmployeeResponse> updateEmployee(
+        public ResponseEntity<BusinessEmployeeResponse> updateEmployee(
                         @PathVariable UUID businessId,
                         @PathVariable UUID employeeId,
                         @Valid @RequestBody UpdateEmployeeRequest request) {
-                EmployeeResponse response = updateEmployeeUseCase.execute(businessId, employeeId, request);
+                BusinessEmployeeResponse response = updateEmployeeUseCase.execute(businessId, employeeId, request);
                 return ResponseEntity.ok(response);
         }
 
@@ -154,14 +154,14 @@ public class BusinessEmployeeController {
         @Operation(summary = "Alternar estado ativo/inativo do colaborador (Toggle status)", description = "Inverte o estado de ativação do colaborador (de ativo para inativo ou vice-versa). Apenas o proprietário pode alterar.")
         @Parameter(name = TenantFilter.TENANT_HEADER, in = ParameterIn.HEADER, required = true, description = "UUID do salão ativo")
         @ApiResponses({
-                        @ApiResponse(responseCode = "200", description = "Status do colaborador alterado com sucesso", content = @Content(schema = @Schema(implementation = EmployeeResponse.class))),
+                        @ApiResponse(responseCode = "200", description = "Status do colaborador alterado com sucesso", content = @Content(schema = @Schema(implementation = BusinessEmployeeResponse.class))),
                         @ApiResponse(responseCode = "403", description = "Acesso negado ao salão"),
                         @ApiResponse(responseCode = "404", description = "Colaborador não encontrado")
         })
-        public ResponseEntity<EmployeeResponse> toggleEmployeeStatus(
+        public ResponseEntity<BusinessEmployeeResponse> toggleEmployeeStatus(
                         @PathVariable UUID businessId,
                         @PathVariable UUID employeeId) {
-                EmployeeResponse response = toggleEmployeeStatusUseCase.execute(businessId, employeeId);
+                BusinessEmployeeResponse response = toggleEmployeeStatusUseCase.execute(businessId, employeeId);
                 return ResponseEntity.ok(response);
         }
 

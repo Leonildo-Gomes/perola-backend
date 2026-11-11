@@ -40,5 +40,18 @@ public class ServiceAssignmentLookupService {
         return findAssignedEmployeeIdsByService(businessId, List.of(serviceId))
                 .getOrDefault(serviceId, Collections.emptyList());
     }
+
+    @Transactional(readOnly = true)
+    public Map<UUID, List<UUID>> findAssignedServiceIdsByEmployee(UUID businessId, Collection<UUID> employeeIds) {
+        if (businessId == null || employeeIds == null || employeeIds.isEmpty()) {
+            return Collections.emptyMap();
+        }
+        return employeeServiceRepository.findAssignmentsByBusinessIdAndEmployeeIdIn(businessId, employeeIds)
+                .stream()
+                .collect(Collectors.groupingBy(
+                        ServiceEmployeeAssignmentProjection::getEmployeeId,
+                        Collectors.mapping(ServiceEmployeeAssignmentProjection::getServiceId, Collectors.toList())
+                ));
+    }
 }
 

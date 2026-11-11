@@ -838,6 +838,126 @@ class BusinessIntegrationTest {
                 .andExpect(jsonPath("$.type").value("https://perola.cv/errors/validation-error"));
     }
 
+    @Test
+    @DisplayName("Deve enriquecer colaboradores com email, phone, avatarUrl, accessRole e assignedServiceIds nos 5 endpoints de gestão")
+    void shouldReturnEnrichedBusinessEmployeeResponseAcrossAllManagementEndpoints() throws Exception {
+        // Arrange
+        UserEntity owner = userRepository.save(UserEntity.builder()
+                .name("Dona Rita")
+                .email("rita.owner@perola.cv")
+                .phone("+2389900001")
+                .avatarUrl("https://cdn.perola.cv/rita.jpg")
+                .passwordHash("hashed")
+                .isActive(true)
+                .build());
+        BusinessEntity business = createTestBusiness(owner, "Salão Completo", "Santiago", "Praia");
+        EmployeeEntity ownerEmp = employeeRepository.save(EmployeeEntity.builder()
+                .businessId(business.getId())
+                .userId(owner.getId())
+                .displayName("Dona Rita")
+                .isActive(true)
+                .build());
+        String ownerToken = generateToken(owner, List.of(new TenantMembership(business.getId(), UserRole.OWNER.name())));
+
+        UserEntity staffUser = userRepository.save(UserEntity.builder()
+                .name("Maria Silva")
+                .email("maria.staff@perola.cv")
+                .phone("+2389912345")
+                .avatarUrl("https://cdn.perola.cv/maria.jpg")
+                .passwordHash("hashed")
+                .isActive(true)
+                .build());
+
+        CategoryEntity hairCat = getCategoryBySlug("hair");
+        ServiceEntity service = serviceRepository.save(ServiceEntity.builder()
+                .businessId(business.getId())
+                .category(hairCat)
+                .name("Tranças Nagô")
+                .durationMinutes(90)
+                .price(new BigDecimal("3500.00"))
+                .isActive(true)
+                .build());
+
+        // Act 1: POST /employees (com userId)
+        CreateEmployeeRequest staffReq = new CreateEmployeeRequest(staffUser.getId(), "Maria Silva", "Trancista");
+        MvcResult createStaffResult = mockMvc.perform(post("/api/v1/businesses/" + business.getId() + "/employees")
+                        .header("Authorization", "Bearer " + ownerToken)
+                        .header("X-Business-Id", business.getId().toString())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(staffReq)))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.email").value("maria.staff@perola.cv"))
+                .andExpect(jsonPath("$.phone").value("+2389912345"))
+                .andExpect(jsonPath("$.avatarUrl").value("https://cdn.perola.cv/maria.jpg"))
+                .andExpect(jsonPath("$.accessRole").value("EMPLOYEE"))
+                .andExpect(jsonPath("$.assignedServiceIds").isEmpty())
+                .andReturn();
+
+        UUID staffEmpId = UUID.fromString(
+                objectMapper.readTree(createStaffResult.getResponse().getContentAsString()).get("id").asText()
+        );
+
+        // Atribuir serviço à Maria
+        mockMvc.perform(put("/api/v1/businesses/" + business.getId() + "/employees/" + staffEmpId + "/services")
+                        .header("Authorization", "Bearer " + ownerToken)
+                        .header("X-Business-Id", business.getId().toString())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(new AssignEmployeeServicesRequest(List.of(service.getId())))))
+                .andExpect(status().isOk());
+
+        // Criar colaborador sem conta (userId = null)
+        EmployeeEntity offlineEmp = employeeRepository.save(EmployeeEntity.builder()
+                .businessId(business.getId())
+                .userId(null)
+                .displayName("Carlos Sem Conta")
+                .isActive(true)
+                .build());
+
+        // Act 2: GET /employees (todos)
+        mockMvc.perform(get("/api/v1/businesses/" + business.getId() + "/employees")
+                        .header("Authorization", "Bearer " + ownerToken)
+                        .header("X-Business-Id", business.getId().toString()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(3))
+                .andExpect(jsonPath("$[?(@.id=='" + ownerEmp.getId() + "')].accessRole").value("OWNER"))
+                .andExpect(jsonPath("$[?(@.id=='" + ownerEmp.getId() + "')].email").value("rita.owner@perola.cv"))
+                .andExpect(jsonPath("$[?(@.id=='" + staffEmpId + "')].accessRole").value("EMPLOYEE"))
+                .andExpect(jsonPath("$[?(@.id=='" + staffEmpId + "')].email").value("maria.staff@perola.cv"))
+                .andExpect(jsonPath("$[?(@.id=='" + staffEmpId + "')].phone").value("+2389912345"))
+                .andExpect(jsonPath("$[?(@.id=='" + staffEmpId + "')].assignedServiceIds[0]").value(service.getId().toString()))
+                .andExpect(jsonPath("$[?(@.id=='" + offlineEmp.getId() + "')].accessRole").value(org.hamcrest.Matchers.contains((String) null)))
+                .andExpect(jsonPath("$[?(@.id=='" + offlineEmp.getId() + "')].email").value(org.hamcrest.Matchers.contains((String) null)))
+                .andExpect(jsonPath("$[?(@.id=='" + offlineEmp.getId() + "')].assignedServiceIds[0]").isEmpty());
+
+        // Act 3: PATCH /employees/{id}
+        UpdateEmployeeRequest patchReq = new UpdateEmployeeRequest("Maria Silva Pro", null, null);
+        mockMvc.perform(patch("/api/v1/businesses/" + business.getId() + "/employees/" + staffEmpId)
+                        .header("Authorization", "Bearer " + ownerToken)
+                        .header("X-Business-Id", business.getId().toString())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(patchReq)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.displayName").value("Maria Silva Pro"))
+                .andExpect(jsonPath("$.email").value("maria.staff@perola.cv"))
+                .andExpect(jsonPath("$.accessRole").value("EMPLOYEE"))
+                .andExpect(jsonPath("$.assignedServiceIds[0]").value(service.getId().toString()));
+
+        // Act 4: POST /employees/{id}/status (desativar offlineEmp) e validar GET /employees/active
+        mockMvc.perform(post("/api/v1/businesses/" + business.getId() + "/employees/" + offlineEmp.getId() + "/status")
+                        .header("Authorization", "Bearer " + ownerToken)
+                        .header("X-Business-Id", business.getId().toString()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.isActive").value(false))
+                .andExpect(jsonPath("$.assignedServiceIds").isEmpty());
+
+        mockMvc.perform(get("/api/v1/businesses/" + business.getId() + "/employees/active")
+                        .header("Authorization", "Bearer " + ownerToken)
+                        .header("X-Business-Id", business.getId().toString()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(2))
+                .andExpect(jsonPath("$[?(@.id=='" + staffEmpId + "')].assignedServiceIds[0]").value(service.getId().toString()));
+    }
+
     private CategoryEntity getCategoryBySlug(String slug) {
         return categoryRepository.findBySlug(slug)
                 .orElseThrow(() -> new IllegalStateException("Categoria seed não encontrada: " + slug));

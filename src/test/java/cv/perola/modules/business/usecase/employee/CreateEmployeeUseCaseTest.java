@@ -3,11 +3,12 @@ package cv.perola.modules.business.usecase.employee;
 import cv.perola.core.exception.ConflictException;
 import cv.perola.core.exception.ResourceNotFoundException;
 import cv.perola.modules.business.domain.EmployeeEntity;
+import cv.perola.modules.business.dto.BusinessEmployeeResponse;
 import cv.perola.modules.business.dto.CreateEmployeeRequest;
-import cv.perola.modules.business.dto.EmployeeResponse;
 import cv.perola.modules.business.mapper.EmployeeMapper;
 import cv.perola.modules.business.repository.BusinessRepository;
 import cv.perola.modules.business.repository.EmployeeRepository;
+import cv.perola.modules.business.service.BusinessEmployeeEnrichmentService;
 import cv.perola.modules.business.validator.employee.CreateEmployeeValidator;
 import cv.perola.modules.identity.domain.enums.UserRole;
 import cv.perola.modules.identity.service.UserAccountService;
@@ -20,11 +21,13 @@ import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.Instant;
+import java.util.List;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -41,6 +44,9 @@ class CreateEmployeeUseCaseTest {
     @Mock
     private UserAccountService userAccountService;
 
+    @Mock
+    private BusinessEmployeeEnrichmentService businessEmployeeEnrichmentService;
+
     @Spy
     private EmployeeMapper employeeMapper = new EmployeeMapper();
 
@@ -55,11 +61,12 @@ class CreateEmployeeUseCaseTest {
                 employeeRepository,
                 userAccountService,
                 employeeMapper,
-                createEmployeeValidator);
+                createEmployeeValidator,
+                businessEmployeeEnrichmentService);
     }
 
     @Test
-    @DisplayName("Deve criar colaborador com utilizador associado e conceder papel EMPLOYEE")
+    @DisplayName("Deve criar colaborador com utilizador associado, conceder papel EMPLOYEE e retornar resposta enriquecida")
     void shouldCreateEmployeeWithAssociatedUserAndAssignRole() {
         // Arrange
         UUID businessId = UUID.randomUUID();
@@ -71,27 +78,39 @@ class CreateEmployeeUseCaseTest {
         when(userAccountService.existsById(userId)).thenReturn(true);
         when(employeeRepository.existsByUserId(userId)).thenReturn(false);
 
+        UUID employeeId = UUID.randomUUID();
+        Instant now = Instant.now();
         when(employeeRepository.save(any(EmployeeEntity.class))).thenAnswer(inv -> {
             EmployeeEntity entity = inv.getArgument(0);
-            entity.setId(UUID.randomUUID());
-            entity.setCreatedAt(Instant.now());
-            entity.setUpdatedAt(Instant.now());
+            entity.setId(employeeId);
+            entity.setCreatedAt(now);
+            entity.setUpdatedAt(now);
             return entity;
         });
 
+        BusinessEmployeeResponse expected = new BusinessEmployeeResponse(
+                employeeId, businessId, userId, "Ana Cabral", "ana@salao.cv", "+2389912345",
+                null, "EMPLOYEE", "Cabeleireira Sénior & Trancista", List.of(), true, now, now
+        );
+        when(businessEmployeeEnrichmentService.enrichSingle(eq(businessId), any(EmployeeEntity.class)))
+                .thenReturn(expected);
+
         // Act
-        EmployeeResponse response = createEmployeeUseCase.execute(businessId, request);
+        BusinessEmployeeResponse response = createEmployeeUseCase.execute(businessId, request);
 
         // Assert
         assertThat(response).isNotNull();
         assertThat(response.displayName()).isEqualTo("Ana Cabral");
         assertThat(response.specialty()).isEqualTo("Cabeleireira Sénior & Trancista");
         assertThat(response.userId()).isEqualTo(userId);
+        assertThat(response.email()).isEqualTo("ana@salao.cv");
+        assertThat(response.accessRole()).isEqualTo("EMPLOYEE");
         assertThat(response.businessId()).isEqualTo(businessId);
         assertThat(response.isActive()).isTrue();
 
         verify(userAccountService).assignRole(userId, UserRole.EMPLOYEE);
         verify(employeeRepository).save(any(EmployeeEntity.class));
+        verify(businessEmployeeEnrichmentService).enrichSingle(eq(businessId), any(EmployeeEntity.class));
     }
 
     @Test
@@ -102,16 +121,25 @@ class CreateEmployeeUseCaseTest {
         CreateEmployeeRequest request = new CreateEmployeeRequest(null, "Carlos Lima", null);
 
         when(businessRepository.existsById(businessId)).thenReturn(true);
+        UUID employeeId = UUID.randomUUID();
+        Instant now = Instant.now();
         when(employeeRepository.save(any(EmployeeEntity.class))).thenAnswer(inv -> {
             EmployeeEntity entity = inv.getArgument(0);
-            entity.setId(UUID.randomUUID());
-            entity.setCreatedAt(Instant.now());
-            entity.setUpdatedAt(Instant.now());
+            entity.setId(employeeId);
+            entity.setCreatedAt(now);
+            entity.setUpdatedAt(now);
             return entity;
         });
 
+        BusinessEmployeeResponse expected = new BusinessEmployeeResponse(
+                employeeId, businessId, null, "Carlos Lima", null, null,
+                null, null, null, List.of(), true, now, now
+        );
+        when(businessEmployeeEnrichmentService.enrichSingle(eq(businessId), any(EmployeeEntity.class)))
+                .thenReturn(expected);
+
         // Act
-        EmployeeResponse response = createEmployeeUseCase.execute(businessId, request);
+        BusinessEmployeeResponse response = createEmployeeUseCase.execute(businessId, request);
 
         // Assert
         assertThat(response).isNotNull();

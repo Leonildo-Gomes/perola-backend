@@ -1,12 +1,15 @@
 package cv.perola.modules.business.mapper;
 
 import cv.perola.modules.business.domain.EmployeeEntity;
+import cv.perola.modules.business.dto.BusinessEmployeeResponse;
 import cv.perola.modules.business.dto.CreateEmployeeRequest;
 import cv.perola.modules.business.dto.EmployeeResponse;
+import cv.perola.modules.identity.service.UserSummary;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 import java.time.Instant;
+import java.util.List;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -123,5 +126,76 @@ class EmployeeMapperTest {
         assertTrue(response.isActive());
         assertEquals(now, response.createdAt());
         assertEquals(now, response.updatedAt());
+    }
+
+    @Test
+    @DisplayName("Should map EmployeeEntity with UserSummary and assignedServiceIds to BusinessEmployeeResponse")
+    void shouldMapEmployeeEntityToBusinessResponse() {
+        // Arrange
+        UUID id = UUID.randomUUID();
+        UUID businessId = UUID.randomUUID();
+        UUID userId = UUID.randomUUID();
+        UUID serviceId = UUID.randomUUID();
+        Instant now = Instant.now();
+        EmployeeEntity entity = EmployeeEntity.builder()
+                .businessId(businessId)
+                .userId(userId)
+                .displayName("Maria Silva")
+                .specialty("Trancista")
+                .isActive(true)
+                .build();
+        entity.setId(id);
+        entity.setCreatedAt(now);
+        entity.setUpdatedAt(now);
+
+        UserSummary summary = new UserSummary(userId, "maria@salao.cv", "+2389912345", "https://cdn.perola.cv/maria.jpg");
+
+        // Act
+        BusinessEmployeeResponse response = employeeMapper.toBusinessResponse(
+                entity, summary, "EMPLOYEE", List.of(serviceId)
+        );
+
+        // Assert
+        assertNotNull(response);
+        assertEquals(id, response.id());
+        assertEquals(businessId, response.businessId());
+        assertEquals(userId, response.userId());
+        assertEquals("Maria Silva", response.displayName());
+        assertEquals("maria@salao.cv", response.email());
+        assertEquals("+2389912345", response.phone());
+        assertEquals("https://cdn.perola.cv/maria.jpg", response.avatarUrl());
+        assertEquals("EMPLOYEE", response.accessRole());
+        assertEquals("Trancista", response.specialty());
+        assertEquals(List.of(serviceId), response.assignedServiceIds());
+        assertTrue(response.isActive());
+        assertEquals(now, response.createdAt());
+        assertEquals(now, response.updatedAt());
+    }
+
+    @Test
+    @DisplayName("Should map EmployeeEntity without UserSummary and null serviceIds safely to BusinessEmployeeResponse")
+    void shouldMapEmployeeEntityWithoutUserSummaryToBusinessResponse() {
+        // Arrange
+        UUID id = UUID.randomUUID();
+        UUID businessId = UUID.randomUUID();
+        EmployeeEntity entity = EmployeeEntity.builder()
+                .businessId(businessId)
+                .userId(null)
+                .displayName("Carlos Lima")
+                .isActive(true)
+                .build();
+        entity.setId(id);
+
+        // Act
+        BusinessEmployeeResponse response = employeeMapper.toBusinessResponse(entity, null, null, null);
+
+        // Assert
+        assertNotNull(response);
+        assertNull(response.userId());
+        assertNull(response.email());
+        assertNull(response.phone());
+        assertNull(response.avatarUrl());
+        assertNull(response.accessRole());
+        assertEquals(List.of(), response.assignedServiceIds());
     }
 }

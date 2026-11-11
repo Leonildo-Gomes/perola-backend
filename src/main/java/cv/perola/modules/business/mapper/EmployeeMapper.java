@@ -1,10 +1,13 @@
 package cv.perola.modules.business.mapper;
 
 import cv.perola.modules.business.domain.EmployeeEntity;
+import cv.perola.modules.business.dto.BusinessEmployeeResponse;
 import cv.perola.modules.business.dto.CreateEmployeeRequest;
 import cv.perola.modules.business.dto.EmployeeResponse;
+import cv.perola.modules.identity.service.UserSummary;
 import org.springframework.stereotype.Component;
 
+import java.util.List;
 import java.util.UUID;
 
 @Component
@@ -51,6 +54,32 @@ public class EmployeeMapper {
                 entity.getUserId(),
                 entity.getDisplayName(),
                 entity.getSpecialty(),
+                entity.isActive(),
+                entity.getCreatedAt(),
+                entity.getUpdatedAt()
+        );
+    }
+
+    public BusinessEmployeeResponse toBusinessResponse(
+            EmployeeEntity entity,
+            UserSummary userSummary,
+            String accessRole,
+            List<UUID> assignedServiceIds) {
+        if (entity == null) {
+            return null;
+        }
+        List<UUID> safeAssignedServiceIds = assignedServiceIds != null ? List.copyOf(assignedServiceIds) : List.of();
+        return new BusinessEmployeeResponse(
+                entity.getId(),
+                entity.getBusinessId(),
+                entity.getUserId(),
+                entity.getDisplayName(),
+                userSummary != null ? userSummary.email() : null,
+                userSummary != null ? userSummary.phone() : null,
+                userSummary != null ? userSummary.avatarUrl() : null,
+                accessRole,
+                entity.getSpecialty(),
+                safeAssignedServiceIds,
                 entity.isActive(),
                 entity.getCreatedAt(),
                 entity.getUpdatedAt()

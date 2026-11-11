@@ -2,9 +2,9 @@ package cv.perola.modules.business.usecase.employee;
 
 import cv.perola.core.exception.ResourceNotFoundException;
 import cv.perola.modules.business.domain.EmployeeEntity;
-import cv.perola.modules.business.dto.EmployeeResponse;
-import cv.perola.modules.business.mapper.EmployeeMapper;
+import cv.perola.modules.business.dto.BusinessEmployeeResponse;
 import cv.perola.modules.business.repository.EmployeeRepository;
+import cv.perola.modules.business.service.BusinessEmployeeEnrichmentService;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -13,12 +13,14 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.Instant;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -29,7 +31,7 @@ class ToggleEmployeeStatusUseCaseTest {
     private EmployeeRepository employeeRepository;
 
     @Mock
-    private EmployeeMapper employeeMapper;
+    private BusinessEmployeeEnrichmentService businessEmployeeEnrichmentService;
 
     @InjectMocks
     private ToggleEmployeeStatusUseCase useCase;
@@ -47,16 +49,17 @@ class ToggleEmployeeStatusUseCaseTest {
                 .isActive(true)
                 .build();
 
-        EmployeeResponse expectedResponse = new EmployeeResponse(
-                employeeId, businessId, null, "Carlos Cabeleireiro", null, false, Instant.now(), Instant.now()
+        BusinessEmployeeResponse expectedResponse = new BusinessEmployeeResponse(
+                employeeId, businessId, null, "Carlos Cabeleireiro", null, null, null, null, null, List.of(), false, Instant.now(), Instant.now()
         );
 
         when(employeeRepository.findByIdAndBusinessId(employeeId, businessId)).thenReturn(Optional.of(employee));
         when(employeeRepository.save(any(EmployeeEntity.class))).thenAnswer(invocation -> invocation.getArgument(0));
-        when(employeeMapper.toResponse(any(EmployeeEntity.class))).thenReturn(expectedResponse);
+        when(businessEmployeeEnrichmentService.enrichSingle(eq(businessId), any(EmployeeEntity.class)))
+                .thenReturn(expectedResponse);
 
         // Act
-        EmployeeResponse response = useCase.execute(businessId, employeeId);
+        BusinessEmployeeResponse response = useCase.execute(businessId, employeeId);
 
         // Assert
         assertThat(response).isNotNull();
@@ -65,6 +68,7 @@ class ToggleEmployeeStatusUseCaseTest {
 
         verify(employeeRepository).findByIdAndBusinessId(employeeId, businessId);
         verify(employeeRepository).save(employee);
+        verify(businessEmployeeEnrichmentService).enrichSingle(businessId, employee);
     }
 
     @Test
@@ -80,16 +84,17 @@ class ToggleEmployeeStatusUseCaseTest {
                 .isActive(false)
                 .build();
 
-        EmployeeResponse expectedResponse = new EmployeeResponse(
-                employeeId, businessId, null, "Carlos Cabeleireiro", null, true, Instant.now(), Instant.now()
+        BusinessEmployeeResponse expectedResponse = new BusinessEmployeeResponse(
+                employeeId, businessId, null, "Carlos Cabeleireiro", null, null, null, null, null, List.of(), true, Instant.now(), Instant.now()
         );
 
         when(employeeRepository.findByIdAndBusinessId(employeeId, businessId)).thenReturn(Optional.of(employee));
         when(employeeRepository.save(any(EmployeeEntity.class))).thenAnswer(invocation -> invocation.getArgument(0));
-        when(employeeMapper.toResponse(any(EmployeeEntity.class))).thenReturn(expectedResponse);
+        when(businessEmployeeEnrichmentService.enrichSingle(eq(businessId), any(EmployeeEntity.class)))
+                .thenReturn(expectedResponse);
 
         // Act
-        EmployeeResponse response = useCase.execute(businessId, employeeId);
+        BusinessEmployeeResponse response = useCase.execute(businessId, employeeId);
 
         // Assert
         assertThat(response).isNotNull();
@@ -98,6 +103,7 @@ class ToggleEmployeeStatusUseCaseTest {
 
         verify(employeeRepository).findByIdAndBusinessId(employeeId, businessId);
         verify(employeeRepository).save(employee);
+        verify(businessEmployeeEnrichmentService).enrichSingle(businessId, employee);
     }
 
     @Test
@@ -115,4 +121,3 @@ class ToggleEmployeeStatusUseCaseTest {
         verify(employeeRepository).findByIdAndBusinessId(employeeId, businessId);
     }
 }
-

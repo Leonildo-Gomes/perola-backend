@@ -9,8 +9,15 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -35,6 +42,23 @@ public class DefaultUserAccountService implements UserAccountService {
     @Transactional(readOnly = true)
     public Optional<String> findUserNameById(UUID userId) {
         return userRepository.findById(userId).map(UserEntity::getName);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Map<UUID, UserSummary> findUserSummariesByIds(Collection<UUID> userIds) {
+        if (userIds == null || userIds.isEmpty()) {
+            return Collections.emptyMap();
+        }
+        Set<UUID> distinctIds = userIds.stream()
+                .filter(Objects::nonNull)
+                .collect(Collectors.toSet());
+        if (distinctIds.isEmpty()) {
+            return Collections.emptyMap();
+        }
+        return userRepository.findSummariesByIdIn(distinctIds)
+                .stream()
+                .collect(Collectors.toMap(UserSummary::id, Function.identity(), (first, second) -> first));
     }
 
     @Override

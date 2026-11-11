@@ -43,4 +43,15 @@ public interface EmployeeServiceRepository extends JpaRepository<EmployeeService
             @Param("businessId") UUID businessId,
             @Param("serviceIds") Collection<UUID> serviceIds
     );
+
+    @Query("""
+        SELECT es.serviceId AS serviceId, es.employeeId AS employeeId
+        FROM EmployeeServiceEntity es
+        WHERE es.businessId = :businessId
+          AND es.employeeId IN :employeeIds
+    """)
+    List<ServiceEmployeeAssignmentProjection> findAssignmentsByBusinessIdAndEmployeeIdIn(
+            @Param("businessId") UUID businessId,
+            @Param("employeeIds") Collection<UUID> employeeIds
+    );
 }

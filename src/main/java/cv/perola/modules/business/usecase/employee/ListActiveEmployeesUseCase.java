@@ -1,8 +1,9 @@
 package cv.perola.modules.business.usecase.employee;
 
-import cv.perola.modules.business.dto.EmployeeResponse;
-import cv.perola.modules.business.mapper.EmployeeMapper;
+import cv.perola.modules.business.domain.EmployeeEntity;
+import cv.perola.modules.business.dto.BusinessEmployeeResponse;
 import cv.perola.modules.business.repository.EmployeeRepository;
+import cv.perola.modules.business.service.BusinessEmployeeEnrichmentService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -15,14 +16,12 @@ import java.util.UUID;
 public class ListActiveEmployeesUseCase {
 
     private final EmployeeRepository employeeRepository;
-    private final EmployeeMapper employeeMapper;
+    private final BusinessEmployeeEnrichmentService businessEmployeeEnrichmentService;
 
     @Transactional(readOnly = true)
-    public List<EmployeeResponse> execute(UUID businessId) {
-        return employeeRepository.findAllByBusinessIdAndIsActiveTrue(businessId)
-                .stream()
-                .map(employeeMapper::toResponse)
-                .toList();
+    public List<BusinessEmployeeResponse> execute(UUID businessId) {
+        List<EmployeeEntity> employees = employeeRepository.findAllByBusinessIdAndIsActiveTrue(businessId);
+        return businessEmployeeEnrichmentService.enrich(businessId, employees);
     }
 }
 

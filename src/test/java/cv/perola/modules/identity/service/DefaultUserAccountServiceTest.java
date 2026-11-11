@@ -13,13 +13,17 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -116,5 +120,39 @@ class DefaultUserAccountServiceTest {
         // Assert
         assertThat(exists).isTrue();
         verify(userRepository).existsById(userId);
+    }
+
+    @Test
+    @DisplayName("Deve retornar mapa de UserSummary indexado por userId em lote")
+    void shouldReturnUserSummariesMapForGivenIds() {
+        // Arrange
+        UUID u1 = UUID.randomUUID();
+        UUID u2 = UUID.randomUUID();
+        UserSummary s1 = new UserSummary(u1, "maria@salao.cv", "+2389912345", "https://cdn.perola.cv/a.jpg");
+        UserSummary s2 = new UserSummary(u2, "joao@salao.cv", "+2389923456", null);
+        when(userRepository.findSummariesByIdIn(Set.of(u1, u2))).thenReturn(List.of(s1, s2));
+
+        // Act
+        Map<UUID, UserSummary> result = userAccountService.findUserSummariesByIds(List.of(u1, u2));
+
+        // Assert
+        assertThat(result).hasSize(2);
+        assertThat(result.get(u1)).isEqualTo(s1);
+        assertThat(result.get(u2)).isEqualTo(s2);
+        verify(userRepository).findSummariesByIdIn(Set.of(u1, u2));
+    }
+
+    @Test
+    @DisplayName("Deve retornar mapa vazio sem consultar repositório quando lista de IDs estiver vazia")
+    void shouldReturnEmptyMapWhenUserIdsIsEmpty() {
+        // Arrange
+        List<UUID> emptyIds = List.of();
+
+        // Act
+        Map<UUID, UserSummary> result = userAccountService.findUserSummariesByIds(emptyIds);
+
+        // Assert
+        assertThat(result).isEmpty();
+        verifyNoInteractions(userRepository);
     }
 }

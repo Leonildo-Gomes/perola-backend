@@ -93,5 +93,49 @@ class ServiceAssignmentLookupServiceTest {
         // Assert
         assertThat(result).containsExactly(employeeId);
     }
+
+    @Test
+    @DisplayName("Deve agrupar os IDs de serviços atribuídos por employeeId em lote")
+    void shouldGroupAssignedServiceIdsByEmployeeId() {
+        // Arrange
+        UUID businessId = UUID.randomUUID();
+        UUID e1 = UUID.randomUUID();
+        UUID e2 = UUID.randomUUID();
+        UUID s1 = UUID.randomUUID();
+        UUID s2 = UUID.randomUUID();
+
+        ServiceEmployeeAssignmentProjection p1 = mock(ServiceEmployeeAssignmentProjection.class);
+        when(p1.getEmployeeId()).thenReturn(e1);
+        when(p1.getServiceId()).thenReturn(s1);
+
+        ServiceEmployeeAssignmentProjection p2 = mock(ServiceEmployeeAssignmentProjection.class);
+        when(p2.getEmployeeId()).thenReturn(e1);
+        when(p2.getServiceId()).thenReturn(s2);
+
+        when(employeeServiceRepository.findAssignmentsByBusinessIdAndEmployeeIdIn(businessId, List.of(e1, e2)))
+                .thenReturn(List.of(p1, p2));
+
+        // Act
+        Map<UUID, List<UUID>> result = service.findAssignedServiceIdsByEmployee(businessId, List.of(e1, e2));
+
+        // Assert
+        assertThat(result).containsEntry(e1, List.of(s1, s2));
+        assertThat(result).doesNotContainKey(e2);
+        verify(employeeServiceRepository).findAssignmentsByBusinessIdAndEmployeeIdIn(businessId, List.of(e1, e2));
+    }
+
+    @Test
+    @DisplayName("Deve retornar mapa vazio sem consultar repositório quando lista de colaboradores for vazia")
+    void shouldReturnEmptyMapWhenEmployeeIdsIsEmpty() {
+        // Arrange
+        UUID businessId = UUID.randomUUID();
+
+        // Act
+        Map<UUID, List<UUID>> result = service.findAssignedServiceIdsByEmployee(businessId, List.of());
+
+        // Assert
+        assertThat(result).isEmpty();
+        verifyNoInteractions(employeeServiceRepository);
+    }
 }
 

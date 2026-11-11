@@ -20,6 +20,9 @@ public interface BusinessRepository extends JpaRepository<BusinessEntity, UUID> 
 
     Optional<BusinessEntity> findByIdAndIsActiveTrue(UUID id);
 
+    @Query("SELECT b.ownerId FROM BusinessEntity b WHERE b.id = :businessId")
+    Optional<UUID> findOwnerIdById(@Param("businessId") UUID businessId);
+
     @Query("""
         SELECT b FROM BusinessEntity b
         WHERE b.isActive = true

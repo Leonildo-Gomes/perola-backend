@@ -1,15 +1,14 @@
 package cv.perola.modules.business.usecase.employee;
 
 import cv.perola.modules.business.domain.EmployeeEntity;
-import cv.perola.modules.business.dto.EmployeeResponse;
-import cv.perola.modules.business.mapper.EmployeeMapper;
+import cv.perola.modules.business.dto.BusinessEmployeeResponse;
 import cv.perola.modules.business.repository.EmployeeRepository;
+import cv.perola.modules.business.service.BusinessEmployeeEnrichmentService;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.Instant;
@@ -26,14 +25,14 @@ class ListActiveEmployeesUseCaseTest {
     @Mock
     private EmployeeRepository employeeRepository;
 
-    @Spy
-    private EmployeeMapper employeeMapper = new EmployeeMapper();
+    @Mock
+    private BusinessEmployeeEnrichmentService businessEmployeeEnrichmentService;
 
     @InjectMocks
     private ListActiveEmployeesUseCase listActiveEmployeesUseCase;
 
     @Test
-    @DisplayName("Deve listar exclusivamente os colaboradores ativos do salão com sucesso")
+    @DisplayName("Deve listar exclusivamente os colaboradores ativos do salão enriquecidos com sucesso")
     void shouldListActiveEmployeesSuccessfully() {
         // Arrange
         UUID businessId = UUID.randomUUID();
@@ -43,13 +42,17 @@ class ListActiveEmployeesUseCaseTest {
                 .isActive(true)
                 .build();
         e1.setId(UUID.randomUUID());
-        e1.setCreatedAt(Instant.now());
-        e1.setUpdatedAt(Instant.now());
 
-        when(employeeRepository.findAllByBusinessIdAndIsActiveTrue(businessId)).thenReturn(List.of(e1));
+        List<EmployeeEntity> entities = List.of(e1);
+        BusinessEmployeeResponse r1 = new BusinessEmployeeResponse(
+                e1.getId(), businessId, null, "Maria Silva", null, null, null, null, null, List.of(), true, Instant.now(), Instant.now()
+        );
+
+        when(employeeRepository.findAllByBusinessIdAndIsActiveTrue(businessId)).thenReturn(entities);
+        when(businessEmployeeEnrichmentService.enrich(businessId, entities)).thenReturn(List.of(r1));
 
         // Act
-        List<EmployeeResponse> result = listActiveEmployeesUseCase.execute(businessId);
+        List<BusinessEmployeeResponse> result = listActiveEmployeesUseCase.execute(businessId);
 
         // Assert
         assertThat(result).hasSize(1);
@@ -57,6 +60,6 @@ class ListActiveEmployeesUseCaseTest {
         assertThat(result.get(0).isActive()).isTrue();
 
         verify(employeeRepository).findAllByBusinessIdAndIsActiveTrue(businessId);
+        verify(businessEmployeeEnrichmentService).enrich(businessId, entities);
     }
 }
-

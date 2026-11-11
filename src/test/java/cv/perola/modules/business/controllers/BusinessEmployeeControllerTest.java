@@ -1,8 +1,8 @@
 package cv.perola.modules.business.controllers;
 
 import cv.perola.modules.business.dto.AssignEmployeeServicesRequest;
+import cv.perola.modules.business.dto.BusinessEmployeeResponse;
 import cv.perola.modules.business.dto.CreateEmployeeRequest;
-import cv.perola.modules.business.dto.EmployeeResponse;
 import cv.perola.modules.business.dto.EmployeeServicesResponse;
 import cv.perola.modules.business.dto.ServiceResponse;
 import cv.perola.modules.business.dto.UpdateEmployeeRequest;
@@ -64,13 +64,13 @@ class BusinessEmployeeControllerTest {
         // Arrange
         UUID businessId = UUID.randomUUID();
         CreateEmployeeRequest request = new CreateEmployeeRequest(null, "Maria Silva", "Cabeleireira Sénior");
-        EmployeeResponse expected = new EmployeeResponse(
-                UUID.randomUUID(), businessId, null, "Maria Silva", "Cabeleireira Sénior", true, Instant.now(), Instant.now()
-        );
+        BusinessEmployeeResponse expected = new BusinessEmployeeResponse(
+                UUID.randomUUID(), businessId, null, "Maria Silva", null, null, null, null, "Cabeleireira Sénior",
+                List.of(), true, Instant.now(), Instant.now());
         when(createEmployeeUseCase.execute(businessId, request)).thenReturn(expected);
 
         // Act
-        ResponseEntity<EmployeeResponse> response = controller.createEmployee(businessId, request);
+        ResponseEntity<BusinessEmployeeResponse> response = controller.createEmployee(businessId, request);
 
         // Assert
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.CREATED);
@@ -83,13 +83,13 @@ class BusinessEmployeeControllerTest {
     void shouldListEmployeesAndReturn200() {
         // Arrange
         UUID businessId = UUID.randomUUID();
-        EmployeeResponse e1 = new EmployeeResponse(
-                UUID.randomUUID(), businessId, null, "Maria Silva", "Cabeleireira", true, Instant.now(), Instant.now()
-        );
+        BusinessEmployeeResponse e1 = new BusinessEmployeeResponse(
+                UUID.randomUUID(), businessId, null, "Maria Silva", null, null, null, null, "Cabeleireira", List.of(),
+                true, Instant.now(), Instant.now());
         when(listEmployeesUseCase.execute(businessId)).thenReturn(List.of(e1));
 
         // Act
-        ResponseEntity<List<EmployeeResponse>> response = controller.listEmployees(businessId);
+        ResponseEntity<List<BusinessEmployeeResponse>> response = controller.listEmployees(businessId);
 
         // Assert
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
@@ -102,13 +102,13 @@ class BusinessEmployeeControllerTest {
     void shouldListActiveEmployeesAndReturn200() {
         // Arrange
         UUID businessId = UUID.randomUUID();
-        EmployeeResponse e1 = new EmployeeResponse(
-                UUID.randomUUID(), businessId, null, "Maria Silva", "Cabeleireira", true, Instant.now(), Instant.now()
-        );
+        BusinessEmployeeResponse e1 = new BusinessEmployeeResponse(
+                UUID.randomUUID(), businessId, null, "Maria Silva", null, null, null, null, "Cabeleireira", List.of(),
+                true, Instant.now(), Instant.now());
         when(listActiveEmployeesUseCase.execute(businessId)).thenReturn(List.of(e1));
 
         // Act
-        ResponseEntity<List<EmployeeResponse>> response = controller.listActiveEmployees(businessId);
+        ResponseEntity<List<BusinessEmployeeResponse>> response = controller.listActiveEmployees(businessId);
 
         // Assert
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
@@ -124,13 +124,13 @@ class BusinessEmployeeControllerTest {
         UUID businessId = UUID.randomUUID();
         UUID employeeId = UUID.randomUUID();
         UpdateEmployeeRequest request = new UpdateEmployeeRequest("Maria Silva - Estilista", "Estilista Sénior", true);
-        EmployeeResponse expected = new EmployeeResponse(
-                employeeId, businessId, null, "Maria Silva - Estilista", "Estilista Sénior", true, Instant.now(), Instant.now()
-        );
+        BusinessEmployeeResponse expected = new BusinessEmployeeResponse(
+                employeeId, businessId, null, "Maria Silva - Estilista", null, null, null, null, "Estilista Sénior",
+                List.of(), true, Instant.now(), Instant.now());
         when(updateEmployeeUseCase.execute(businessId, employeeId, request)).thenReturn(expected);
 
         // Act
-        ResponseEntity<EmployeeResponse> response = controller.updateEmployee(businessId, employeeId, request);
+        ResponseEntity<BusinessEmployeeResponse> response = controller.updateEmployee(businessId, employeeId, request);
 
         // Assert
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
@@ -166,8 +166,7 @@ class BusinessEmployeeControllerTest {
         AssignEmployeeServicesRequest request = new AssignEmployeeServicesRequest(List.of(serviceId));
         ServiceResponse s = new ServiceResponse(
                 serviceId, businessId, UUID.randomUUID(), "hair", "Cabeleireiro & Tranças",
-                "Corte", null, 30, new BigDecimal("1000.00"), true, List.of(employeeId), Instant.now(), Instant.now()
-        );
+                "Corte", null, 30, new BigDecimal("1000.00"), true, List.of(employeeId), Instant.now(), Instant.now());
         EmployeeServicesResponse expected = new EmployeeServicesResponse(employeeId, businessId, List.of(s));
         when(assignEmployeeServicesUseCase.execute(businessId, employeeId, request)).thenReturn(expected);
 
@@ -186,14 +185,14 @@ class BusinessEmployeeControllerTest {
         // Arrange
         UUID businessId = UUID.randomUUID();
         UUID employeeId = UUID.randomUUID();
-        EmployeeResponse expected = new EmployeeResponse(
-                employeeId, businessId, null, "Carlos Cabeleireiro", null, false, Instant.now(), Instant.now()
-        );
+        BusinessEmployeeResponse expected = new BusinessEmployeeResponse(
+                employeeId, businessId, null, "Carlos Cabeleireiro", null, null, null, null, null, List.of(), false,
+                Instant.now(), Instant.now());
 
         when(toggleEmployeeStatusUseCase.execute(businessId, employeeId)).thenReturn(expected);
 
         // Act
-        ResponseEntity<EmployeeResponse> response = controller.toggleEmployeeStatus(businessId, employeeId);
+        ResponseEntity<BusinessEmployeeResponse> response = controller.toggleEmployeeStatus(businessId, employeeId);
 
         // Assert
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
