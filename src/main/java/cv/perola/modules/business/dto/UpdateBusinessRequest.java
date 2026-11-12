@@ -1,5 +1,6 @@
 package cv.perola.modules.business.dto;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Size;
@@ -18,7 +19,23 @@ public record UpdateBusinessRequest(
 
                 @Size(max = 50, message = "O telefone deve ter no máximo 50 caracteres.") @Schema(description = "Telefone público de contacto", example = "+2382619999") String contactPhone,
 
+                @Size(max = 1000, message = "O URL do logótipo não pode exceder 1000 caracteres.") @Schema(description = "URL ou storageKey do logótipo obtido via POST /api/v1/media/upload (scope BUSINESS_LOGO)", nullable = true) String logoUrl,
+
                 @Schema(description = "Fuso horário IANA", example = "Atlantic/Cape_Verde") String timezone,
 
                 @Valid @Schema(description = "Nova lista de categorias do estabelecimento (quando fornecida, exige pelo menos 1 item e exatamente 1 com isPrimary = true)") List<BusinessCategoryItemRequest> categories) {
+        @JsonCreator
+        public UpdateBusinessRequest {
+        }
+
+        public UpdateBusinessRequest(
+                        String name,
+                        String island,
+                        String city,
+                        String location,
+                        String contactPhone,
+                        String timezone,
+                        List<BusinessCategoryItemRequest> categories) {
+                this(name, island, city, location, contactPhone, null, timezone, categories);
+        }
 }

@@ -69,6 +69,10 @@ public class UpdateServiceUseCase {
             service.setPrice(request.price());
         }
 
+        if (request.imageUrl() != null) {
+            service.setImageUrl(serviceMapper.normalizeUrl(request.imageUrl()));
+        }
+
         if (request.isActive() != null) {
             service.setActive(request.isActive());
         }

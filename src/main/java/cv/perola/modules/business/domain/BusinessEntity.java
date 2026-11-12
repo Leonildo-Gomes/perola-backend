@@ -42,6 +42,9 @@ public class BusinessEntity extends BaseEntity {
     @Column(name = "contact_phone", nullable = false, length = 50)
     private String contactPhone;
 
+    @Column(name = "logo_url", columnDefinition = "TEXT")
+    private String logoUrl;
+
     @Builder.Default
     @Column(name = "timezone", nullable = false, length = 50)
     private String timezone = "Atlantic/Cape_Verde";

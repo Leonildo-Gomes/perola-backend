@@ -8,39 +8,45 @@ import java.util.UUID;
 
 @Schema(description = "Representação detalhada do estabelecimento")
 public record BusinessResponse(
-        @Schema(description = "Identificador único do salão (Tenant ID)")
-        UUID id,
+        @Schema(description = "Identificador único do salão (Tenant ID)") UUID id,
 
-        @Schema(description = "Identificador do utilizador proprietário")
-        UUID ownerId,
+        @Schema(description = "Identificador do utilizador proprietário") UUID ownerId,
 
-        @Schema(description = "Nome comercial do salão")
-        String name,
+        @Schema(description = "Nome comercial do salão") String name,
 
-        @Schema(description = "Ilha onde o salão se localiza")
-        String island,
+        @Schema(description = "Ilha onde o salão se localiza") String island,
 
-        @Schema(description = "Cidade ou concelho")
-        String city,
+        @Schema(description = "Cidade ou concelho") String city,
 
-        @Schema(description = "Morada completa ou ponto de referência")
-        String location,
+        @Schema(description = "Morada completa ou ponto de referência") String location,
 
-        @Schema(description = "Telefone de contacto do salão")
-        String contactPhone,
+        @Schema(description = "Telefone de contacto do salão") String contactPhone,
 
-        @Schema(description = "Fuso horário IANA oficial")
-        String timezone,
+        @Schema(description = "URL do logótipo do salão", nullable = true) String logoUrl,
 
-        @Schema(description = "Categorias de atuação do estabelecimento")
-        List<BusinessCategoryResponse> categories,
+        @Schema(description = "Fuso horário IANA oficial") String timezone,
 
-        @Schema(description = "Indica se o estabelecimento está ativo")
-        boolean isActive,
+        @Schema(description = "Categorias de atuação do estabelecimento") List<BusinessCategoryResponse> categories,
 
-        @Schema(description = "Data/hora de registo em UTC")
-        Instant createdAt,
+        @Schema(description = "Indica se o estabelecimento está ativo") boolean isActive,
 
-        @Schema(description = "Data/hora da última atualização em UTC")
-        Instant updatedAt
-) {}
+        @Schema(description = "Data/hora de registo em UTC") Instant createdAt,
+        @Schema(description = "Data/hora de registo em UTC") Instant updatedAt) {
+    public BusinessResponse(
+            UUID id,
+            UUID ownerId,
+            String name,
+            String island,
+            String city,
+            String location,
+            String contactPhone,
+            String timezone,
+            List<BusinessCategoryResponse> categories,
+            boolean isActive,
+            Instant createdAt,
+            Instant updatedAt) {
+        this(id, ownerId, name, island, city, location, contactPhone, null, timezone, categories, isActive, createdAt,
+                updatedAt);
+    }
+
+}

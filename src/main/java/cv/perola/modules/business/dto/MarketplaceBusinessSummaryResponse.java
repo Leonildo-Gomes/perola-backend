@@ -26,6 +26,9 @@ public record MarketplaceBusinessSummaryResponse(
         @Schema(description = "Telefone de contacto público", example = "+2382619988")
         String contactPhone,
 
+        @Schema(description = "URL do logótipo do salão", nullable = true)
+        String logoUrl,
+
         @Schema(description = "Fuso horário do salão", example = "Atlantic/Cape_Verde")
         String timezone,
 
@@ -35,4 +38,16 @@ public record MarketplaceBusinessSummaryResponse(
         @Schema(description = "Quantidade de serviços ativos disponíveis no salão", example = "12")
         long servicesCount
 ) {
+    public MarketplaceBusinessSummaryResponse(
+            UUID id,
+            String name,
+            String island,
+            String city,
+            String location,
+            String contactPhone,
+            String timezone,
+            List<BusinessCategoryResponse> categories,
+            long servicesCount) {
+        this(id, name, island, city, location, contactPhone, null, timezone, categories, servicesCount);
+    }
 }

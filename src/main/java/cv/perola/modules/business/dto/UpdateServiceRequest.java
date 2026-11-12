@@ -1,5 +1,6 @@
 package cv.perola.modules.business.dto;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.Min;
@@ -21,5 +22,20 @@ public record UpdateServiceRequest(
 
                 @Schema(description = "Preço do serviço em CVE", example = "3000.00") @DecimalMin(value = "0.00", message = "O preço não pode ser negativo") BigDecimal price,
 
+                @Schema(description = "URL ou storageKey da foto do serviço obtida via POST /api/v1/media/upload (scope SERVICE_IMAGE)", nullable = true) @Size(max = 1000, message = "O URL da imagem não pode exceder 1000 caracteres") String imageUrl,
+
                 @Schema(description = "Estado de ativação do serviço", example = "true") Boolean isActive) {
+        @JsonCreator
+        public UpdateServiceRequest {
+        }
+
+        public UpdateServiceRequest(
+                        UUID categoryId,
+                        String name,
+                        String description,
+                        Integer durationMinutes,
+                        BigDecimal price,
+                        Boolean isActive) {
+                this(categoryId, name, description, durationMinutes, price, null, isActive);
+        }
 }

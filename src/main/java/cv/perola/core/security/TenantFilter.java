@@ -65,7 +65,7 @@ public class TenantFilter extends OncePerRequestFilter {
         }
 
         // 2. Bypass rotas públicas que nunca requerem tenant
-        if (isPublicRoute(normalizedPath)) {
+        if (isPublicRoute(normalizedPath, method)) {
             filterChain.doFilter(request, response);
             return;
         }
@@ -144,7 +144,11 @@ public class TenantFilter extends OncePerRequestFilter {
         }
     }
 
-    private boolean isPublicRoute(String path) {
+
+    private boolean isPublicRoute(String path, String method) {
+        if ("GET".equalsIgnoreCase(method) && path.startsWith("/api/v1/media/")) {
+            return true;
+        }
         return path.startsWith("/actuator")
                 || path.startsWith("/v3/api-docs")
                 || path.startsWith("/swagger-ui")

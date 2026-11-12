@@ -34,6 +34,10 @@ public class UpdateEmployeeUseCase {
             employee.setSpecialty(employeeMapper.normalizeSpecialty(request.specialty()));
         }
 
+        if (request.avatarUrl() != null) {
+            employee.setAvatarUrl(employeeMapper.normalizeUrl(request.avatarUrl()));
+        }
+
         if (request.isActive() != null) {
             employee.setActive(request.isActive());
         }

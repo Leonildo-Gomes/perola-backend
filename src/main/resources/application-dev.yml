@@ -34,3 +34,8 @@ perola:
       refresh-expiration-seconds: ${JWT_REFRESH_EXPIRATION_SECONDS:604800}
   business:
     default-timezone: ${APP_TIMEZONE:Atlantic/Cape_Verde}
+
+app:
+  storage:
+    local-dir: ${STORAGE_LOCAL_DIR:./data/uploads}
+    max-size-bytes: ${STORAGE_MAX_SIZE_BYTES:5242880}

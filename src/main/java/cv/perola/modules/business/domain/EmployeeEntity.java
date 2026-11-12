@@ -36,6 +36,9 @@ public class EmployeeEntity extends BaseEntity {
     @Column(name = "specialty", length = 120)
     private String specialty;
 
+    @Column(name = "avatar_url", columnDefinition = "TEXT")
+    private String avatarUrl;
+
     @Builder.Default
     @Column(name = "is_active", nullable = false)
     private boolean isActive = true;

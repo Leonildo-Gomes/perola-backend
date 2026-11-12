@@ -1,5 +1,6 @@
 package cv.perola.modules.business.dto;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.Min;
@@ -13,27 +14,30 @@ import java.util.UUID;
 @Schema(description = "Payload para criação de um novo serviço no catálogo do salão")
 public record CreateServiceRequest(
 
-        @Schema(description = "UUID da categoria à qual o serviço pertence", example = "3fa85f64-5717-4562-b3fc-2c963f66afa6")
-        @NotNull(message = "A categoria do serviço é obrigatória")
-        UUID categoryId,
+        @Schema(description = "UUID da categoria à qual o serviço pertence", example = "3fa85f64-5717-4562-b3fc-2c963f66afa6") @NotNull(message = "A categoria do serviço é obrigatória") UUID categoryId,
 
-        @Schema(description = "Nome do serviço", example = "Corte & Brushing")
-        @NotBlank(message = "O nome do serviço é obrigatório")
-        @Size(max = 150, message = "O nome do serviço não pode exceder 150 caracteres")
-        String name,
+        @Schema(description = "Nome do serviço", example = "Corte & Brushing") @NotBlank(message = "O nome do serviço é obrigatório") @Size(max = 150, message = "O nome do serviço não pode exceder 150 caracteres") String name,
 
-        @Schema(description = "Descrição detalhada do serviço", example = "Lavagem, corte profissional e modelagem com escova")
-        @Size(max = 1000, message = "A descrição não pode exceder 1000 caracteres")
-        String description,
+        @Schema(description = "Descrição detalhada do serviço", example = "Lavagem, corte profissional e modelagem com escova") @Size(max = 1000, message = "A descrição não pode exceder 1000 caracteres") String description,
 
-        @Schema(description = "Duração estimada em minutos", example = "60")
-        @NotNull(message = "A duração do serviço é obrigatória")
-        @Min(value = 5, message = "A duração mínima do serviço é de 5 minutos")
-        Integer durationMinutes,
+        @Schema(description = "Duração estimada em minutos", example = "60") @NotNull(message = "A duração do serviço é obrigatória") @Min(value = 5, message = "A duração mínima do serviço é de 5 minutos") Integer durationMinutes,
 
-        @Schema(description = "Preço do serviço em CVE", example = "2500.00")
-        @NotNull(message = "O preço do serviço é obrigatório")
-        @DecimalMin(value = "0.00", message = "O preço não pode ser negativo")
-        BigDecimal price
-) {
+        @Schema(description = "Preço do serviço em CVE", example = "2500.00") @NotNull(message = "O preço do serviço é obrigatório") @DecimalMin(value = "0.00", message = "O preço não pode ser negativo")
+BigDecimal price,
+
+@Schema(description = "URL ou storageKey da foto do serviço obtida via POST /api/v1/media/upload (scope SERVICE_IMAGE)", nullable = true)
+@Size(max = 1000, message = "O URL da imagem não pode exceder 1000 caracteres")
+String imageUrl) {
+
+    @JsonCreator
+    public CreateServiceRequest{}
+
+    public CreateServiceRequest(
+            UUID categoryId,
+            String name,
+            String description,
+            Integer durationMinutes,
+            BigDecimal price) {
+        this(categoryId, name, description, durationMinutes, price, null);
+    }
 }

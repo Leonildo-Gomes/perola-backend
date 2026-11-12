@@ -37,6 +37,9 @@ public record ServiceResponse(
         @Schema(description = "Preço do serviço em CVE", example = "2500.00")
         BigDecimal price,
 
+        @Schema(description = "URL da foto do serviço", nullable = true)
+        String imageUrl,
+
         @Schema(description = "Estado de ativação do serviço", example = "true")
         boolean isActive,
 
@@ -49,4 +52,20 @@ public record ServiceResponse(
         @Schema(description = "Data e hora da última atualização em UTC", example = "2026-10-27T10:00:00Z")
         Instant updatedAt
 ) {
+    public ServiceResponse(
+            UUID id,
+            UUID businessId,
+            UUID categoryId,
+            String categorySlug,
+            String categoryName,
+            String name,
+            String description,
+            Integer durationMinutes,
+            BigDecimal price,
+            boolean isActive,
+            List<UUID> assignedEmployeeIds,
+            Instant createdAt,
+            Instant updatedAt) {
+        this(id, businessId, categoryId, categorySlug, categoryName, name, description, durationMinutes, price, null, isActive, assignedEmployeeIds, createdAt, updatedAt);
+    }
 }

@@ -47,6 +47,9 @@ public class ServiceEntity extends BaseEntity {
     @Column(name = "price", nullable = false, precision = 10, scale = 2)
     private BigDecimal price;
 
+    @Column(name = "image_url", columnDefinition = "TEXT")
+    private String imageUrl;
+
     @Builder.Default
     @Column(name = "is_active", nullable = false)
     private boolean isActive = true;

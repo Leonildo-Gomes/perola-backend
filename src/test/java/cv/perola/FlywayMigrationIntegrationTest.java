@@ -20,40 +20,54 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 @ActiveProfiles("dev")
 class FlywayMigrationIntegrationTest {
 
-    @Autowired
-    private JdbcTemplate jdbcTemplate;
+        @Autowired
+        private JdbcTemplate jdbcTemplate;
 
-    @Test
-    @DisplayName("Deve conter o histórico de migrações V1, V2, V3, V4, V5 e V6 com sucesso no Flyway")
-    void flywayMigrationHistoryIsComplete() {
-        List<String> versions = jdbcTemplate.query(
-                "SELECT version FROM flyway_schema_history WHERE success = true ORDER BY installed_rank",
-                (rs, rowNum) -> rs.getString("version")
-        );
+        @Test
+        @DisplayName("Deve conter o histórico de migrações V1, V2, V3, V4, V5, V6 e V7 com sucesso no Flyway")
+        void flywayMigrationHistoryIsComplete() {
+                List<String> versions = jdbcTemplate.query(
+                                "SELECT version FROM flyway_schema_history WHERE success = true ORDER BY installed_rank",
+                                (rs, rowNum) -> rs.getString("version"));
 
-        assertThat(versions).contains("1", "2", "3", "4", "5", "6");
-    }
+                assertThat(versions).contains("1", "2", "3", "4", "5", "6", "7");
+        }
 
-    @Test
-    @DisplayName("Deve conter a coluna specialty (VARCHAR 120 nullable) na tabela employees criada pela migração V6")
-    void employeesSpecialtyColumnExists() {
-        String dataType = jdbcTemplate.queryForObject(
-                "SELECT data_type FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'employees' AND column_name = 'specialty'",
-                String.class
-        );
-        Integer maxLength = jdbcTemplate.queryForObject(
-                "SELECT character_maximum_length FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'employees' AND column_name = 'specialty'",
-                Integer.class
-        );
-        String isNullable = jdbcTemplate.queryForObject(
-                "SELECT is_nullable FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'employees' AND column_name = 'specialty'",
-                String.class
-        );
+        @Test
+        @DisplayName("Deve conter a tabela media_files e as colunas logo_url, image_url e avatar_url criadas pela migração V7")
+        void mediaFilesTableAndEntityImageUrlColumnsExist() {
+                String logoUrlType = jdbcTemplate.queryForObject(
+                                "SELECT data_type FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'businesses' AND column_name = 'logo_url'",
+                                String.class);
+                String imageUrlType = jdbcTemplate.queryForObject(
+                                "SELECT data_type FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'services' AND column_name = 'image_url'",
+                                String.class);
+                String empAvatarUrlType = jdbcTemplate.queryForObject(
+                                "SELECT data_type FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'employees' AND column_name = 'avatar_url'",
+                                String.class);
 
-        assertThat(dataType).isEqualTo("character varying");
-        assertThat(maxLength).isEqualTo(120);
-        assertThat(isNullable).isEqualTo("YES");
-    }
+                assertThat(logoUrlType).isEqualTo("text");
+                assertThat(imageUrlType).isEqualTo("text");
+                assertThat(empAvatarUrlType).isEqualTo("text");
+        }
+
+        @Test
+        @DisplayName("Deve conter a coluna specialty (VARCHAR 120 nullable) na tabela employees criada pela migração V6")
+        void employeesSpecialtyColumnExists() {
+                String dataType = jdbcTemplate.queryForObject(
+                                "SELECT data_type FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'employees' AND column_name = 'specialty'",
+                                String.class);
+                Integer maxLength = jdbcTemplate.queryForObject(
+                                "SELECT character_maximum_length FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'employees' AND column_name = 'specialty'",
+                                Integer.class);
+                String isNullable = jdbcTemplate.queryForObject(
+                                "SELECT is_nullable FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'employees' AND column_name = 'specialty'",
+                                String.class);
+
+                assertThat(dataType).isEqualTo("character varying");
+                assertThat(maxLength).isEqualTo(120);
+                assertThat(isNullable).isEqualTo("YES");
+        }
 
     @Test
     @DisplayName("Deve conter todas as 18 tabelas de domínio criadas pelas migrações")
@@ -81,171 +95,165 @@ class FlywayMigrationIntegrationTest {
                 "holidays",
                 "appointments",
                 "appointment_histories",
-                "reviews"
+                "reviews",
+                "media_files"
         );
     }
 
-    @Test
-    @DisplayName("Deve conter as 6 categorias oficiais semeadas pela migração V5 e proteger uk_business_categories_primary")
-    void categoriesAreSeededAndPrimaryIndexEnforced() {
-        List<String> slugs = jdbcTemplate.query(
-                "SELECT slug FROM categories WHERE is_active = true ORDER BY display_order ASC",
-                (rs, rowNum) -> rs.getString("slug")
-        );
+        @Test
+        @DisplayName("Deve conter as 6 categorias oficiais semeadas pela migração V5 e proteger uk_business_categories_primary")
+        void categoriesAreSeededAndPrimaryIndexEnforced() {
+                List<String> slugs = jdbcTemplate.query(
+                                "SELECT slug FROM categories WHERE is_active = true ORDER BY display_order ASC",
+                                (rs, rowNum) -> rs.getString("slug"));
 
-        assertThat(slugs).containsExactly(
-                "barbershop",
-                "hair",
-                "nails",
-                "spa_massage",
-                "aesthetics",
-                "makeup_brows"
-        );
+                assertThat(slugs).containsExactly(
+                                "barbershop",
+                                "hair",
+                                "nails",
+                                "spa_massage",
+                                "aesthetics",
+                                "makeup_brows");
 
-        UUID ownerId = UUID.randomUUID();
-        UUID businessId = UUID.randomUUID();
-        UUID cat1Id = jdbcTemplate.queryForObject("SELECT id FROM categories WHERE slug = 'barbershop'", UUID.class);
-        UUID cat2Id = jdbcTemplate.queryForObject("SELECT id FROM categories WHERE slug = 'hair'", UUID.class);
+                UUID ownerId = UUID.randomUUID();
+                UUID businessId = UUID.randomUUID();
+                UUID cat1Id = jdbcTemplate.queryForObject("SELECT id FROM categories WHERE slug = 'barbershop'",
+                                UUID.class);
+                UUID cat2Id = jdbcTemplate.queryForObject("SELECT id FROM categories WHERE slug = 'hair'", UUID.class);
 
-        try {
-            jdbcTemplate.update(
-                    "INSERT INTO users (id, name, email, phone) VALUES (?, ?, ?, ?)",
-                    ownerId, "Dono Cat", "owner-cat-" + ownerId + "@test.cv", "+2389919999"
-            );
-            jdbcTemplate.update(
-                    "INSERT INTO businesses (id, owner_id, name, island, city, location, contact_phone) VALUES (?, ?, ?, ?, ?, ?, ?)",
-                    businessId, ownerId, "Salão Misto", "Santiago", "Praia", "Platô", "+2382619999"
-            );
-            jdbcTemplate.update(
-                    "INSERT INTO business_categories (business_id, category_id, is_primary) VALUES (?, ?, TRUE)",
-                    businessId, cat1Id
-            );
+                try {
+                        jdbcTemplate.update(
+                                        "INSERT INTO users (id, name, email, phone) VALUES (?, ?, ?, ?)",
+                                        ownerId, "Dono Cat", "owner-cat-" + ownerId + "@test.cv", "+2389919999");
+                        jdbcTemplate.update(
+                                        "INSERT INTO businesses (id, owner_id, name, island, city, location, contact_phone) VALUES (?, ?, ?, ?, ?, ?, ?)",
+                                        businessId, ownerId, "Salão Misto", "Santiago", "Praia", "Platô",
+                                        "+2382619999");
+                        jdbcTemplate.update(
+                                        "INSERT INTO business_categories (business_id, category_id, is_primary) VALUES (?, ?, TRUE)",
+                                        businessId, cat1Id);
 
-            assertThatThrownBy(() -> jdbcTemplate.update(
-                    "INSERT INTO business_categories (business_id, category_id, is_primary) VALUES (?, ?, TRUE)",
-                    businessId, cat2Id
-            )).isInstanceOf(DataIntegrityViolationException.class)
-              .hasMessageContaining("uk_business_categories_primary");
-        } finally {
-            jdbcTemplate.update("DELETE FROM business_categories WHERE business_id = ?", businessId);
-            jdbcTemplate.update("DELETE FROM businesses WHERE id = ?", businessId);
-            jdbcTemplate.update("DELETE FROM users WHERE id = ?", ownerId);
+                        assertThatThrownBy(() -> jdbcTemplate.update(
+                                        "INSERT INTO business_categories (business_id, category_id, is_primary) VALUES (?, ?, TRUE)",
+                                        businessId, cat2Id)).isInstanceOf(DataIntegrityViolationException.class)
+                                        .hasMessageContaining("uk_business_categories_primary");
+                } finally {
+                        jdbcTemplate.update("DELETE FROM business_categories WHERE business_id = ?", businessId);
+                        jdbcTemplate.update("DELETE FROM businesses WHERE id = ?", businessId);
+                        jdbcTemplate.update("DELETE FROM users WHERE id = ?", ownerId);
+                }
         }
-    }
 
-    @Test
-    @DisplayName("Deve conter os 12 feriados nacionais oficiais de Cabo Verde semeados pela migração V2")
-    void capeVerdeHolidaysAreSeeded() {
-        Integer count = jdbcTemplate.queryForObject(
-                "SELECT COUNT(*) FROM holidays WHERE is_national = true",
-                Integer.class
-        );
+        @Test
+        @DisplayName("Deve conter os 12 feriados nacionais oficiais de Cabo Verde semeados pela migração V2")
+        void capeVerdeHolidaysAreSeeded() {
+                Integer count = jdbcTemplate.queryForObject(
+                                "SELECT COUNT(*) FROM holidays WHERE is_national = true",
+                                Integer.class);
 
-        assertThat(count).isEqualTo(12);
+                assertThat(count).isEqualTo(12);
 
-        String anoNovo = jdbcTemplate.queryForObject(
-                "SELECT name FROM holidays WHERE holiday_date = '2026-01-01'",
-                String.class
-        );
-        assertThat(anoNovo).isEqualTo("Dia de Ano Novo");
+                String anoNovo = jdbcTemplate.queryForObject(
+                                "SELECT name FROM holidays WHERE holiday_date = '2026-01-01'",
+                                String.class);
+                assertThat(anoNovo).isEqualTo("Dia de Ano Novo");
 
-        String independencia = jdbcTemplate.queryForObject(
-                "SELECT name FROM holidays WHERE holiday_date = '2026-07-05'",
-                String.class
-        );
-        assertThat(independencia).isEqualTo("Dia da Independência Nacional");
-    }
-
-    @Test
-    @DisplayName("Deve validar a restrição GiST ex_appointments_no_overlap impedindo sobreposição e permitindo adjacentes")
-    void antiOverbookingGistConstraintPreventsOverlappingAppointments() {
-        UUID ownerId = UUID.randomUUID();
-        UUID customerId = UUID.randomUUID();
-        UUID businessId = UUID.randomUUID();
-        UUID serviceId = UUID.randomUUID();
-        UUID employeeId = UUID.randomUUID();
-
-        try {
-            // Setup dados base
-            jdbcTemplate.update(
-                    "INSERT INTO users (id, name, email, phone) VALUES (?, ?, ?, ?)",
-                    ownerId, "Dono Teste", "owner-" + ownerId + "@test.cv", "+2389911111"
-            );
-            jdbcTemplate.update(
-                    "INSERT INTO users (id, name, email, phone) VALUES (?, ?, ?, ?)",
-                    customerId, "Cliente Teste", "customer-" + customerId + "@test.cv", "+2389922222"
-            );
-            jdbcTemplate.update(
-                    "INSERT INTO businesses (id, owner_id, name, island, city, location, contact_phone) VALUES (?, ?, ?, ?, ?, ?, ?)",
-                    businessId, ownerId, "Salão Beleza", "Santiago", "Praia", "Plateau", "+2382611111"
-            );
-            UUID categoryId = jdbcTemplate.queryForObject(
-                    "SELECT id FROM categories WHERE slug = 'barbershop' LIMIT 1",
-                    UUID.class
-            );
-            jdbcTemplate.update(
-                    "INSERT INTO services (id, business_id, category_id, name, duration_minutes, price) VALUES (?, ?, ?, ?, ?, ?)",
-                    serviceId, businessId, categoryId, "Corte Cabelo", 60, 1000.00
-            );
-            jdbcTemplate.update(
-                    "INSERT INTO employees (id, business_id, display_name) VALUES (?, ?, ?)",
-                    employeeId, businessId, "Barbeiro João"
-            );
-
-            // 1. Inserir primeira marcação das 10:00 às 11:00 UTC (CONFIRMED)
-            Instant t1000 = Instant.parse("2026-11-03T10:00:00Z");
-            Instant t1100 = Instant.parse("2026-11-03T11:00:00Z");
-            UUID appt1Id = UUID.randomUUID();
-
-            jdbcTemplate.update(
-                    "INSERT INTO appointments (id, business_id, customer_id, employee_id, service_id, created_by_id, start_time, end_time, service_name, service_price, service_duration, status) " +
-                            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'CONFIRMED'::appointment_status)",
-                    appt1Id, businessId, customerId, employeeId, serviceId, customerId,
-                    Timestamp.from(t1000), Timestamp.from(t1100), "Corte Cabelo", 1000.00, 60
-            );
-
-            // 2. Tentar inserir marcação concorrente sobreposta das 10:30 às 11:30 UTC para o MESMO funcionário (deve falhar por GiST 23P01)
-            Instant t1030 = Instant.parse("2026-11-03T10:30:00Z");
-            Instant t1130 = Instant.parse("2026-11-03T11:30:00Z");
-            UUID appt2Id = UUID.randomUUID();
-
-            assertThatThrownBy(() -> jdbcTemplate.update(
-                    "INSERT INTO appointments (id, business_id, customer_id, employee_id, service_id, created_by_id, start_time, end_time, service_name, service_price, service_duration, status) " +
-                            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'PENDING'::appointment_status)",
-                    appt2Id, businessId, customerId, employeeId, serviceId, customerId,
-                    Timestamp.from(t1030), Timestamp.from(t1130), "Corte Cabelo", 1000.00, 60
-            )).isInstanceOf(DataIntegrityViolationException.class)
-              .hasMessageContaining("ex_appointments_no_overlap");
-
-            // 3. Inserir marcação adjacente contígua das 11:00 às 12:00 UTC (intervalo semi-aberto [) permite adjacência exata)
-            Instant t1200 = Instant.parse("2026-11-03T12:00:00Z");
-            UUID appt3Id = UUID.randomUUID();
-
-            int adjacentRows = jdbcTemplate.update(
-                    "INSERT INTO appointments (id, business_id, customer_id, employee_id, service_id, created_by_id, start_time, end_time, service_name, service_price, service_duration, status) " +
-                            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'CONFIRMED'::appointment_status)",
-                    appt3Id, businessId, customerId, employeeId, serviceId, customerId,
-                    Timestamp.from(t1100), Timestamp.from(t1200), "Corte Cabelo", 1000.00, 60
-            );
-            assertThat(adjacentRows).isEqualTo(1);
-
-            // 4. Inserir marcação com status CANCELLED no mesmo horário (10:00 às 11:00 UTC) -> permitida pelo predicado da constraint
-            UUID apptCancelledId = UUID.randomUUID();
-            int cancelledRows = jdbcTemplate.update(
-                    "INSERT INTO appointments (id, business_id, customer_id, employee_id, service_id, created_by_id, start_time, end_time, service_name, service_price, service_duration, status) " +
-                            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'CANCELLED'::appointment_status)",
-                    apptCancelledId, businessId, customerId, employeeId, serviceId, customerId,
-                    Timestamp.from(t1000), Timestamp.from(t1100), "Corte Cabelo", 1000.00, 60
-            );
-            assertThat(cancelledRows).isEqualTo(1);
-
-        } finally {
-            // Limpeza
-            jdbcTemplate.update("DELETE FROM appointments WHERE business_id = ?", businessId);
-            jdbcTemplate.update("DELETE FROM employees WHERE id = ?", employeeId);
-            jdbcTemplate.update("DELETE FROM services WHERE id = ?", serviceId);
-            jdbcTemplate.update("DELETE FROM businesses WHERE id = ?", businessId);
-            jdbcTemplate.update("DELETE FROM users WHERE id IN (?, ?)", ownerId, customerId);
+                String independencia = jdbcTemplate.queryForObject(
+                                "SELECT name FROM holidays WHERE holiday_date = '2026-07-05'",
+                                String.class);
+                assertThat(independencia).isEqualTo("Dia da Independência Nacional");
         }
-    }
+
+        @Test
+        @DisplayName("Deve validar a restrição GiST ex_appointments_no_overlap impedindo sobreposição e permitindo adjacentes")
+        void antiOverbookingGistConstraintPreventsOverlappingAppointments() {
+                UUID ownerId = UUID.randomUUID();
+                UUID customerId = UUID.randomUUID();
+                UUID businessId = UUID.randomUUID();
+                UUID serviceId = UUID.randomUUID();
+                UUID employeeId = UUID.randomUUID();
+
+                try {
+                        // Setup dados base
+                        jdbcTemplate.update(
+                                        "INSERT INTO users (id, name, email, phone) VALUES (?, ?, ?, ?)",
+                                        ownerId, "Dono Teste", "owner-" + ownerId + "@test.cv", "+2389911111");
+                        jdbcTemplate.update(
+                                        "INSERT INTO users (id, name, email, phone) VALUES (?, ?, ?, ?)",
+                                        customerId, "Cliente Teste", "customer-" + customerId + "@test.cv",
+                                        "+2389922222");
+                        jdbcTemplate.update(
+                                        "INSERT INTO businesses (id, owner_id, name, island, city, location, contact_phone) VALUES (?, ?, ?, ?, ?, ?, ?)",
+                                        businessId, ownerId, "Salão Beleza", "Santiago", "Praia", "Plateau",
+                                        "+2382611111");
+                        UUID categoryId = jdbcTemplate.queryForObject(
+                                        "SELECT id FROM categories WHERE slug = 'barbershop' LIMIT 1",
+                                        UUID.class);
+                        jdbcTemplate.update(
+                                        "INSERT INTO services (id, business_id, category_id, name, duration_minutes, price) VALUES (?, ?, ?, ?, ?, ?)",
+                                        serviceId, businessId, categoryId, "Corte Cabelo", 60, 1000.00);
+                        jdbcTemplate.update(
+                                        "INSERT INTO employees (id, business_id, display_name) VALUES (?, ?, ?)",
+                                        employeeId, businessId, "Barbeiro João");
+
+                        // 1. Inserir primeira marcação das 10:00 às 11:00 UTC (CONFIRMED)
+                        Instant t1000 = Instant.parse("2026-11-03T10:00:00Z");
+                        Instant t1100 = Instant.parse("2026-11-03T11:00:00Z");
+                        UUID appt1Id = UUID.randomUUID();
+
+                        jdbcTemplate.update(
+                                        "INSERT INTO appointments (id, business_id, customer_id, employee_id, service_id, created_by_id, start_time, end_time, service_name, service_price, service_duration, status) "
+                                                        +
+                                                        "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'CONFIRMED'::appointment_status)",
+                                        appt1Id, businessId, customerId, employeeId, serviceId, customerId,
+                                        Timestamp.from(t1000), Timestamp.from(t1100), "Corte Cabelo", 1000.00, 60);
+
+                        // 2. Tentar inserir marcação concorrente sobreposta das 10:30 às 11:30 UTC para
+                        // o MESMO funcionário (deve falhar por GiST 23P01)
+                        Instant t1030 = Instant.parse("2026-11-03T10:30:00Z");
+                        Instant t1130 = Instant.parse("2026-11-03T11:30:00Z");
+                        UUID appt2Id = UUID.randomUUID();
+
+                        assertThatThrownBy(() -> jdbcTemplate.update(
+                                        "INSERT INTO appointments (id, business_id, customer_id, employee_id, service_id, created_by_id, start_time, end_time, service_name, service_price, service_duration, status) "
+                                                        +
+                                                        "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'PENDING'::appointment_status)",
+                                        appt2Id, businessId, customerId, employeeId, serviceId, customerId,
+                                        Timestamp.from(t1030), Timestamp.from(t1130), "Corte Cabelo", 1000.00, 60))
+                                        .isInstanceOf(DataIntegrityViolationException.class)
+                                        .hasMessageContaining("ex_appointments_no_overlap");
+
+                        // 3. Inserir marcação adjacente contígua das 11:00 às 12:00 UTC (intervalo
+                        // semi-aberto [) permite adjacência exata)
+                        Instant t1200 = Instant.parse("2026-11-03T12:00:00Z");
+                        UUID appt3Id = UUID.randomUUID();
+
+                        int adjacentRows = jdbcTemplate.update(
+                                        "INSERT INTO appointments (id, business_id, customer_id, employee_id, service_id, created_by_id, start_time, end_time, service_name, service_price, service_duration, status) "
+                                                        +
+                                                        "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'CONFIRMED'::appointment_status)",
+                                        appt3Id, businessId, customerId, employeeId, serviceId, customerId,
+                                        Timestamp.from(t1100), Timestamp.from(t1200), "Corte Cabelo", 1000.00, 60);
+                        assertThat(adjacentRows).isEqualTo(1);
+
+                        // 4. Inserir marcação com status CANCELLED no mesmo horário (10:00 às 11:00
+                        // UTC) -> permitida pelo predicado da constraint
+                        UUID apptCancelledId = UUID.randomUUID();
+                        int cancelledRows = jdbcTemplate.update(
+                                        "INSERT INTO appointments (id, business_id, customer_id, employee_id, service_id, created_by_id, start_time, end_time, service_name, service_price, service_duration, status) "
+                                                        +
+                                                        "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'CANCELLED'::appointment_status)",
+                                        apptCancelledId, businessId, customerId, employeeId, serviceId, customerId,
+                                        Timestamp.from(t1000), Timestamp.from(t1100), "Corte Cabelo", 1000.00, 60);
+                        assertThat(cancelledRows).isEqualTo(1);
+
+                } finally {
+                        // Limpeza
+                        jdbcTemplate.update("DELETE FROM appointments WHERE business_id = ?", businessId);
+                        jdbcTemplate.update("DELETE FROM employees WHERE id = ?", employeeId);
+                        jdbcTemplate.update("DELETE FROM services WHERE id = ?", serviceId);
+                        jdbcTemplate.update("DELETE FROM businesses WHERE id = ?", businessId);
+                        jdbcTemplate.update("DELETE FROM users WHERE id IN (?, ?)", ownerId, customerId);
+                }
+        }
 }

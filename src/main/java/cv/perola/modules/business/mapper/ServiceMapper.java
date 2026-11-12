@@ -22,8 +22,17 @@ public class ServiceMapper {
                 .description(request.description() != null ? request.description().trim() : null)
                 .durationMinutes(request.durationMinutes())
                 .price(request.price())
+                .imageUrl(normalizeUrl(request.imageUrl()))
                 .isActive(true)
                 .build();
+    }
+
+    public String normalizeUrl(String url) {
+        if (url == null) {
+            return null;
+        }
+        String trimmed = url.trim();
+        return trimmed.isEmpty() ? null : trimmed;
     }
 
     public ServiceResponse toResponse(ServiceEntity entity) {
@@ -46,6 +55,7 @@ public class ServiceMapper {
                 entity.getDescription(),
                 entity.getDurationMinutes(),
                 entity.getPrice(),
+                entity.getImageUrl(),
                 entity.isActive(),
                 safeAssignedIds,
                 entity.getCreatedAt(),
@@ -71,7 +81,8 @@ public class ServiceMapper {
                 entity.getName(),
                 entity.getDescription(),
                 entity.getDurationMinutes(),
-                entity.getPrice()
+                entity.getPrice(),
+                entity.getImageUrl()
         );
     }
 }

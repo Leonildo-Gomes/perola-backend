@@ -55,6 +55,9 @@ public class UpdateBusinessUseCase {
             if (request.contactPhone() != null && !request.contactPhone().isBlank()) {
                 business.setContactPhone(request.contactPhone().trim());
             }
+            if (request.logoUrl() != null) {
+                business.setLogoUrl(businessMapper.normalizeUrl(request.logoUrl()));
+            }
             if (request.timezone() != null && !request.timezone().isBlank()) {
                 business.setTimezone(request.timezone().trim());
             }

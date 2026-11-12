@@ -23,6 +23,9 @@ public record EmployeeResponse(
         @Schema(description = "Título ou especialidade exibida no perfil do profissional", example = "Cabeleireira Sénior & Trancista", nullable = true)
         String specialty,
 
+        @Schema(description = "URL da foto/avatar do profissional", nullable = true)
+        String avatarUrl,
+
         @Schema(description = "Estado de ativação do profissional", example = "true")
         boolean isActive,
 
@@ -32,4 +35,15 @@ public record EmployeeResponse(
         @Schema(description = "Data e hora da última atualização em UTC", example = "2026-10-27T10:00:00Z")
         Instant updatedAt
 ) {
+    public EmployeeResponse(
+            UUID id,
+            UUID businessId,
+            UUID userId,
+            String displayName,
+            String specialty,
+            boolean isActive,
+            Instant createdAt,
+            Instant updatedAt) {
+        this(id, businessId, userId, displayName, specialty, null, isActive, createdAt, updatedAt);
+    }
 }

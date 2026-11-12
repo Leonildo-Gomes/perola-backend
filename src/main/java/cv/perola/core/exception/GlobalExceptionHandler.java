@@ -13,6 +13,8 @@ import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
+import org.springframework.web.multipart.MaxUploadSizeExceededException;
+import org.springframework.web.multipart.support.MissingServletRequestPartException;
 
 import java.net.URI;
 import java.time.Instant;
@@ -26,8 +28,7 @@ public class GlobalExceptionHandler {
     public ProblemDetail handleValidationException(MethodArgumentNotValidException ex) {
         ProblemDetail problem = ProblemDetail.forStatusAndDetail(
                 HttpStatus.BAD_REQUEST,
-                "Os dados fornecidos contêm erros de validação."
-        );
+                "Os dados fornecidos contêm erros de validação.");
         problem.setTitle("Erro de Validação");
         problem.setType(URI.create("https://perola.cv/errors/validation-error"));
         problem.setProperty("timestamp", Instant.now());
@@ -40,36 +41,45 @@ public class GlobalExceptionHandler {
         return problem;
     }
 
-    @ExceptionHandler({ValidationException.class, IllegalArgumentException.class})
+    @ExceptionHandler({ ValidationException.class, IllegalArgumentException.class })
     public ProblemDetail handleBusinessValidationException(RuntimeException ex) {
         ProblemDetail problem = ProblemDetail.forStatusAndDetail(
                 HttpStatus.BAD_REQUEST,
-                ex.getMessage() != null ? ex.getMessage() : "Os dados fornecidos contêm erros de validação."
-        );
+                ex.getMessage() != null ? ex.getMessage() : "Os dados fornecidos contêm erros de validação.");
         problem.setTitle("Erro de Validação");
         problem.setType(URI.create("https://perola.cv/errors/validation-error"));
         problem.setProperty("timestamp", Instant.now());
         return problem;
     }
 
-    @ExceptionHandler({MissingServletRequestParameterException.class, MethodArgumentTypeMismatchException.class})
+    @ExceptionHandler({ MissingServletRequestParameterException.class, MethodArgumentTypeMismatchException.class,
+            MissingServletRequestPartException.class })
     public ProblemDetail handleRequestParameterException(Exception ex) {
         ProblemDetail problem = ProblemDetail.forStatusAndDetail(
                 HttpStatus.BAD_REQUEST,
-                "Os parâmetros de consulta fornecidos são inválidos ou estão ausentes."
-        );
+                "Os parâmetros de consulta fornecidos são inválidos ou estão ausentes.");
         problem.setTitle("Erro de Validação");
         problem.setType(URI.create("https://perola.cv/errors/validation-error"));
         problem.setProperty("timestamp", Instant.now());
         return problem;
     }
 
-    @ExceptionHandler({BadCredentialsException.class, AuthenticationFailedException.class})
+    @ExceptionHandler(MaxUploadSizeExceededException.class)
+    public ProblemDetail handleMaxUploadSizeExceededException(MaxUploadSizeExceededException ex) {
+        ProblemDetail problem = ProblemDetail.forStatusAndDetail(
+                HttpStatus.BAD_REQUEST,
+                "O tamanho do ficheiro excede o limite máximo permitido de 5 MB.");
+        problem.setTitle("Erro de Validação");
+        problem.setType(URI.create("https://perola.cv/errors/validation-error"));
+        problem.setProperty("timestamp", Instant.now());
+        return problem;
+    }
+
+    @ExceptionHandler({ BadCredentialsException.class, AuthenticationFailedException.class })
     public ProblemDetail handleAuthenticationException(Exception ex) {
         ProblemDetail problem = ProblemDetail.forStatusAndDetail(
                 HttpStatus.UNAUTHORIZED,
-                ex.getMessage() != null ? ex.getMessage() : "Email ou palavra-passe incorretos."
-        );
+                ex.getMessage() != null ? ex.getMessage() : "Email ou palavra-passe incorretos.");
         problem.setTitle("Credenciais Inválidas");
         problem.setType(URI.create("https://perola.cv/errors/invalid-credentials"));
         problem.setProperty("timestamp", Instant.now());
@@ -80,8 +90,7 @@ public class GlobalExceptionHandler {
     public ProblemDetail handleInvalidTokenException(InvalidTokenException ex) {
         ProblemDetail problem = ProblemDetail.forStatusAndDetail(
                 HttpStatus.UNAUTHORIZED,
-                ex.getMessage()
-        );
+                ex.getMessage());
         problem.setTitle("Token Inválido");
         problem.setType(URI.create("https://perola.cv/errors/invalid-token"));
         problem.setProperty("timestamp", Instant.now());
@@ -92,8 +101,7 @@ public class GlobalExceptionHandler {
     public ProblemDetail handleDisabledException(DisabledException ex) {
         ProblemDetail problem = ProblemDetail.forStatusAndDetail(
                 HttpStatus.UNAUTHORIZED,
-                "A sua conta encontra-se desativada."
-        );
+                "A sua conta encontra-se desativada.");
         problem.setTitle("Conta Desativada");
         problem.setType(URI.create("https://perola.cv/errors/account-disabled"));
         problem.setProperty("timestamp", Instant.now());
@@ -104,8 +112,7 @@ public class GlobalExceptionHandler {
     public ProblemDetail handleConflictException(ConflictException ex) {
         ProblemDetail problem = ProblemDetail.forStatusAndDetail(
                 HttpStatus.CONFLICT,
-                ex.getMessage()
-        );
+                ex.getMessage());
         problem.setTitle("Conflito de Dados");
         problem.setType(URI.create("https://perola.cv/errors/conflict"));
         problem.setProperty("timestamp", Instant.now());
@@ -113,12 +120,12 @@ public class GlobalExceptionHandler {
     }
 
     @ExceptionHandler(org.springframework.dao.DataIntegrityViolationException.class)
-    public ProblemDetail handleDataIntegrityViolationException(org.springframework.dao.DataIntegrityViolationException ex) {
+    public ProblemDetail handleDataIntegrityViolationException(
+            org.springframework.dao.DataIntegrityViolationException ex) {
         if (isSlotOverlapViolation(ex)) {
             ProblemDetail problem = ProblemDetail.forStatusAndDetail(
                     HttpStatus.CONFLICT,
-                    "O profissional selecionado já possui um agendamento confirmado ou pendente neste intervalo de tempo."
-            );
+                    "O profissional selecionado já possui um agendamento confirmado ou pendente neste intervalo de tempo.");
             problem.setTitle("Conflito de Horário");
             problem.setType(URI.create("https://perola.cv/errors/slot-already-booked"));
             problem.setProperty("timestamp", Instant.now());
@@ -135,8 +142,7 @@ public class GlobalExceptionHandler {
         }
         ProblemDetail problem = ProblemDetail.forStatusAndDetail(
                 HttpStatus.CONFLICT,
-                detail
-        );
+                detail);
         problem.setTitle("Conflito de Dados");
         problem.setType(URI.create("https://perola.cv/errors/conflict"));
         problem.setProperty("timestamp", Instant.now());
@@ -162,8 +168,7 @@ public class GlobalExceptionHandler {
     public ProblemDetail handleResourceNotFoundException(ResourceNotFoundException ex) {
         ProblemDetail problem = ProblemDetail.forStatusAndDetail(
                 HttpStatus.NOT_FOUND,
-                ex.getMessage()
-        );
+                ex.getMessage());
         problem.setTitle("Recurso Não Encontrado");
         problem.setType(URI.create("https://perola.cv/errors/resource-not-found"));
         problem.setProperty("timestamp", Instant.now());
@@ -174,8 +179,7 @@ public class GlobalExceptionHandler {
     public ProblemDetail handleAccessDeniedException(AccessDeniedException ex) {
         ProblemDetail problem = ProblemDetail.forStatusAndDetail(
                 HttpStatus.FORBIDDEN,
-                "Não tem permissão para aceder a este recurso."
-        );
+                "Não tem permissão para aceder a este recurso.");
         problem.setTitle("Acesso Não Autorizado");
         problem.setType(URI.create("https://perola.cv/errors/access-denied"));
         problem.setProperty("timestamp", Instant.now());
@@ -186,8 +190,7 @@ public class GlobalExceptionHandler {
     public ProblemDetail handleTenantAccessDeniedException(TenantAccessDeniedException ex) {
         ProblemDetail problem = ProblemDetail.forStatusAndDetail(
                 HttpStatus.FORBIDDEN,
-                ex.getMessage() != null ? ex.getMessage() : "Acesso não autorizado para o salão especificado."
-        );
+                ex.getMessage() != null ? ex.getMessage() : "Acesso não autorizado para o salão especificado.");
         problem.setTitle("Acesso ao Salão Negado");
         problem.setType(URI.create("https://perola.cv/errors/tenant-access-denied"));
         problem.setProperty("timestamp", Instant.now());
@@ -198,8 +201,7 @@ public class GlobalExceptionHandler {
     public ProblemDetail handleInvalidApiVersionException(InvalidApiVersionException ex) {
         ProblemDetail problem = ProblemDetail.forStatusAndDetail(
                 HttpStatus.BAD_REQUEST,
-                ex.getMessage() != null ? ex.getMessage() : "Versão da API inválida ou não suportada."
-        );
+                ex.getMessage() != null ? ex.getMessage() : "Versão da API inválida ou não suportada.");
         problem.setTitle("Versão de API Inválida");
         problem.setType(URI.create("https://perola.cv/errors/invalid-api-version"));
         problem.setProperty("timestamp", Instant.now());
@@ -210,8 +212,7 @@ public class GlobalExceptionHandler {
     public ProblemDetail handleMissingApiVersionException(MissingApiVersionException ex) {
         ProblemDetail problem = ProblemDetail.forStatusAndDetail(
                 HttpStatus.BAD_REQUEST,
-                "A versão da API é obrigatória na requisição."
-        );
+                "A versão da API é obrigatória na requisição.");
         problem.setTitle("Versão de API Ausente");
         problem.setType(URI.create("https://perola.cv/errors/missing-api-version"));
         problem.setProperty("timestamp", Instant.now());
@@ -222,8 +223,7 @@ public class GlobalExceptionHandler {
     public ProblemDetail handleGenericException(Exception ex) {
         ProblemDetail problem = ProblemDetail.forStatusAndDetail(
                 HttpStatus.INTERNAL_SERVER_ERROR,
-                ex.getMessage()
-        );
+                ex.getMessage());
         problem.setTitle("Internal Server Error");
         problem.setType(URI.create("https://perola.cv/errors/internal-error"));
         problem.setProperty("timestamp", Instant.now());
@@ -233,7 +233,6 @@ public class GlobalExceptionHandler {
     private Map<String, String> formatFieldError(FieldError error) {
         return Map.of(
                 "name", error.getField(),
-                "reason", error.getDefaultMessage() != null ? error.getDefaultMessage() : "Valor inválido"
-        );
+                "reason", error.getDefaultMessage() != null ? error.getDefaultMessage() : "Valor inválido");
     }
 }

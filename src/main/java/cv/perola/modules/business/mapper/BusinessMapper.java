@@ -35,9 +35,18 @@ public class BusinessMapper {
                 .city(request.city() != null ? request.city().trim() : null)
                 .location(request.location() != null ? request.location().trim() : null)
                 .contactPhone(request.contactPhone() != null ? request.contactPhone().trim() : null)
+                .logoUrl(normalizeUrl(request.logoUrl()))
                 .timezone(timezone)
                 .isActive(true)
                 .build();
+    }
+
+    public String normalizeUrl(String url) {
+        if (url == null) {
+            return null;
+        }
+        String trimmed = url.trim();
+        return trimmed.isEmpty() ? null : trimmed;
     }
 
     public BusinessResponse toResponse(BusinessEntity entity, List<BusinessCategoryResponse> categories) {
@@ -52,12 +61,12 @@ public class BusinessMapper {
                 entity.getCity(),
                 entity.getLocation(),
                 entity.getContactPhone(),
+                entity.getLogoUrl(),
                 entity.getTimezone(),
                 categories != null ? categories : Collections.emptyList(),
                 entity.isActive(),
                 entity.getCreatedAt(),
-                entity.getUpdatedAt()
-        );
+                entity.getUpdatedAt());
     }
 
     public MarketplaceBusinessSummaryResponse toSummaryResponse(
@@ -74,10 +83,10 @@ public class BusinessMapper {
                 entity.getCity(),
                 entity.getLocation(),
                 entity.getContactPhone(),
+                entity.getLogoUrl(),
                 entity.getTimezone(),
                 categories != null ? categories : Collections.emptyList(),
-                servicesCount
-        );
+                servicesCount);
     }
 
     public MarketplaceBusinessDetailResponse toDetailResponse(
@@ -95,10 +104,10 @@ public class BusinessMapper {
                 entity.getCity(),
                 entity.getLocation(),
                 entity.getContactPhone(),
+                entity.getLogoUrl(),
                 entity.getTimezone(),
                 categories != null ? categories : Collections.emptyList(),
                 services,
-                employees
-        );
+                employees);
     }
 }

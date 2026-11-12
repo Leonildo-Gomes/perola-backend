@@ -92,6 +92,7 @@ ehthumbs_vista.db
 
 # --- Dados Locais / Docker ---
 postgres_data/
+data/
 *.db
 
 .env

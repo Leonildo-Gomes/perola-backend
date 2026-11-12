@@ -28,6 +28,7 @@ public class EmployeeMapper {
                 .userId(request.userId())
                 .displayName(request.displayName() != null ? request.displayName().trim() : null)
                 .specialty(normalizeSpecialty(request.specialty()))
+                .avatarUrl(normalizeUrl(request.avatarUrl()))
                 .isActive(true)
                 .build();
     }
@@ -44,6 +45,14 @@ public class EmployeeMapper {
         return trimmed.isEmpty() ? null : trimmed;
     }
 
+    public String normalizeUrl(String url) {
+        if (url == null) {
+            return null;
+        }
+        String trimmed = url.trim();
+        return trimmed.isEmpty() ? null : trimmed;
+    }
+
     public EmployeeResponse toResponse(EmployeeEntity entity) {
         if (entity == null) {
             return null;
@@ -54,10 +63,10 @@ public class EmployeeMapper {
                 entity.getUserId(),
                 entity.getDisplayName(),
                 entity.getSpecialty(),
+                entity.getAvatarUrl(),
                 entity.isActive(),
                 entity.getCreatedAt(),
-                entity.getUpdatedAt()
-        );
+                entity.getUpdatedAt());
     }
 
     public BusinessEmployeeResponse toBusinessResponse(
@@ -69,6 +78,9 @@ public class EmployeeMapper {
             return null;
         }
         List<UUID> safeAssignedServiceIds = assignedServiceIds != null ? List.copyOf(assignedServiceIds) : List.of();
+        String effectiveAvatarUrl = entity.getAvatarUrl() != null
+                ? entity.getAvatarUrl()
+                : (userSummary != null ? userSummary.avatarUrl() : null);
         return new BusinessEmployeeResponse(
                 entity.getId(),
                 entity.getBusinessId(),
@@ -76,14 +88,12 @@ public class EmployeeMapper {
                 entity.getDisplayName(),
                 userSummary != null ? userSummary.email() : null,
                 userSummary != null ? userSummary.phone() : null,
-                userSummary != null ? userSummary.avatarUrl() : null,
+                effectiveAvatarUrl,
                 accessRole,
                 entity.getSpecialty(),
                 safeAssignedServiceIds,
                 entity.isActive(),
                 entity.getCreatedAt(),
-                entity.getUpdatedAt()
-        );
+                entity.getUpdatedAt());
     }
 }
-
