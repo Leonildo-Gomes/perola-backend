@@ -22,6 +22,7 @@
         <spring-modulith.version>2.0.0</spring-modulith.version>
         <jjwt.version>0.12.6</jjwt.version>
         <springdoc.version>3.1.1</springdoc.version>
+        <dotenv-java.version>3.2.0</dotenv-java.version>
     </properties>
 
     <dependencies>
@@ -99,6 +100,13 @@
             <groupId>org.springdoc</groupId>
             <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
             <version>${springdoc.version}</version>
+        </dependency>
+
+        <!-- Dotenv (.env file loader) -->
+        <dependency>
+            <groupId>io.github.cdimascio</groupId>
+            <artifactId>dotenv-java</artifactId>
+            <version>${dotenv-java.version}</version>
         </dependency>
 
         <!-- Testing Dependencies -->
