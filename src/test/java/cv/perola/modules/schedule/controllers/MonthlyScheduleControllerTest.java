@@ -5,6 +5,7 @@ import cv.perola.core.security.UserPrincipal;
 import cv.perola.modules.schedule.dto.MonthlyScheduleResponse;
 import cv.perola.modules.schedule.dto.OpenMonthlyScheduleRequest;
 import cv.perola.modules.schedule.usecase.monthly.GetMonthlyScheduleUseCase;
+import cv.perola.modules.schedule.usecase.monthly.ListMonthlySchedulesUseCase;
 import cv.perola.modules.schedule.usecase.monthly.OpenMonthlyScheduleUseCase;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -33,6 +34,9 @@ class MonthlyScheduleControllerTest {
 
     @Mock
     private GetMonthlyScheduleUseCase getMonthlyScheduleUseCase;
+
+    @Mock
+    private ListMonthlySchedulesUseCase listMonthlySchedulesUseCase;
 
     @InjectMocks
     private MonthlyScheduleController controller;
@@ -78,5 +82,22 @@ class MonthlyScheduleControllerTest {
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(response.getBody()).isEqualTo(expected);
         verify(getMonthlyScheduleUseCase).execute(employeeId, 2026, 11, principal);
+    }
+
+    @Test
+    @DisplayName("Deve listar aberturas mensais por ano e retornar HTTP 200 OK com Array")
+    void shouldListMonthlySchedulesByYearAndReturn200() {
+        MonthlyScheduleResponse item = new MonthlyScheduleResponse(
+                UUID.randomUUID(), employeeId, scheduleId, "Horário Padrão", 2026, 11, true, Instant.now()
+        );
+        List<MonthlyScheduleResponse> expected = List.of(item);
+
+        when(listMonthlySchedulesUseCase.execute(employeeId, 2026, principal)).thenReturn(expected);
+
+        ResponseEntity<List<MonthlyScheduleResponse>> response = controller.listMonthlySchedulesByYear(employeeId, 2026, principal);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(response.getBody()).isEqualTo(expected);
+        verify(listMonthlySchedulesUseCase).execute(employeeId, 2026, principal);
     }
 }

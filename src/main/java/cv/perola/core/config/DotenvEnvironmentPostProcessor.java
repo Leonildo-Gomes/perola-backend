@@ -16,7 +16,7 @@ import java.util.Map;
  * para o Environment do Spring Boot antes da inicialização do contexto e dos
  * beans.
  */
-@SuppressWarnings("deprecation")
+@SuppressWarnings({"deprecation", "removal"})
 public class DotenvEnvironmentPostProcessor implements EnvironmentPostProcessor, Ordered {
 
     @Override
@@ -40,6 +40,6 @@ public class DotenvEnvironmentPostProcessor implements EnvironmentPostProcessor,
 
     @Override
     public int getOrder() {
-        return Ordered.LOWEST_PRECEDENCE;
+        return Ordered.HIGHEST_PRECEDENCE;
     }
 }

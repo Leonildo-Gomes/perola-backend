@@ -5,6 +5,7 @@ import cv.perola.core.security.UserPrincipal;
 import cv.perola.modules.schedule.dto.MonthlyScheduleResponse;
 import cv.perola.modules.schedule.dto.OpenMonthlyScheduleRequest;
 import cv.perola.modules.schedule.usecase.monthly.GetMonthlyScheduleUseCase;
+import cv.perola.modules.schedule.usecase.monthly.ListMonthlySchedulesUseCase;
 import cv.perola.modules.schedule.usecase.monthly.OpenMonthlyScheduleUseCase;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -28,6 +29,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.List;
 import java.util.UUID;
 
 @RestController
@@ -39,6 +41,7 @@ public class MonthlyScheduleController {
 
     private final OpenMonthlyScheduleUseCase openMonthlyScheduleUseCase;
     private final GetMonthlyScheduleUseCase getMonthlyScheduleUseCase;
+    private final ListMonthlySchedulesUseCase listMonthlySchedulesUseCase;
 
     @PostMapping(value = "/open", version = "v1")
     @Operation(
@@ -98,6 +101,36 @@ public class MonthlyScheduleController {
             @AuthenticationPrincipal UserPrincipal principal
     ) {
         MonthlyScheduleResponse response = getMonthlyScheduleUseCase.execute(employeeId, year, month, principal);
+        return ResponseEntity.ok(response);
+    }
+
+    @GetMapping(value = "/list", version = "v1")
+    @Operation(
+            summary = "Listar aberturas mensais do profissional por ano (retorna Array)",
+            description = "Sub-rota explícita para alimentar a visão anual da aba 'Abertura Mensal' no frontend. Devolve um array com os registos de abertura mensal do profissional para o ano selecionado ordenados por mês de forma crescente."
+    )
+    @Parameter(
+            name = TenantFilter.TENANT_HEADER,
+            in = ParameterIn.HEADER,
+            required = true,
+            description = "Identificador único do salão (UUID)",
+            schema = @Schema(type = "string", format = "uuid")
+    )
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Lista de aberturas mensais do ano selecionado"),
+            @ApiResponse(responseCode = "400", description = "Parâmetro de ano inválido",
+                    content = @Content(schema = @Schema(implementation = ProblemDetail.class))),
+            @ApiResponse(responseCode = "403", description = "Acesso negado para o salão ou colaborador",
+                    content = @Content(schema = @Schema(implementation = ProblemDetail.class))),
+            @ApiResponse(responseCode = "404", description = "Colaborador não encontrado",
+                    content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
+    })
+    public ResponseEntity<List<MonthlyScheduleResponse>> listMonthlySchedulesByYear(
+            @PathVariable UUID employeeId,
+            @RequestParam int year,
+            @AuthenticationPrincipal UserPrincipal principal
+    ) {
+        List<MonthlyScheduleResponse> response = listMonthlySchedulesUseCase.execute(employeeId, year, principal);
         return ResponseEntity.ok(response);
     }
 }

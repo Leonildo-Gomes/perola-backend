@@ -249,6 +249,22 @@ class ScheduleProfilesAndMonthlyIntegrationTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.scheduleId").value(decemberScheduleId.toString()))
                 .andExpect(jsonPath("$.scheduleName").value("Horário de Dezembro"));
+
+        // 6. Confirmar que a sub-rota /monthly/list?year=2026 retorna array com os meses abertos ordenados por mês ASC
+        mockMvc.perform(get("/api/v1/schedule/employees/" + ownerEmployeeId + "/monthly/list")
+                        .param("year", "2026")
+                        .header("Authorization", "Bearer " + ownerToken)
+                        .header("X-Business-Id", businessId))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(2))
+                .andExpect(jsonPath("$[0].month").value(11))
+                .andExpect(jsonPath("$[0].scheduleId").value(novemberScheduleId.toString()))
+                .andExpect(jsonPath("$[0].scheduleName").value("Horário Padrão"))
+                .andExpect(jsonPath("$[0].isOpened").value(true))
+                .andExpect(jsonPath("$[1].month").value(12))
+                .andExpect(jsonPath("$[1].scheduleId").value(decemberScheduleId.toString()))
+                .andExpect(jsonPath("$[1].scheduleName").value("Horário de Dezembro"))
+                .andExpect(jsonPath("$[1].isOpened").value(true));
     }
 
     @Test
