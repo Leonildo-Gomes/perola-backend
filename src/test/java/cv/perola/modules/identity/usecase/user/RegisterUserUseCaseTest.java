@@ -10,6 +10,7 @@ import cv.perola.modules.identity.dto.UserProfileResponse;
 import cv.perola.modules.identity.mapper.UserMapper;
 import cv.perola.modules.identity.repository.UserRepository;
 import cv.perola.modules.identity.repository.UserRoleRepository;
+import cv.perola.modules.identity.service.CustomerResolutionService;
 import cv.perola.modules.identity.service.TokenService;
 import cv.perola.modules.identity.validator.user.RegisterUserValidator;
 import org.junit.jupiter.api.BeforeEach;
@@ -47,6 +48,9 @@ class RegisterUserUseCaseTest {
     @Mock
     private TokenService tokenService;
 
+    @Mock
+    private CustomerResolutionService customerResolutionService;
+
     @Spy
     private UserMapper userMapper = new UserMapper();
 
@@ -62,7 +66,8 @@ class RegisterUserUseCaseTest {
                 passwordEncoder,
                 tokenService,
                 userMapper,
-                registerUserValidator
+                registerUserValidator,
+                customerResolutionService
         );
     }
 
@@ -101,6 +106,8 @@ class RegisterUserUseCaseTest {
         verify(userRoleRepository).save(roleCaptor.capture());
         assertThat(roleCaptor.getValue().getRole()).isEqualTo(UserRole.CUSTOMER);
         assertThat(roleCaptor.getValue().getUserId()).isEqualTo(savedUserId);
+
+        verify(customerResolutionService).linkOrRegisterUser(savedUserId, "Carla Semedo", "carla@perola.cv", "+2389912345");
     }
 
     @Test

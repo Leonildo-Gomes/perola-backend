@@ -45,7 +45,7 @@ public class AppointmentEntity extends BaseEntity {
     @Column(name = "service_id", nullable = false)
     private UUID serviceId;
 
-    @Column(name = "created_by_id", nullable = false)
+    @Column(name = "created_by_id")
     private UUID createdById;
 
     @Column(name = "start_time", nullable = false)

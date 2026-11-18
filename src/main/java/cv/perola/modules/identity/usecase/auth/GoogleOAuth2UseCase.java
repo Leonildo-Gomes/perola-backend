@@ -9,6 +9,7 @@ import cv.perola.modules.identity.dto.GoogleLoginRequest;
 import cv.perola.modules.identity.mapper.UserMapper;
 import cv.perola.modules.identity.repository.UserRepository;
 import cv.perola.modules.identity.repository.UserRoleRepository;
+import cv.perola.modules.identity.service.CustomerResolutionService;
 import cv.perola.modules.identity.service.GoogleTokenVerifier;
 import cv.perola.modules.identity.service.GoogleUserData;
 import cv.perola.modules.identity.service.TokenService;
@@ -27,6 +28,7 @@ public class GoogleOAuth2UseCase {
     private final UserRoleRepository userRoleRepository;
     private final TokenService tokenService;
     private final UserMapper userMapper;
+    private final CustomerResolutionService customerResolutionService;
 
     @Transactional
     public AuthResponse execute(GoogleLoginRequest request) {
@@ -71,6 +73,13 @@ public class GoogleOAuth2UseCase {
         if (!user.isActive()) {
             throw new AuthenticationFailedException("A sua conta encontra-se desativada.");
         }
+
+        customerResolutionService.linkOrRegisterUser(
+                user.getId(),
+                user.getName(),
+                user.getEmail(),
+                user.getPhone()
+        );
 
         return tokenService.issueTokens(user);
     }

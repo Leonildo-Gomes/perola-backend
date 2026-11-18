@@ -69,37 +69,57 @@ class FlywayMigrationIntegrationTest {
                 assertThat(isNullable).isEqualTo("YES");
         }
 
-    @Test
-    @DisplayName("Deve conter todas as 18 tabelas de domínio criadas pelas migrações")
-    void allRequiredTablesExist() {
-        List<String> tables = jdbcTemplate.query(
-                "SELECT table_name FROM information_schema.tables WHERE table_schema = 'public'",
-                (rs, rowNum) -> rs.getString("table_name")
-        );
+        @Test
+        @DisplayName("Deve conter todas as 20 tabelas de domínio criadas pelas migrações")
+        void allRequiredTablesExist() {
+                List<String> tables = jdbcTemplate.query(
+                                "SELECT table_name FROM information_schema.tables WHERE table_schema = 'public'",
+                                (rs, rowNum) -> rs.getString("table_name"));
 
-        assertThat(tables).contains(
-                "users",
-                "user_roles",
-                "refresh_tokens",
-                "categories",
-                "businesses",
-                "business_categories",
-                "services",
-                "employees",
-                "employee_services",
-                "employee_monthly_schedules",
-                "employee_schedules",
-                "employee_schedule_days",
-                "employee_schedule_breaks",
-                "employee_time_off",
-                "holidays",
-                "appointments",
-                "appointment_histories",
-                "reviews",
-                "media_files"
-        );
-    }
+                assertThat(tables).contains(
+                                "users",
+                                "user_roles",
+                                "refresh_tokens",
+                                "customers",
+                                "categories",
+                                "businesses",
+                                "business_categories",
+                                "business_customers",
+                                "services",
+                                "employees",
+                                "employee_services",
+                                "employee_monthly_schedules",
+                                "employee_schedules",
+                                "employee_schedule_days",
+                                "employee_schedule_breaks",
+                                "employee_time_off",
+                                "holidays",
+                                "appointments",
+                                "appointment_histories",
+                                "reviews",
+                                "media_files");
+        }
 
+        @Test
+        @DisplayName("Deve conter as tabelas customers e business_customers, enum customer_tier e colunas nullable de V8")
+        void v8CustomersAndBusinessCustomersSchemaIsValid() {
+                String tierType = jdbcTemplate.queryForObject(
+                                "SELECT udt_name FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'business_customers' AND column_name = 'tier'",
+                                String.class);
+                assertThat(tierType).isEqualTo("customer_tier");
+
+                String createdByNullable = jdbcTemplate.queryForObject(
+                                "SELECT is_nullable FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'appointments' AND column_name = 'created_by_id'",
+                                String.class);
+                assertThat(createdByNullable).isEqualTo("YES");
+
+                String performedByNullable = jdbcTemplate.queryForObject(
+                                "SELECT is_nullable FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'appointment_histories' AND column_name = 'performed_by_id'",
+                                String.class);
+                assertThat(performedByNullable).isEqualTo("YES");
+        }
+
+        
         @Test
         @DisplayName("Deve conter as 6 categorias oficiais semeadas pela migração V5 e proteger uk_business_categories_primary")
         void categoriesAreSeededAndPrimaryIndexEnforced() {
@@ -183,6 +203,10 @@ class FlywayMigrationIntegrationTest {
                                         customerId, "Cliente Teste", "customer-" + customerId + "@test.cv",
                                         "+2389922222");
                         jdbcTemplate.update(
+                                        "INSERT INTO customers (id, user_id, name, email, phone) VALUES (?, ?, ?, ?, ?)",
+                                        customerId, customerId, "Cliente Teste", "customer-" + customerId + "@test.cv",
+                                        "+2389922222");
+                        jdbcTemplate.update(
                                         "INSERT INTO businesses (id, owner_id, name, island, city, location, contact_phone) VALUES (?, ?, ?, ?, ?, ?, ?)",
                                         businessId, ownerId, "Salão Beleza", "Santiago", "Praia", "Plateau",
                                         "+2382611111");
@@ -250,9 +274,11 @@ class FlywayMigrationIntegrationTest {
                 } finally {
                         // Limpeza
                         jdbcTemplate.update("DELETE FROM appointments WHERE business_id = ?", businessId);
+                        jdbcTemplate.update("DELETE FROM business_customers WHERE business_id = ?", businessId);
                         jdbcTemplate.update("DELETE FROM employees WHERE id = ?", employeeId);
                         jdbcTemplate.update("DELETE FROM services WHERE id = ?", serviceId);
                         jdbcTemplate.update("DELETE FROM businesses WHERE id = ?", businessId);
+                        jdbcTemplate.update("DELETE FROM customers WHERE id = ?", customerId);
                         jdbcTemplate.update("DELETE FROM users WHERE id IN (?, ?)", ownerId, customerId);
                 }
         }

@@ -48,7 +48,7 @@ public class AppointmentHistoryEntity {
     @Column(name = "appointment_id", nullable = false, updatable = false)
     private UUID appointmentId;
 
-    @Column(name = "performed_by_id", nullable = false, updatable = false)
+    @Column(name = "performed_by_id", updatable = false)
     private UUID performedById;
 
     @Enumerated(EnumType.STRING)

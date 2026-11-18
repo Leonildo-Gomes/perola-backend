@@ -8,6 +8,7 @@ import cv.perola.modules.identity.dto.RegisterRequest;
 import cv.perola.modules.identity.mapper.UserMapper;
 import cv.perola.modules.identity.repository.UserRepository;
 import cv.perola.modules.identity.repository.UserRoleRepository;
+import cv.perola.modules.identity.service.CustomerResolutionService;
 import cv.perola.modules.identity.service.TokenService;
 import cv.perola.modules.identity.validator.user.RegisterUserValidator;
 import lombok.RequiredArgsConstructor;
@@ -25,6 +26,7 @@ public class RegisterUserUseCase {
     private final TokenService tokenService;
     private final UserMapper userMapper;
     private final RegisterUserValidator registerUserValidator;
+    private final CustomerResolutionService customerResolutionService;
 
     @Transactional
     public AuthResponse execute(RegisterRequest request) {
@@ -38,6 +40,13 @@ public class RegisterUserUseCase {
                 .role(UserRole.CUSTOMER)
                 .build();
         userRoleRepository.save(defaultRole);
+
+        customerResolutionService.linkOrRegisterUser(
+                savedUser.getId(),
+                savedUser.getName(),
+                savedUser.getEmail(),
+                savedUser.getPhone()
+        );
 
         return tokenService.issueTokens(savedUser);
     }
