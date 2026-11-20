@@ -27,19 +27,22 @@ public record CreateAppointmentRequest(
 
                 @Schema(description = "Telefone do cliente (obrigatório para visitante/guest, formato Cabo Verde)", example = "+2389912345") @Pattern(regexp = "^(\\+238)?[2359]\\d{6}$", message = "O telefone deve ser um número válido de Cabo Verde (ex: +2389912345 ou 9912345).") String customerPhone) {
         public CreateAppointmentRequest(
-                UUID businessId,
-                UUID employeeId,
-                UUID serviceId,
-                OffsetDateTime startTime,
-                String notes
-        ) {
+                        UUID businessId,
+                        UUID employeeId,
+                        UUID serviceId,
+                        OffsetDateTime startTime,
+                        String notes) {
                 this(businessId, employeeId, serviceId, startTime, notes, null, null, null);
         }
-}
 
-        
-                        
-                        
-                        
-                        
-                        
+        public CreateAppointmentRequest(
+                        UUID businessId,
+                        UUID employeeId,
+                        UUID serviceId,
+                        OffsetDateTime startTime,
+                        String customerName,
+                        String customerEmail,
+                        String customerPhone) {
+                this(businessId, employeeId, serviceId, startTime, null, customerName, customerEmail, customerPhone);
+        }
+}

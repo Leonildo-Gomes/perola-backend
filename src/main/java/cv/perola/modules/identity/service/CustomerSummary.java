@@ -12,4 +12,7 @@ public record CustomerSummary(
         String email,
         String phone
 ) {
+    public boolean hasRegisteredAccount() {
+        return userId != null;
+    }
 }

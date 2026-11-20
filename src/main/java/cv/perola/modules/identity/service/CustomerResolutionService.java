@@ -37,4 +37,6 @@ public interface CustomerResolutionService {
     Optional<CustomerEntity> findByEmail(String email);
 
     Map<UUID, CustomerSummary> findCustomerSummariesByIds(Collection<UUID> customerIds);
+
+    java.util.List<UUID> findCustomerIdsMatching(String search);
 }

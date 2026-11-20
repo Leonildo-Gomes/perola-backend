@@ -12,6 +12,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Collection;
 import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
@@ -196,5 +197,14 @@ public class DefaultCustomerResolutionService implements CustomerResolutionServi
                                 c.getPhone()
                         )
                 ));
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<UUID> findCustomerIdsMatching(String search) {
+        if (search == null || search.trim().isBlank()) {
+            return Collections.emptyList();
+        }
+        return customerRepository.findCustomerIdsMatching(search.trim());
     }
 }

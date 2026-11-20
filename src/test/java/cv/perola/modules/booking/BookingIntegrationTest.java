@@ -2,6 +2,7 @@ package cv.perola.modules.booking;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import cv.perola.modules.booking.domain.AppointmentEntity;
+import cv.perola.modules.booking.domain.enums.CustomerTier;
 import cv.perola.modules.booking.dto.AppointmentActionNotesRequest;
 import cv.perola.modules.booking.dto.AppointmentResponse;
 import cv.perola.modules.booking.dto.CancelAppointmentRequest;
@@ -9,6 +10,7 @@ import cv.perola.modules.booking.dto.CreateAppointmentRequest;
 import cv.perola.modules.booking.dto.CreateReviewRequest;
 import cv.perola.modules.booking.dto.RejectRescheduleRequest;
 import cv.perola.modules.booking.dto.RescheduleAppointmentRequest;
+import cv.perola.modules.booking.dto.UpdateBusinessCustomerRequest;
 import cv.perola.modules.booking.repository.AppointmentRepository;
 import cv.perola.modules.business.dto.BusinessCategoryItemRequest;
 import cv.perola.modules.business.dto.BusinessResponse;
@@ -52,525 +54,603 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @ActiveProfiles("dev")
 class BookingIntegrationTest {
 
-    private static final String TENANT_HEADER = "X-Business-Id";
+        private static final String TENANT_HEADER = "X-Business-Id";
 
-    @Autowired
-    private WebApplicationContext webApplicationContext;
+        @Autowired
+        private WebApplicationContext webApplicationContext;
 
-    @Autowired
-    private ObjectMapper objectMapper;
+        @Autowired
+        private ObjectMapper objectMapper;
 
-    @Autowired
-    private AppointmentRepository appointmentRepository;
+        @Autowired
+        private AppointmentRepository appointmentRepository;
 
-    @Autowired
-    private JdbcTemplate jdbcTemplate;
+        @Autowired
+        private JdbcTemplate jdbcTemplate;
 
-    private MockMvc mockMvc;
+        private MockMvc mockMvc;
 
-    private String ownerToken;
-    private UUID ownerId;
-    private String customerToken;
-    private UUID customerId;
-    private UUID businessId;
-    private UUID employeeId;
-    private UUID serviceId;
+        private String ownerToken;
+        private UUID ownerId;
+        private String customerToken;
+        private UUID customerId;
+        private UUID businessId;
+        private UUID employeeId;
+        private UUID serviceId;
 
-    @BeforeEach
-    void setUp() throws Exception {
-        this.mockMvc = MockMvcBuilders.webAppContextSetup(webApplicationContext)
-                .apply(springSecurity())
-                .build();
+        @BeforeEach
+        void setUp() throws Exception {
+                this.mockMvc = MockMvcBuilders.webAppContextSetup(webApplicationContext)
+                                .apply(springSecurity())
+                                .build();
 
-        String suffix = UUID.randomUUID().toString().substring(0, 8);
-        String ownerEmail = "owner-booking-" + suffix + "@perola.cv";
-        String customerEmail = "cust-booking-" + suffix + "@perola.cv";
+                String suffix = UUID.randomUUID().toString().substring(0, 8);
+                String ownerEmail = "owner-booking-" + suffix + "@perola.cv";
+                String customerEmail = "cust-booking-" + suffix + "@perola.cv";
 
-        AuthResponse ownerReg = registerUser("Dona Salão", ownerEmail, "+23891" + suffix.substring(0, 5));
-        ownerId = ownerReg.user().id();
-        businessId = createBusiness(ownerReg.accessToken(), "Salão Booking " + suffix);
-        ownerToken = loginUser(ownerEmail, "SenhaForte123!").accessToken();
-        employeeId = getFirstEmployeeId(ownerToken, businessId);
-        serviceId = createService(ownerToken, businessId, "Tranças Box Braids", 60, new BigDecimal("3500.00"));
+                AuthResponse ownerReg = registerUser("Dona Salão", ownerEmail, "+23891" + suffix.substring(0, 5));
+                ownerId = ownerReg.user().id();
+                businessId = createBusiness(ownerReg.accessToken(), "Salão Booking " + suffix);
+                ownerToken = loginUser(ownerEmail, "SenhaForte123!").accessToken();
+                employeeId = getFirstEmployeeId(ownerToken, businessId);
+                serviceId = createService(ownerToken, businessId, "Tranças Box Braids", 60, new BigDecimal("3500.00"));
 
-        AuthResponse customerReg = registerUser("Cliente Maria", customerEmail, "+23892" + suffix.substring(0, 5));
-        customerToken = customerReg.accessToken();
-        customerId = customerReg.user().id();
-    }
-
-    @AfterEach
-    void tearDown() {
-        if (businessId != null) {
-            jdbcTemplate.update("DELETE FROM appointments WHERE business_id = ?", businessId);
-            jdbcTemplate.update("DELETE FROM employee_services WHERE business_id = ?", businessId);
-            jdbcTemplate.update("DELETE FROM employees WHERE business_id = ?", businessId);
-            jdbcTemplate.update("DELETE FROM services WHERE business_id = ?", businessId);
-            jdbcTemplate.update("DELETE FROM businesses WHERE id = ?", businessId);
+                AuthResponse customerReg = registerUser("Cliente Maria", customerEmail,
+                                "+23892" + suffix.substring(0, 5));
+                customerToken = customerReg.accessToken();
+                customerId = customerReg.user().id();
         }
-        if (customerId != null) {
-            jdbcTemplate.update("DELETE FROM users WHERE id = ?", customerId);
+
+        @AfterEach
+        void tearDown() {
+                if (businessId != null) {
+                        jdbcTemplate.update("DELETE FROM appointments WHERE business_id = ?", businessId);
+                        jdbcTemplate.update("DELETE FROM employee_services WHERE business_id = ?", businessId);
+                        jdbcTemplate.update("DELETE FROM employees WHERE business_id = ?", businessId);
+                        jdbcTemplate.update("DELETE FROM services WHERE business_id = ?", businessId);
+                        jdbcTemplate.update("DELETE FROM businesses WHERE id = ?", businessId);
+                }
+                if (customerId != null) {
+                        jdbcTemplate.update("DELETE FROM users WHERE id = ?", customerId);
+                }
+                if (ownerId != null) {
+                        jdbcTemplate.update("DELETE FROM users WHERE id = ?", ownerId);
+                }
         }
-        if (ownerId != null) {
-            jdbcTemplate.update("DELETE FROM users WHERE id = ?", ownerId);
+
+        @Test
+        @DisplayName("Deve criar agendamento com status PENDING, snapshots imutáveis e cálculo de end_time")
+        void shouldCreateAppointmentWithPendingStatusAndImmutableServiceSnapshots() throws Exception {
+                // Arrange
+                OffsetDateTime startTime = OffsetDateTime.of(2027, 11, 10, 9, 0, 0, 0, ZoneOffset.ofHours(-1));
+                CreateAppointmentRequest request = new CreateAppointmentRequest(
+                                businessId,
+                                employeeId,
+                                serviceId,
+                                startTime,
+                                "Por favor preparar extensões pretas.");
+
+                // Act & Assert
+                MvcResult result = mockMvc.perform(post("/api/v1/appointments")
+                                .header("Authorization", "Bearer " + customerToken)
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(objectMapper.writeValueAsString(request)))
+                                .andExpect(status().isCreated())
+                                .andExpect(jsonPath("$.id").isNotEmpty())
+                                .andExpect(jsonPath("$.businessId").value(businessId.toString()))
+                                .andExpect(jsonPath("$.customerId").value(customerId.toString()))
+                                .andExpect(jsonPath("$.employeeId").value(employeeId.toString()))
+                                .andExpect(jsonPath("$.serviceId").value(serviceId.toString()))
+                                .andExpect(jsonPath("$.serviceName").value("Tranças Box Braids"))
+                                .andExpect(jsonPath("$.servicePrice").value(3500.00))
+                                .andExpect(jsonPath("$.serviceDuration").value(60))
+                                .andExpect(jsonPath("$.startTime").value("2027-11-10T09:00:00-01:00"))
+                                .andExpect(jsonPath("$.endTime").value("2027-11-10T10:00:00-01:00"))
+                                .andExpect(jsonPath("$.status").value("PENDING"))
+                                .andExpect(jsonPath("$.notes").value("Por favor preparar extensões pretas."))
+                                .andReturn();
+
+                AppointmentResponse created = objectMapper.readValue(
+                                result.getResponse().getContentAsString(), AppointmentResponse.class);
+
+                // Alterar preço e nome do serviço no catálogo e verificar que o snapshot
+                // permanece inalterado
+                UpdateServiceRequest updateServiceRequest = new UpdateServiceRequest(
+                                null, "Tranças Premium", "Nova descrição", 90, new BigDecimal("5000.00"), true);
+                mockMvc.perform(patch("/api/v1/businesses/{id}/services/{serviceId}", businessId, serviceId)
+                                .header("Authorization", "Bearer " + ownerToken)
+                                .header(TENANT_HEADER, businessId.toString())
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(objectMapper.writeValueAsString(updateServiceRequest)))
+                                .andExpect(status().isOk());
+
+                AppointmentEntity persisted = appointmentRepository.findById(created.id()).orElseThrow();
+                assertThat(persisted.getServiceName()).isEqualTo("Tranças Box Braids");
+                assertThat(persisted.getServicePrice()).isEqualByComparingTo("3500.00");
+                assertThat(persisted.getServiceDuration()).isEqualTo(60);
         }
-    }
 
-    @Test
-    @DisplayName("Deve criar agendamento com status PENDING, snapshots imutáveis e cálculo de end_time")
-    void shouldCreateAppointmentWithPendingStatusAndImmutableServiceSnapshots() throws Exception {
-        // Arrange
-        OffsetDateTime startTime = OffsetDateTime.of(2027, 11, 10, 9, 0, 0, 0, ZoneOffset.ofHours(-1));
-        CreateAppointmentRequest request = new CreateAppointmentRequest(
-                businessId,
-                employeeId,
-                serviceId,
-                startTime,
-                "Por favor preparar extensões pretas."
-        );
+        @Test
+        @DisplayName("Deve bloquear overbooking via constraint GiST ex_appointments_no_overlap e responder HTTP 409 RFC 7807")
+        void shouldRejectOverlappingAppointmentWithHttp409ProblemDetails() throws Exception {
+                // Arrange
+                OffsetDateTime firstStart = OffsetDateTime.of(2027, 11, 10, 14, 0, 0, 0, ZoneOffset.ofHours(-1));
+                CreateAppointmentRequest firstRequest = new CreateAppointmentRequest(
+                                businessId,
+                                employeeId,
+                                serviceId,
+                                firstStart,
+                                "Agendamento 1 (14:00 - 15:00)");
 
-        // Act & Assert
-        MvcResult result = mockMvc.perform(post("/api/v1/appointments")
-                        .header("Authorization", "Bearer " + customerToken)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(request)))
-                .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.id").isNotEmpty())
-                .andExpect(jsonPath("$.businessId").value(businessId.toString()))
-                .andExpect(jsonPath("$.customerId").value(customerId.toString()))
-                .andExpect(jsonPath("$.employeeId").value(employeeId.toString()))
-                .andExpect(jsonPath("$.serviceId").value(serviceId.toString()))
-                .andExpect(jsonPath("$.serviceName").value("Tranças Box Braids"))
-                .andExpect(jsonPath("$.servicePrice").value(3500.00))
-                .andExpect(jsonPath("$.serviceDuration").value(60))
-                .andExpect(jsonPath("$.startTime").value("2027-11-10T09:00:00-01:00"))
-                .andExpect(jsonPath("$.endTime").value("2027-11-10T10:00:00-01:00"))
-                .andExpect(jsonPath("$.status").value("PENDING"))
-                .andExpect(jsonPath("$.notes").value("Por favor preparar extensões pretas."))
-                .andReturn();
+                mockMvc.perform(post("/api/v1/appointments")
+                                .header("Authorization", "Bearer " + customerToken)
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(objectMapper.writeValueAsString(firstRequest)))
+                                .andExpect(status().isCreated());
 
-        AppointmentResponse created = objectMapper.readValue(
-                result.getResponse().getContentAsString(), AppointmentResponse.class
-        );
+                // Tentativa de agendamento sobreposto às 14:30 (colide com [14:00, 15:00))
+                OffsetDateTime overlappingStart = OffsetDateTime.of(2027, 11, 10, 14, 30, 0, 0, ZoneOffset.ofHours(-1));
+                CreateAppointmentRequest overlappingRequest = new CreateAppointmentRequest(
+                                businessId,
+                                employeeId,
+                                serviceId,
+                                overlappingStart,
+                                "Agendamento sobreposto (14:30 - 15:30)");
 
-        // Alterar preço e nome do serviço no catálogo e verificar que o snapshot permanece inalterado
-        UpdateServiceRequest updateServiceRequest = new UpdateServiceRequest(
-                null, "Tranças Premium", "Nova descrição", 90, new BigDecimal("5000.00"), true
-        );
-        mockMvc.perform(patch("/api/v1/businesses/{id}/services/{serviceId}", businessId, serviceId)
-                        .header("Authorization", "Bearer " + ownerToken)
-                        .header(TENANT_HEADER, businessId.toString())
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(updateServiceRequest)))
-                .andExpect(status().isOk());
+                // Act & Assert
+                mockMvc.perform(post("/api/v1/appointments")
+                                .header("Authorization", "Bearer " + customerToken)
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(objectMapper.writeValueAsString(overlappingRequest)))
+                                .andExpect(status().isConflict())
+                                .andExpect(jsonPath("$.type").value("https://perola.cv/errors/slot-already-booked"))
+                                .andExpect(jsonPath("$.title").value("Conflito de Horário"))
+                                .andExpect(jsonPath("$.status").value(409))
+                                .andExpect(jsonPath("$.detail").value(
+                                                "O profissional selecionado já possui um agendamento confirmado ou pendente neste intervalo de tempo."));
 
-        AppointmentEntity persisted = appointmentRepository.findById(created.id()).orElseThrow();
-        assertThat(persisted.getServiceName()).isEqualTo("Tranças Box Braids");
-        assertThat(persisted.getServicePrice()).isEqualByComparingTo("3500.00");
-        assertThat(persisted.getServiceDuration()).isEqualTo(60);
-    }
+                // Agendamento contíguo imediatamente às 15:00 ([15:00, 16:00)) deve ser
+                // permitido pelo intervalo semi-aberto [)
+                OffsetDateTime adjacentStart = OffsetDateTime.of(2027, 11, 10, 15, 0, 0, 0, ZoneOffset.ofHours(-1));
+                CreateAppointmentRequest adjacentRequest = new CreateAppointmentRequest(
+                                businessId,
+                                employeeId,
+                                serviceId,
+                                adjacentStart,
+                                "Agendamento contíguo (15:00 - 16:00)");
 
-    @Test
-    @DisplayName("Deve bloquear overbooking via constraint GiST ex_appointments_no_overlap e responder HTTP 409 RFC 7807")
-    void shouldRejectOverlappingAppointmentWithHttp409ProblemDetails() throws Exception {
-        // Arrange
-        OffsetDateTime firstStart = OffsetDateTime.of(2027, 11, 10, 14, 0, 0, 0, ZoneOffset.ofHours(-1));
-        CreateAppointmentRequest firstRequest = new CreateAppointmentRequest(
-                businessId,
-                employeeId,
-                serviceId,
-                firstStart,
-                "Agendamento 1 (14:00 - 15:00)"
-        );
+                mockMvc.perform(post("/api/v1/appointments")
+                                .header("Authorization", "Bearer " + customerToken)
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(objectMapper.writeValueAsString(adjacentRequest)))
+                                .andExpect(status().isCreated())
+                                .andExpect(jsonPath("$.startTime").value("2027-11-10T15:00:00-01:00"))
+                                .andExpect(jsonPath("$.endTime").value("2027-11-10T16:00:00-01:00"));
+        }
 
-        mockMvc.perform(post("/api/v1/appointments")
-                        .header("Authorization", "Bearer " + customerToken)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(firstRequest)))
-                .andExpect(status().isCreated());
+        @Test
+        @DisplayName("Deve rejeitar criação de agendamento sem token JWT com HTTP 401 Unauthorized")
+        void shouldRejectUnauthenticatedAppointmentCreationWithHttp401() throws Exception {
+                // Arrange
+                CreateAppointmentRequest request = new CreateAppointmentRequest(
+                                businessId,
+                                employeeId,
+                                serviceId,
+                                OffsetDateTime.of(2027, 11, 10, 10, 0, 0, 0, ZoneOffset.ofHours(-1)),
+                                null);
 
-        // Tentativa de agendamento sobreposto às 14:30 (colide com [14:00, 15:00))
-        OffsetDateTime overlappingStart = OffsetDateTime.of(2027, 11, 10, 14, 30, 0, 0, ZoneOffset.ofHours(-1));
-        CreateAppointmentRequest overlappingRequest = new CreateAppointmentRequest(
-                businessId,
-                employeeId,
-                serviceId,
-                overlappingStart,
-                "Agendamento sobreposto (14:30 - 15:30)"
-        );
+                // Act & Assert
+                mockMvc.perform(post("/api/v1/appointments")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(objectMapper.writeValueAsString(request)))
+                                .andExpect(status().isUnauthorized());
+        }
 
-        // Act & Assert
-        mockMvc.perform(post("/api/v1/appointments")
-                        .header("Authorization", "Bearer " + customerToken)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(overlappingRequest)))
-                .andExpect(status().isConflict())
-                .andExpect(jsonPath("$.type").value("https://perola.cv/errors/slot-already-booked"))
-                .andExpect(jsonPath("$.title").value("Conflito de Horário"))
-                .andExpect(jsonPath("$.status").value(409))
-                .andExpect(jsonPath("$.detail").value(
-                        "O profissional selecionado já possui um agendamento confirmado ou pendente neste intervalo de tempo."
-                ));
+        @Test
+        @DisplayName("Deve executar ciclo de vida completo com reagendamento, histórico append-only e listagens")
+        void shouldExecuteFullAppointmentLifecycleAndRecordAppendOnlyAuditHistory() throws Exception {
+                // Arrange: 1. Criar agendamento (PENDING)
+                OffsetDateTime initialStart = OffsetDateTime.of(2027, 11, 15, 10, 0, 0, 0, ZoneOffset.ofHours(-1));
+                CreateAppointmentRequest createReq = new CreateAppointmentRequest(
+                                businessId, employeeId, serviceId, initialStart, "Reserva inicial");
 
-        // Agendamento contíguo imediatamente às 15:00 ([15:00, 16:00)) deve ser permitido pelo intervalo semi-aberto [)
-        OffsetDateTime adjacentStart = OffsetDateTime.of(2027, 11, 10, 15, 0, 0, 0, ZoneOffset.ofHours(-1));
-        CreateAppointmentRequest adjacentRequest = new CreateAppointmentRequest(
-                businessId,
-                employeeId,
-                serviceId,
-                adjacentStart,
-                "Agendamento contíguo (15:00 - 16:00)"
-        );
+                MvcResult createRes = mockMvc.perform(post("/api/v1/appointments")
+                                .header("Authorization", "Bearer " + customerToken)
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(objectMapper.writeValueAsString(createReq)))
+                                .andExpect(status().isCreated())
+                                .andExpect(jsonPath("$.status").value("PENDING"))
+                                .andReturn();
 
-        mockMvc.perform(post("/api/v1/appointments")
-                        .header("Authorization", "Bearer " + customerToken)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(adjacentRequest)))
-                .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.startTime").value("2027-11-10T15:00:00-01:00"))
-                .andExpect(jsonPath("$.endTime").value("2027-11-10T16:00:00-01:00"));
-    }
+                UUID appointmentId = objectMapper.readValue(
+                                createRes.getResponse().getContentAsString(), AppointmentResponse.class).id();
 
-    @Test
-    @DisplayName("Deve rejeitar criação de agendamento sem token JWT com HTTP 401 Unauthorized")
-    void shouldRejectUnauthenticatedAppointmentCreationWithHttp401() throws Exception {
-        // Arrange
-        CreateAppointmentRequest request = new CreateAppointmentRequest(
-                businessId,
-                employeeId,
-                serviceId,
-                OffsetDateTime.of(2027, 11, 10, 10, 0, 0, 0, ZoneOffset.ofHours(-1)),
-                null
-        );
+                // Act & Assert: 2. Confirmar agendamento pelo OWNER (PENDING -> CONFIRMED)
+                mockMvc.perform(post("/api/v1/appointments/{id}/confirm", appointmentId)
+                                .header("Authorization", "Bearer " + ownerToken)
+                                .header(TENANT_HEADER, businessId.toString())
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(objectMapper.writeValueAsString(
+                                                new AppointmentActionNotesRequest("Confirmado pelo salão"))))
+                                .andExpect(status().isOk())
+                                .andExpect(jsonPath("$.status").value("CONFIRMED"));
 
-        // Act & Assert
-        mockMvc.perform(post("/api/v1/appointments")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(request)))
-                .andExpect(status().isUnauthorized());
-    }
+                // 3. Propor reagendamento pelo OWNER (CONFIRMED -> RESCHEDULE_PENDING)
+                OffsetDateTime firstProposal = OffsetDateTime.of(2027, 11, 15, 11, 30, 0, 0, ZoneOffset.ofHours(-1));
+                mockMvc.perform(patch("/api/v1/appointments/{id}/reschedule", appointmentId)
+                                .header("Authorization", "Bearer " + ownerToken)
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(objectMapper.writeValueAsString(
+                                                new RescheduleAppointmentRequest(firstProposal, "Ajuste de agenda"))))
+                                .andExpect(status().isOk())
+                                .andExpect(jsonPath("$.status").value("RESCHEDULE_PENDING"))
+                                .andExpect(jsonPath("$.startTime").value("2027-11-15T10:00:00-01:00"))
+                                .andExpect(jsonPath("$.proposedStartTime").value("2027-11-15T11:30:00-01:00"))
+                                .andExpect(jsonPath("$.proposedEndTime").value("2027-11-15T12:30:00-01:00"));
 
-    @Test
-    @DisplayName("Deve executar ciclo de vida completo com reagendamento, histórico append-only e listagens")
-    void shouldExecuteFullAppointmentLifecycleAndRecordAppendOnlyAuditHistory() throws Exception {
-        // Arrange: 1. Criar agendamento (PENDING)
-        OffsetDateTime initialStart = OffsetDateTime.of(2027, 11, 15, 10, 0, 0, 0, ZoneOffset.ofHours(-1));
-        CreateAppointmentRequest createReq = new CreateAppointmentRequest(
-                businessId, employeeId, serviceId, initialStart, "Reserva inicial"
-        );
+                // 4. Recusar proposta pelo cliente (RESCHEDULE_PENDING -> CONFIRMED, mantendo
+                // horário original)
+                mockMvc.perform(post("/api/v1/appointments/{id}/reschedule/reject", appointmentId)
+                                .header("Authorization", "Bearer " + customerToken)
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(objectMapper.writeValueAsString(
+                                                new RejectRescheduleRequest("Não consigo às 11:30"))))
+                                .andExpect(status().isOk())
+                                .andExpect(jsonPath("$.status").value("CONFIRMED"))
+                                .andExpect(jsonPath("$.startTime").value("2027-11-15T10:00:00-01:00"))
+                                .andExpect(jsonPath("$.proposedStartTime").isEmpty())
+                                .andExpect(jsonPath("$.proposedEndTime").isEmpty());
 
-        MvcResult createRes = mockMvc.perform(post("/api/v1/appointments")
-                        .header("Authorization", "Bearer " + customerToken)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(createReq)))
-                .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.status").value("PENDING"))
-                .andReturn();
+                // 5. Propor segundo reagendamento pelo cliente (CONFIRMED ->
+                // RESCHEDULE_PENDING)
+                OffsetDateTime secondProposal = OffsetDateTime.of(2027, 11, 15, 16, 0, 0, 0, ZoneOffset.ofHours(-1));
+                mockMvc.perform(patch("/api/v1/appointments/{id}/reschedule", appointmentId)
+                                .header("Authorization", "Bearer " + customerToken)
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(objectMapper.writeValueAsString(
+                                                new RescheduleAppointmentRequest(secondProposal, "Posso às 16:00"))))
+                                .andExpect(status().isOk())
+                                .andExpect(jsonPath("$.status").value("RESCHEDULE_PENDING"))
+                                .andExpect(jsonPath("$.proposedStartTime").value("2027-11-15T16:00:00-01:00"));
 
-        UUID appointmentId = objectMapper.readValue(
-                createRes.getResponse().getContentAsString(), AppointmentResponse.class
-        ).id();
+                // 6. Aceitar segundo reagendamento pelo OWNER (RESCHEDULE_PENDING -> CONFIRMED
+                // com novo horário)
+                mockMvc.perform(post("/api/v1/appointments/{id}/reschedule/accept", appointmentId)
+                                .header("Authorization", "Bearer " + ownerToken)
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(objectMapper.writeValueAsString(
+                                                new AppointmentActionNotesRequest("Novo horário confirmado"))))
+                                .andExpect(status().isOk())
+                                .andExpect(jsonPath("$.status").value("CONFIRMED"))
+                                .andExpect(jsonPath("$.startTime").value("2027-11-15T16:00:00-01:00"))
+                                .andExpect(jsonPath("$.endTime").value("2027-11-15T17:00:00-01:00"))
+                                .andExpect(jsonPath("$.proposedStartTime").isEmpty())
+                                .andExpect(jsonPath("$.proposedEndTime").isEmpty());
 
-        // Act & Assert: 2. Confirmar agendamento pelo OWNER (PENDING -> CONFIRMED)
-        mockMvc.perform(post("/api/v1/appointments/{id}/confirm", appointmentId)
-                        .header("Authorization", "Bearer " + ownerToken)
-                        .header(TENANT_HEADER, businessId.toString())
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(new AppointmentActionNotesRequest("Confirmado pelo salão"))))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.status").value("CONFIRMED"));
+                // 7. Concluir agendamento pelo OWNER (CONFIRMED -> COMPLETED)
+                mockMvc.perform(post("/api/v1/appointments/{id}/complete", appointmentId)
+                                .header("Authorization", "Bearer " + ownerToken)
+                                .header(TENANT_HEADER, businessId.toString())
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(objectMapper.writeValueAsString(
+                                                new AppointmentActionNotesRequest("Atendimento excelente"))))
+                                .andExpect(status().isOk())
+                                .andExpect(jsonPath("$.status").value("COMPLETED"));
 
-        // 3. Propor reagendamento pelo OWNER (CONFIRMED -> RESCHEDULE_PENDING)
-        OffsetDateTime firstProposal = OffsetDateTime.of(2027, 11, 15, 11, 30, 0, 0, ZoneOffset.ofHours(-1));
-        mockMvc.perform(patch("/api/v1/appointments/{id}/reschedule", appointmentId)
-                        .header("Authorization", "Bearer " + ownerToken)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(
-                                new RescheduleAppointmentRequest(firstProposal, "Ajuste de agenda"))))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.status").value("RESCHEDULE_PENDING"))
-                .andExpect(jsonPath("$.startTime").value("2027-11-15T10:00:00-01:00"))
-                .andExpect(jsonPath("$.proposedStartTime").value("2027-11-15T11:30:00-01:00"))
-                .andExpect(jsonPath("$.proposedEndTime").value("2027-11-15T12:30:00-01:00"));
+                // 8. Consultar detalhes e linha do tempo de auditoria (7 eventos na ordem
+                // cronológica)
+                mockMvc.perform(get("/api/v1/appointments/{id}", appointmentId)
+                                .header("Authorization", "Bearer " + customerToken))
+                                .andExpect(status().isOk())
+                                .andExpect(jsonPath("$.status").value("COMPLETED"))
+                                .andExpect(jsonPath("$.history.length()").value(7))
+                                .andExpect(jsonPath("$.history[0].action").value("CREATED"))
+                                .andExpect(jsonPath("$.history[1].action").value("CONFIRMED"))
+                                .andExpect(jsonPath("$.history[2].action").value("RESCHEDULE_REQUESTED"))
+                                .andExpect(jsonPath("$.history[3].action").value("RESCHEDULE_REJECTED"))
+                                .andExpect(jsonPath("$.history[4].action").value("RESCHEDULE_REQUESTED"))
+                                .andExpect(jsonPath("$.history[5].action").value("RESCHEDULE_CONFIRMED"))
+                                .andExpect(jsonPath("$.history[6].action").value("COMPLETED"));
 
-        // 4. Recusar proposta pelo cliente (RESCHEDULE_PENDING -> CONFIRMED, mantendo horário original)
-        mockMvc.perform(post("/api/v1/appointments/{id}/reschedule/reject", appointmentId)
-                        .header("Authorization", "Bearer " + customerToken)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(
-                                new RejectRescheduleRequest("Não consigo às 11:30"))))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.status").value("CONFIRMED"))
-                .andExpect(jsonPath("$.startTime").value("2027-11-15T10:00:00-01:00"))
-                .andExpect(jsonPath("$.proposedStartTime").isEmpty())
-                .andExpect(jsonPath("$.proposedEndTime").isEmpty());
+                // 9. Consultar listagens GET /my e GET /appointments (com X-Business-Id)
+                mockMvc.perform(get("/api/v1/appointments/my")
+                                .header("Authorization", "Bearer " + customerToken)
+                                .param("status", "COMPLETED"))
+                                .andExpect(status().isOk())
+                                .andExpect(jsonPath("$.totalElements").value(1))
+                                .andExpect(jsonPath("$.content[0].id").value(appointmentId.toString()));
 
-        // 5. Propor segundo reagendamento pelo cliente (CONFIRMED -> RESCHEDULE_PENDING)
-        OffsetDateTime secondProposal = OffsetDateTime.of(2027, 11, 15, 16, 0, 0, 0, ZoneOffset.ofHours(-1));
-        mockMvc.perform(patch("/api/v1/appointments/{id}/reschedule", appointmentId)
-                        .header("Authorization", "Bearer " + customerToken)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(
-                                new RescheduleAppointmentRequest(secondProposal, "Posso às 16:00"))))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.status").value("RESCHEDULE_PENDING"))
-                .andExpect(jsonPath("$.proposedStartTime").value("2027-11-15T16:00:00-01:00"));
+                mockMvc.perform(get("/api/v1/appointments")
+                                .header("Authorization", "Bearer " + ownerToken)
+                                .header(TENANT_HEADER, businessId.toString())
+                                .param("employeeId", employeeId.toString())
+                                .param("startDate", "2027-11-01")
+                                .param("endDate", "2027-11-30"))
+                                .andExpect(status().isOk())
+                                .andExpect(jsonPath("$.totalElements").value(1))
+                                .andExpect(jsonPath("$.content[0].id").value(appointmentId.toString()));
+        }
 
-        // 6. Aceitar segundo reagendamento pelo OWNER (RESCHEDULE_PENDING -> CONFIRMED com novo horário)
-        mockMvc.perform(post("/api/v1/appointments/{id}/reschedule/accept", appointmentId)
-                        .header("Authorization", "Bearer " + ownerToken)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(
-                                new AppointmentActionNotesRequest("Novo horário confirmado"))))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.status").value("CONFIRMED"))
-                .andExpect(jsonPath("$.startTime").value("2027-11-15T16:00:00-01:00"))
-                .andExpect(jsonPath("$.endTime").value("2027-11-15T17:00:00-01:00"))
-                .andExpect(jsonPath("$.proposedStartTime").isEmpty())
-                .andExpect(jsonPath("$.proposedEndTime").isEmpty());
+        @Test
+        @DisplayName("Deve rejeitar transições de estado inválidas com HTTP 400 e libertar slot na constraint GiST após cancelamento")
+        void shouldRejectInvalidStateTransitionWithHttp400AndFreeSlotAfterCancellation() throws Exception {
+                // Arrange: criar agendamento às 11:00
+                OffsetDateTime slotStart = OffsetDateTime.of(2027, 11, 20, 11, 0, 0, 0, ZoneOffset.ofHours(-1));
+                CreateAppointmentRequest createReq = new CreateAppointmentRequest(
+                                businessId, employeeId, serviceId, slotStart, "Reserva para cancelar");
 
-        // 7. Concluir agendamento pelo OWNER (CONFIRMED -> COMPLETED)
-        mockMvc.perform(post("/api/v1/appointments/{id}/complete", appointmentId)
-                        .header("Authorization", "Bearer " + ownerToken)
-                        .header(TENANT_HEADER, businessId.toString())
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(
-                                new AppointmentActionNotesRequest("Atendimento excelente"))))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.status").value("COMPLETED"));
+                MvcResult createRes = mockMvc.perform(post("/api/v1/appointments")
+                                .header("Authorization", "Bearer " + customerToken)
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(objectMapper.writeValueAsString(createReq)))
+                                .andExpect(status().isCreated())
+                                .andReturn();
 
-        // 8. Consultar detalhes e linha do tempo de auditoria (7 eventos na ordem cronológica)
-        mockMvc.perform(get("/api/v1/appointments/{id}", appointmentId)
-                        .header("Authorization", "Bearer " + customerToken))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.status").value("COMPLETED"))
-                .andExpect(jsonPath("$.history.length()").value(7))
-                .andExpect(jsonPath("$.history[0].action").value("CREATED"))
-                .andExpect(jsonPath("$.history[1].action").value("CONFIRMED"))
-                .andExpect(jsonPath("$.history[2].action").value("RESCHEDULE_REQUESTED"))
-                .andExpect(jsonPath("$.history[3].action").value("RESCHEDULE_REJECTED"))
-                .andExpect(jsonPath("$.history[4].action").value("RESCHEDULE_REQUESTED"))
-                .andExpect(jsonPath("$.history[5].action").value("RESCHEDULE_CONFIRMED"))
-                .andExpect(jsonPath("$.history[6].action").value("COMPLETED"));
+                UUID appointmentId = objectMapper.readValue(
+                                createRes.getResponse().getContentAsString(), AppointmentResponse.class).id();
 
-        // 9. Consultar listagens GET /my e GET /appointments (com X-Business-Id)
-        mockMvc.perform(get("/api/v1/appointments/my")
-                        .header("Authorization", "Bearer " + customerToken)
-                        .param("status", "COMPLETED"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.totalElements").value(1))
-                .andExpect(jsonPath("$.content[0].id").value(appointmentId.toString()));
+                // Cancelar o agendamento (PENDING -> CANCELLED)
+                mockMvc.perform(post("/api/v1/appointments/{id}/cancel", appointmentId)
+                                .header("Authorization", "Bearer " + customerToken)
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(objectMapper.writeValueAsString(
+                                                new CancelAppointmentRequest("Não poderei comparecer"))))
+                                .andExpect(status().isOk())
+                                .andExpect(jsonPath("$.status").value("CANCELLED"));
 
-        mockMvc.perform(get("/api/v1/appointments")
-                        .header("Authorization", "Bearer " + ownerToken)
-                        .header(TENANT_HEADER, businessId.toString())
-                        .param("employeeId", employeeId.toString())
-                        .param("startDate", "2027-11-01")
-                        .param("endDate", "2027-11-30"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.totalElements").value(1))
-                .andExpect(jsonPath("$.content[0].id").value(appointmentId.toString()));
-    }
+                // Tentar transitar de CANCELLED para COMPLETED -> deve falhar com HTTP 400 Bad
+                // Request
+                mockMvc.perform(post("/api/v1/appointments/{id}/complete", appointmentId)
+                                .header("Authorization", "Bearer " + ownerToken)
+                                .header(TENANT_HEADER, businessId.toString())
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(objectMapper.writeValueAsString(
+                                                new AppointmentActionNotesRequest("Tentativa inválida"))))
+                                .andExpect(status().isBadRequest())
+                                .andExpect(jsonPath("$.status").value(400));
 
-    @Test
-    @DisplayName("Deve rejeitar transições de estado inválidas com HTTP 400 e libertar slot na constraint GiST após cancelamento")
-    void shouldRejectInvalidStateTransitionWithHttp400AndFreeSlotAfterCancellation() throws Exception {
-        // Arrange: criar agendamento às 11:00
-        OffsetDateTime slotStart = OffsetDateTime.of(2027, 11, 20, 11, 0, 0, 0, ZoneOffset.ofHours(-1));
-        CreateAppointmentRequest createReq = new CreateAppointmentRequest(
-                businessId, employeeId, serviceId, slotStart, "Reserva para cancelar"
-        );
+                // Como o agendamento anterior está CANCELLED, a constraint GiST parcial ignora
+                // o registo e permite nova reserva no mesmo horário
+                mockMvc.perform(post("/api/v1/appointments")
+                                .header("Authorization", "Bearer " + customerToken)
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(objectMapper.writeValueAsString(createReq)))
+                                .andExpect(status().isCreated())
+                                .andExpect(jsonPath("$.status").value("PENDING"));
+        }
 
-        MvcResult createRes = mockMvc.perform(post("/api/v1/appointments")
-                        .header("Authorization", "Bearer " + customerToken)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(createReq)))
-                .andExpect(status().isCreated())
-                .andReturn();
+        @Test
+        @DisplayName("Deve permitir avaliação apenas após COMPLETED, rejeitar duplicada (409) e listar avaliações por salão e profissional")
+        void shouldAllowReviewOnlyAfterCompletionRejectDuplicatesAndListReviews() throws Exception {
+                // Arrange: criar agendamento (PENDING)
+                OffsetDateTime slotStart = OffsetDateTime.of(2027, 11, 22, 9, 0, 0, 0, ZoneOffset.ofHours(-1));
+                CreateAppointmentRequest createReq = new CreateAppointmentRequest(
+                                businessId, employeeId, serviceId, slotStart, "Atendimento para avaliar");
 
-        UUID appointmentId = objectMapper.readValue(
-                createRes.getResponse().getContentAsString(), AppointmentResponse.class
-        ).id();
+                MvcResult createRes = mockMvc.perform(post("/api/v1/appointments")
+                                .header("Authorization", "Bearer " + customerToken)
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(objectMapper.writeValueAsString(createReq)))
+                                .andExpect(status().isCreated())
+                                .andReturn();
 
-        // Cancelar o agendamento (PENDING -> CANCELLED)
-        mockMvc.perform(post("/api/v1/appointments/{id}/cancel", appointmentId)
-                        .header("Authorization", "Bearer " + customerToken)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(new CancelAppointmentRequest("Não poderei comparecer"))))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.status").value("CANCELLED"));
+                UUID appointmentId = objectMapper.readValue(
+                                createRes.getResponse().getContentAsString(), AppointmentResponse.class).id();
 
-        // Tentar transitar de CANCELLED para COMPLETED -> deve falhar com HTTP 400 Bad Request
-        mockMvc.perform(post("/api/v1/appointments/{id}/complete", appointmentId)
-                        .header("Authorization", "Bearer " + ownerToken)
-                        .header(TENANT_HEADER, businessId.toString())
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(new AppointmentActionNotesRequest("Tentativa inválida"))))
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.status").value(400));
+                CreateReviewRequest reviewReq = new CreateReviewRequest(5, "Excelente atendimento, super pontual!");
 
-        // Como o agendamento anterior está CANCELLED, a constraint GiST parcial ignora o registo e permite nova reserva no mesmo horário
-        mockMvc.perform(post("/api/v1/appointments")
-                        .header("Authorization", "Bearer " + customerToken)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(createReq)))
-                .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.status").value("PENDING"));
-    }
+                // 1. Tentar avaliar agendamento PENDING -> 400 Bad Request
+                mockMvc.perform(post("/api/v1/appointments/{id}/reviews", appointmentId)
+                                .header("Authorization", "Bearer " + customerToken)
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(objectMapper.writeValueAsString(reviewReq)))
+                                .andExpect(status().isBadRequest())
+                                .andExpect(jsonPath("$.status").value(400));
 
-    @Test
-    @DisplayName("Deve permitir avaliação apenas após COMPLETED, rejeitar duplicada (409) e listar avaliações por salão e profissional")
-    void shouldAllowReviewOnlyAfterCompletionRejectDuplicatesAndListReviews() throws Exception {
-        // Arrange: criar agendamento (PENDING)
-        OffsetDateTime slotStart = OffsetDateTime.of(2027, 11, 22, 9, 0, 0, 0, ZoneOffset.ofHours(-1));
-        CreateAppointmentRequest createReq = new CreateAppointmentRequest(
-                businessId, employeeId, serviceId, slotStart, "Atendimento para avaliar"
-        );
+                // 2. Confirmar e concluir o agendamento (PENDING -> CONFIRMED -> COMPLETED)
+                mockMvc.perform(post("/api/v1/appointments/{id}/confirm", appointmentId)
+                                .header("Authorization", "Bearer " + ownerToken)
+                                .header(TENANT_HEADER, businessId.toString()))
+                                .andExpect(status().isOk());
 
-        MvcResult createRes = mockMvc.perform(post("/api/v1/appointments")
-                        .header("Authorization", "Bearer " + customerToken)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(createReq)))
-                .andExpect(status().isCreated())
-                .andReturn();
+                mockMvc.perform(post("/api/v1/appointments/{id}/complete", appointmentId)
+                                .header("Authorization", "Bearer " + ownerToken)
+                                .header(TENANT_HEADER, businessId.toString()))
+                                .andExpect(status().isOk())
+                                .andExpect(jsonPath("$.status").value("COMPLETED"));
 
-        UUID appointmentId = objectMapper.readValue(
-                createRes.getResponse().getContentAsString(), AppointmentResponse.class
-        ).id();
+                // 3. Tentar avaliar com utilizador que não é o cliente autor (ex.: ownerToken)
+                // -> 403 Forbidden
+                mockMvc.perform(post("/api/v1/appointments/{id}/reviews", appointmentId)
+                                .header("Authorization", "Bearer " + ownerToken)
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(objectMapper.writeValueAsString(reviewReq)))
+                                .andExpect(status().isForbidden())
+                                .andExpect(jsonPath("$.status").value(403));
 
-        CreateReviewRequest reviewReq = new CreateReviewRequest(5, "Excelente atendimento, super pontual!");
+                // 4. Submeter avaliação pelo cliente autor -> 201 Created
+                mockMvc.perform(post("/api/v1/appointments/{id}/reviews", appointmentId)
+                                .header("Authorization", "Bearer " + customerToken)
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(objectMapper.writeValueAsString(reviewReq)))
+                                .andExpect(status().isCreated())
+                                .andExpect(jsonPath("$.id").isNotEmpty())
+                                .andExpect(jsonPath("$.appointmentId").value(appointmentId.toString()))
+                                .andExpect(jsonPath("$.customerId").value(customerId.toString()))
+                                .andExpect(jsonPath("$.employeeId").value(employeeId.toString()))
+                                .andExpect(jsonPath("$.rating").value(5))
+                                .andExpect(jsonPath("$.comment").value("Excelente atendimento, super pontual!"));
 
-        // 1. Tentar avaliar agendamento PENDING -> 400 Bad Request
-        mockMvc.perform(post("/api/v1/appointments/{id}/reviews", appointmentId)
-                        .header("Authorization", "Bearer " + customerToken)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(reviewReq)))
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.status").value(400));
+                // 5. Tentar duplicar avaliação para a mesma marcação -> 409 Conflict
+                mockMvc.perform(post("/api/v1/appointments/{id}/reviews", appointmentId)
+                                .header("Authorization", "Bearer " + customerToken)
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(objectMapper.writeValueAsString(reviewReq)))
+                                .andExpect(status().isConflict())
+                                .andExpect(jsonPath("$.status").value(409))
+                                .andExpect(jsonPath("$.detail")
+                                                .value("Já existe uma avaliação registada para este agendamento."));
 
-        // 2. Confirmar e concluir o agendamento (PENDING -> CONFIRMED -> COMPLETED)
-        mockMvc.perform(post("/api/v1/appointments/{id}/confirm", appointmentId)
-                        .header("Authorization", "Bearer " + ownerToken)
-                        .header(TENANT_HEADER, businessId.toString()))
-                .andExpect(status().isOk());
+                // 6. Consultar avaliações do salão GET /api/v1/businesses/{id}/reviews -> 200
+                // OK
+                mockMvc.perform(get("/api/v1/businesses/{id}/reviews", businessId))
+                                .andExpect(status().isOk())
+                                .andExpect(jsonPath("$.totalElements").value(1))
+                                .andExpect(jsonPath("$.content[0].appointmentId").value(appointmentId.toString()))
+                                .andExpect(jsonPath("$.content[0].rating").value(5));
 
-        mockMvc.perform(post("/api/v1/appointments/{id}/complete", appointmentId)
-                        .header("Authorization", "Bearer " + ownerToken)
-                        .header(TENANT_HEADER, businessId.toString()))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.status").value("COMPLETED"));
+                // 7. Consultar avaliações públicas do profissional GET
+                // /api/v1/marketplace/employees/{id}/reviews -> 200 OK
+                mockMvc.perform(get("/api/v1/marketplace/employees/{id}/reviews", employeeId))
+                                .andExpect(status().isOk())
+                                .andExpect(jsonPath("$.totalElements").value(1))
+                                .andExpect(jsonPath("$.content[0].employeeId").value(employeeId.toString()))
+                                .andExpect(jsonPath("$.content[0].rating").value(5));
+        }
 
-        // 3. Tentar avaliar com utilizador que não é o cliente autor (ex.: ownerToken) -> 403 Forbidden
-        mockMvc.perform(post("/api/v1/appointments/{id}/reviews", appointmentId)
-                        .header("Authorization", "Bearer " + ownerToken)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(reviewReq)))
-                .andExpect(status().isForbidden())
-                .andExpect(jsonPath("$.status").value(403));
+        @Test
+        @DisplayName("Deve listar, detalhar e atualizar cliente do salão via endpoints de CRM (GET/PATCH /businesses/{id}/customers)")
+        void shouldListAndGetAndPatchBusinessCustomers() throws Exception {
+                // 1. Criar Salão com Owner
+                AuthResponse ownerAuth = registerUser("Dono Salão CRM", "dono.crm@exemplo.cv", "+2389913344");
+                String ownerToken = loginUser("dono.crm@exemplo.cv", "SenhaForte123!").accessToken();
+                UUID businessId = createBusiness(ownerToken, "Salão CRM Pérola");
+                UUID employeeId = getFirstEmployeeId(ownerToken, businessId);
+                UUID serviceId = createService(ownerToken, businessId, "Penteado Especial", 45,
+                                new BigDecimal("2500.00"));
 
-        // 4. Submeter avaliação pelo cliente autor -> 201 Created
-        mockMvc.perform(post("/api/v1/appointments/{id}/reviews", appointmentId)
-                        .header("Authorization", "Bearer " + customerToken)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(reviewReq)))
-                .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.id").isNotEmpty())
-                .andExpect(jsonPath("$.appointmentId").value(appointmentId.toString()))
-                .andExpect(jsonPath("$.customerId").value(customerId.toString()))
-                .andExpect(jsonPath("$.employeeId").value(employeeId.toString()))
-                .andExpect(jsonPath("$.rating").value(5))
-                .andExpect(jsonPath("$.comment").value("Excelente atendimento, super pontual!"));
+                // 2. Criar agendamento público (Guest Booking)
+                OffsetDateTime startTime = OffsetDateTime.now(ZoneOffset.ofHours(-1)).plusDays(4).withHour(10)
+                                .withMinute(0).withSecond(0).withNano(0);
+                CreateAppointmentRequest guestBooking = new CreateAppointmentRequest(
+                                businessId,
+                                employeeId,
+                                serviceId,
+                                startTime,
+                                "Primeira visita",
+                                "Cliente CRM",
+                                "cliente.crm@exemplo.cv",
+                                "+2389988776");
+                MvcResult bookingResult = mockMvc.perform(post("/api/v1/appointments")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(objectMapper.writeValueAsString(guestBooking)))
+                                .andExpect(status().isCreated())
+                                .andReturn();
+                AppointmentResponse appt = objectMapper.readValue(bookingResult.getResponse().getContentAsString(),
+                                AppointmentResponse.class);
+                UUID customerId = appt.customerId();
+                assertThat(customerId).isNotNull();
 
-        // 5. Tentar duplicar avaliação para a mesma marcação -> 409 Conflict
-        mockMvc.perform(post("/api/v1/appointments/{id}/reviews", appointmentId)
-                        .header("Authorization", "Bearer " + customerToken)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(reviewReq)))
-                .andExpect(status().isConflict())
-                .andExpect(jsonPath("$.status").value(409))
-                .andExpect(jsonPath("$.detail").value("Já existe uma avaliação registada para este agendamento."));
+                // 3. Listar clientes do salão GET /api/v1/businesses/{id}/customers -> 200 OK
+                // (com métricas agregadas)
+                mockMvc.perform(get("/api/v1/businesses/{id}/customers", businessId)
+                                .header("Authorization", "Bearer " + ownerToken)
+                                .header(TENANT_HEADER, businessId.toString()))
+                                .andExpect(status().isOk())
+                                .andExpect(jsonPath("$.totalElements").value(1))
+                                .andExpect(jsonPath("$.content[0].customerId").value(customerId.toString()))
+                                .andExpect(jsonPath("$.content[0].tier").value("NEW"))
+                                .andExpect(jsonPath("$.content[0].totalAppointments").value(1))
+                                .andExpect(jsonPath("$.content[0].completedAppointments").value(0))
+                                .andExpect(jsonPath("$.content[0].totalSpentCve").value(0));
 
-        // 6. Consultar avaliações do salão GET /api/v1/businesses/{id}/reviews -> 200 OK
-        mockMvc.perform(get("/api/v1/businesses/{id}/reviews", businessId))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.totalElements").value(1))
-                .andExpect(jsonPath("$.content[0].appointmentId").value(appointmentId.toString()))
-                .andExpect(jsonPath("$.content[0].rating").value(5));
+                // 4. Detalhar cliente do salão GET
+                // /api/v1/businesses/{id}/customers/{customerId} -> 200 OK
+                mockMvc.perform(get("/api/v1/businesses/{id}/customers/{customerId}", businessId, customerId)
+                                .header("Authorization", "Bearer " + ownerToken)
+                                .header(TENANT_HEADER, businessId.toString()))
+                                .andExpect(status().isOk())
+                                .andExpect(jsonPath("$.customer.customerId").value(customerId.toString()))
+                                .andExpect(jsonPath("$.recentAppointments.length()").value(1));
 
-        // 7. Consultar avaliações públicas do profissional GET /api/v1/marketplace/employees/{id}/reviews -> 200 OK
-        mockMvc.perform(get("/api/v1/marketplace/employees/{id}/reviews", employeeId))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.totalElements").value(1))
-                .andExpect(jsonPath("$.content[0].employeeId").value(employeeId.toString()))
-                .andExpect(jsonPath("$.content[0].rating").value(5));
-    }
+                // 5. Atualizar classificação do cliente PATCH
+                // /api/v1/businesses/{id}/customers/{customerId} -> 200 OK
+                UpdateBusinessCustomerRequest updateReq = new UpdateBusinessCustomerRequest(
+                                CustomerTier.VIP, "Cliente VIP de alto valor");
+                mockMvc.perform(patch("/api/v1/businesses/{id}/customers/{customerId}", businessId, customerId)
+                                .header("Authorization", "Bearer " + ownerToken)
+                                .header(TENANT_HEADER, businessId.toString())
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(objectMapper.writeValueAsString(updateReq)))
+                                .andExpect(status().isOk())
+                                .andExpect(jsonPath("$.tier").value("VIP"))
+                                .andExpect(jsonPath("$.internalNotes").value("Cliente VIP de alto valor"));
 
-    private AuthResponse registerUser(String name, String email, String phone) throws Exception {
-        RegisterRequest req = new RegisterRequest(name, email, phone, "SenhaForte123!");
-        MvcResult res = mockMvc.perform(post("/api/v1/auth/register")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(req)))
-                .andExpect(status().isCreated())
-                .andReturn();
-        return objectMapper.readValue(res.getResponse().getContentAsString(), AuthResponse.class);
-    }
+                // 6. Filtrar por tier=VIP -> 200 OK com 1 elemento
+                mockMvc.perform(get("/api/v1/businesses/{id}/customers?tier=VIP", businessId)
+                                .header("Authorization", "Bearer " + ownerToken)
+                                .header(TENANT_HEADER, businessId.toString()))
+                                .andExpect(status().isOk())
+                                .andExpect(jsonPath("$.totalElements").value(1))
+                                .andExpect(jsonPath("$.content[0].tier").value("VIP"));
+        }
 
-    private AuthResponse loginUser(String email, String password) throws Exception {
-        LoginRequest req = new LoginRequest(email, password);
-        MvcResult res = mockMvc.perform(post("/api/v1/auth/login")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(req)))
-                .andExpect(status().isOk())
-                .andReturn();
-        return objectMapper.readValue(res.getResponse().getContentAsString(), AuthResponse.class);
-    }
+        private AuthResponse registerUser(String name, String email, String phone) throws Exception {
+                RegisterRequest req = new RegisterRequest(name, email, phone, "SenhaForte123!");
+                MvcResult res = mockMvc.perform(post("/api/v1/auth/register")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(objectMapper.writeValueAsString(req)))
+                                .andExpect(status().isCreated())
+                                .andReturn();
+                return objectMapper.readValue(res.getResponse().getContentAsString(), AuthResponse.class);
+        }
 
-    private UUID fetchDefaultCategoryId() throws Exception {
-        MvcResult res = mockMvc.perform(get("/api/v1/marketplace/categories"))
-                .andExpect(status().isOk())
-                .andReturn();
-        CategoryResponse[] categories = objectMapper.readValue(
-                res.getResponse().getContentAsString(), CategoryResponse[].class
-        );
-        return categories[0].id();
-    }
+        private AuthResponse loginUser(String email, String password) throws Exception {
+                LoginRequest req = new LoginRequest(email, password);
+                MvcResult res = mockMvc.perform(post("/api/v1/auth/login")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(objectMapper.writeValueAsString(req)))
+                                .andExpect(status().isOk())
+                                .andReturn();
+                return objectMapper.readValue(res.getResponse().getContentAsString(), AuthResponse.class);
+        }
 
-    private UUID createBusiness(String token, String name) throws Exception {
-        UUID categoryId = fetchDefaultCategoryId();
-        CreateBusinessRequest req = new CreateBusinessRequest(
-                name, "Santiago", "Praia", "Achada Santo António", "+2382621122", "Atlantic/Cape_Verde",
-                List.of(new BusinessCategoryItemRequest(categoryId, true))
-        );
-        MvcResult res = mockMvc.perform(post("/api/v1/businesses")
-                        .header("Authorization", "Bearer " + token)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(req)))
-                .andExpect(status().isCreated())
-                .andReturn();
-        return objectMapper.readValue(res.getResponse().getContentAsString(), BusinessResponse.class).id();
-    }
+        private UUID fetchDefaultCategoryId() throws Exception {
+                MvcResult res = mockMvc.perform(get("/api/v1/marketplace/categories"))
+                                .andExpect(status().isOk())
+                                .andReturn();
+                CategoryResponse[] categories = objectMapper.readValue(
+                                res.getResponse().getContentAsString(), CategoryResponse[].class);
+                return categories[0].id();
+        }
 
-    private UUID getFirstEmployeeId(String token, UUID bizId) throws Exception {
-        MvcResult res = mockMvc.perform(get("/api/v1/businesses/{id}/employees", bizId)
-                        .header("Authorization", "Bearer " + token)
-                        .header(TENANT_HEADER, bizId.toString()))
-                .andExpect(status().isOk())
-                .andReturn();
-        return UUID.fromString(
-                objectMapper.readTree(res.getResponse().getContentAsString()).get(0).get("id").asText()
-        );
-    }
+        private UUID createBusiness(String token, String name) throws Exception {
+                UUID categoryId = fetchDefaultCategoryId();
+                CreateBusinessRequest req = new CreateBusinessRequest(
+                                name, "Santiago", "Praia", "Achada Santo António", "+2382621122", "Atlantic/Cape_Verde",
+                                List.of(new BusinessCategoryItemRequest(categoryId, true)));
+                MvcResult res = mockMvc.perform(post("/api/v1/businesses")
+                                .header("Authorization", "Bearer " + token)
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(objectMapper.writeValueAsString(req)))
+                                .andExpect(status().isCreated())
+                                .andReturn();
+                return objectMapper.readValue(res.getResponse().getContentAsString(), BusinessResponse.class).id();
+        }
 
-    private UUID createService(String token, UUID bizId, String name, int duration, BigDecimal price)
-            throws Exception {
-        UUID categoryId = fetchDefaultCategoryId();
-        CreateServiceRequest req = new CreateServiceRequest(categoryId, name, "Serviço profissional", duration, price);
-        MvcResult res = mockMvc.perform(post("/api/v1/businesses/{id}/services", bizId)
-                        .header("Authorization", "Bearer " + token)
-                        .header(TENANT_HEADER, bizId.toString())
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(req)))
-                .andExpect(status().isCreated())
-                .andReturn();
-        return objectMapper.readValue(res.getResponse().getContentAsString(), ServiceResponse.class).id();
-    }
+        private UUID getFirstEmployeeId(String token, UUID bizId) throws Exception {
+                MvcResult res = mockMvc.perform(get("/api/v1/businesses/{id}/employees", bizId)
+                                .header("Authorization", "Bearer " + token)
+                                .header(TENANT_HEADER, bizId.toString()))
+                                .andExpect(status().isOk())
+                                .andReturn();
+                return UUID.fromString(
+                                objectMapper.readTree(res.getResponse().getContentAsString()).get(0).get("id")
+                                                .asText());
+        }
+
+        private UUID createService(String token, UUID bizId, String name, int duration, BigDecimal price)
+                        throws Exception {
+                UUID categoryId = fetchDefaultCategoryId();
+                CreateServiceRequest req = new CreateServiceRequest(categoryId, name, "Serviço profissional", duration,
+                                price);
+                MvcResult res = mockMvc.perform(post("/api/v1/businesses/{id}/services", bizId)
+                                .header("Authorization", "Bearer " + token)
+                                .header(TENANT_HEADER, bizId.toString())
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(objectMapper.writeValueAsString(req)))
+                                .andExpect(status().isCreated())
+                                .andReturn();
+                return objectMapper.readValue(res.getResponse().getContentAsString(), ServiceResponse.class).id();
+        }
 }
