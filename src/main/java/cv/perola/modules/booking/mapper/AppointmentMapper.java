@@ -5,6 +5,7 @@ import cv.perola.modules.booking.domain.AppointmentEntity;
 import cv.perola.modules.booking.domain.AppointmentHistoryEntity;
 import cv.perola.modules.booking.domain.enums.AppointmentAction;
 import cv.perola.modules.booking.domain.enums.AppointmentStatus;
+import cv.perola.modules.booking.domain.enums.CustomerTier;
 import cv.perola.modules.booking.dto.AppointmentHistoryResponse;
 import cv.perola.modules.booking.dto.AppointmentResponse;
 import cv.perola.modules.booking.dto.CreateAppointmentRequest;
@@ -101,6 +102,30 @@ public class AppointmentMapper {
             AppointmentEntity entity,
             List<AppointmentHistoryEntity> historyEntities,
             ZoneId zoneId) {
+        return toResponse(
+                entity,
+                historyEntities,
+                zoneId,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null);
+    }
+
+    public AppointmentResponse toResponse(
+            AppointmentEntity entity,
+            List<AppointmentHistoryEntity> historyEntities,
+            ZoneId zoneId,
+            String businessName,
+            String customerName,
+            String customerEmail,
+            String customerPhone,
+            String employeeName,
+            CustomerTier customerTier,
+            String customerInternalNotes) {
         ZoneId targetZone = zoneId != null ? zoneId : ZoneId.of(AppConfig.CAPE_VERDE_TIMEZONE);
         List<AppointmentHistoryResponse> history = historyEntities == null
                 ? List.of()
@@ -111,8 +136,13 @@ public class AppointmentMapper {
         return new AppointmentResponse(
                 entity.getId(),
                 entity.getBusinessId(),
+                businessName,
                 entity.getCustomerId(),
+                customerName,
+                customerEmail,
+                customerPhone,
                 entity.getEmployeeId(),
+                employeeName,
                 entity.getServiceId(),
                 entity.getServiceName(),
                 entity.getServicePrice(),
@@ -122,6 +152,8 @@ public class AppointmentMapper {
                 toOffsetDateTime(entity.getProposedStartTime(), targetZone),
                 toOffsetDateTime(entity.getProposedEndTime(), targetZone),
                 entity.getStatus(),
+                customerTier,
+                customerInternalNotes,
                 entity.getNotes(),
                 toOffsetDateTime(entity.getCreatedAt(), targetZone),
                 history);

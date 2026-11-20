@@ -14,6 +14,8 @@ public interface BusinessCustomerRepository extends JpaRepository<BusinessCustom
 
     Optional<BusinessCustomerEntity> findByBusinessIdAndCustomerId(UUID businessId, UUID customerId);
 
+    List<BusinessCustomerEntity> findByBusinessIdAndCustomerIdIn(UUID businessId, java.util.Collection<UUID> customerIds);
+
     boolean existsByBusinessIdAndCustomerId(UUID businessId, UUID customerId);
 
     List<BusinessCustomerEntity> findAllByBusinessId(UUID businessId);

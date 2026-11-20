@@ -75,6 +75,17 @@ public class GlobalExceptionHandler {
         return problem;
     }
 
+    @ExceptionHandler(PendingAppointmentsLimitExceededException.class)
+    public ProblemDetail handlePendingAppointmentsLimitExceededException(PendingAppointmentsLimitExceededException ex) {
+        ProblemDetail problem = ProblemDetail.forStatusAndDetail(
+                HttpStatus.TOO_MANY_REQUESTS,
+                ex.getMessage() != null ? ex.getMessage() : "Limite máximo de marcações pendentes atingido.");
+        problem.setTitle("Limite de Marcações Excedido");
+        problem.setType(URI.create("https://perola.cv/errors/pending-appointments-limit-exceeded"));
+        problem.setProperty("timestamp", Instant.now());
+        return problem;
+    }
+
     @ExceptionHandler({ BadCredentialsException.class, AuthenticationFailedException.class })
     public ProblemDetail handleAuthenticationException(Exception ex) {
         ProblemDetail problem = ProblemDetail.forStatusAndDetail(

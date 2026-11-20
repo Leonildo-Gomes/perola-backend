@@ -49,6 +49,8 @@ public class SecurityConfig {
                                                                 "/api/v1/schedule/holidays",
                                                                 "/api/v1/businesses/*/reviews")
                                                 .permitAll()
+                                                .requestMatchers(HttpMethod.POST, "/api/v1/appointments")
+                                                .permitAll()
                                                 .requestMatchers(HttpMethod.GET, "/api/v1/media/**")
                                                 .permitAll()
                                                 .anyRequest().authenticated())

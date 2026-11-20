@@ -53,6 +53,9 @@ class AppointmentLifecycleServiceTest {
     private BusinessEmployeeQueryService businessEmployeeQueryService;
 
     @Mock
+    private cv.perola.modules.identity.service.CustomerResolutionService customerResolutionService;
+
+    @Mock
     private AppointmentMapper appointmentMapper;
 
     @Mock

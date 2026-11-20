@@ -46,6 +46,12 @@ class ListSalonAppointmentsUseCaseTest {
     private BusinessEmployeeQueryService businessEmployeeQueryService;
 
     @Mock
+    private cv.perola.modules.booking.repository.BusinessCustomerRepository businessCustomerRepository;
+
+    @Mock
+    private cv.perola.modules.identity.service.CustomerResolutionService customerResolutionService;
+
+    @Mock
     private AppointmentMapper appointmentMapper;
 
     @Mock
@@ -88,7 +94,18 @@ class ListSalonAppointmentsUseCaseTest {
         when(lifecycleService.resolveBusinessZone(businessId)).thenReturn(cvZone);
         when(appointmentRepository.findBusinessAppointments(businessId, null, null, null, null, PageRequest.of(0, 20)))
                 .thenReturn(page);
-        when(appointmentMapper.toResponse(entity, cvZone)).thenReturn(mappedResponse);
+        when(appointmentMapper.toResponse(
+                org.mockito.ArgumentMatchers.eq(entity),
+                org.mockito.ArgumentMatchers.anyList(),
+                org.mockito.ArgumentMatchers.eq(cvZone),
+                org.mockito.ArgumentMatchers.any(),
+                org.mockito.ArgumentMatchers.any(),
+                org.mockito.ArgumentMatchers.any(),
+                org.mockito.ArgumentMatchers.any(),
+                org.mockito.ArgumentMatchers.any(),
+                org.mockito.ArgumentMatchers.any(),
+                org.mockito.ArgumentMatchers.any()
+        )).thenReturn(mappedResponse);
 
         // Act
         PageResponse<AppointmentResponse> result = listSalonAppointmentsUseCase.execute(
@@ -128,4 +145,5 @@ class ListSalonAppointmentsUseCaseTest {
                 .hasMessage("O colaborador só pode consultar a sua própria agenda.");
     }
 }
+
 

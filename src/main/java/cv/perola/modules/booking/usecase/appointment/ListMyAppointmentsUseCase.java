@@ -7,6 +7,8 @@ import cv.perola.modules.booking.dto.AppointmentResponse;
 import cv.perola.modules.booking.mapper.AppointmentMapper;
 import cv.perola.modules.booking.repository.AppointmentRepository;
 import cv.perola.modules.booking.service.AppointmentLifecycleService;
+import cv.perola.modules.identity.domain.CustomerEntity;
+import cv.perola.modules.identity.service.CustomerResolutionService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -18,48 +20,50 @@ import java.util.List;
 import java.util.UUID;
 
 /**
- * Caso de uso para listar o histórico paginado de agendamentos do cliente autenticado.
+ * Caso de uso para listar o histórico paginado de agendamentos do cliente
+ * autenticado.
  */
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
 public class ListMyAppointmentsUseCase {
 
-    private static final int MAX_PAGE_SIZE = 100;
+        private static final int MAX_PAGE_SIZE = 100;
 
-    private final AppointmentRepository appointmentRepository;
-    private final AppointmentMapper appointmentMapper;
-    private final AppointmentLifecycleService lifecycleService;
+        private final AppointmentRepository appointmentRepository;
+        private final CustomerResolutionService customerResolutionService;
+        private final AppointmentMapper appointmentMapper;
+        private final AppointmentLifecycleService lifecycleService;
 
-    public PageResponse<AppointmentResponse> execute(
-            UUID customerId,
-            AppointmentStatus status,
-            int page,
-            int size
-    ) {
-        int safePage = Math.max(page, 0);
-        int safeSize = Math.min(Math.max(size, 1), MAX_PAGE_SIZE);
+        public PageResponse<AppointmentResponse> execute(
+                        UUID customerIdOrUserId,
+                        AppointmentStatus status,
+                        int page,
+                        int size) {
+                int safePage = Math.max(page, 0);
+                int safeSize = Math.min(Math.max(size, 1), MAX_PAGE_SIZE);
 
-        Page<AppointmentEntity> resultPage = appointmentRepository.findCustomerAppointments(
-                customerId,
-                status,
-                PageRequest.of(safePage, safeSize)
-        );
+                UUID effectiveCustomerId = customerResolutionService.findByUserId(customerIdOrUserId)
+                                .map(CustomerEntity::getId)
+                                .orElse(customerIdOrUserId);
 
-        List<AppointmentResponse> content = resultPage.getContent().stream()
-                .map(entity -> {
-                    ZoneId zoneId = lifecycleService.resolveBusinessZone(entity.getBusinessId());
-                    return appointmentMapper.toResponse(entity, zoneId);
-                })
-                .toList();
+                Page<AppointmentEntity> resultPage = appointmentRepository.findCustomerAppointments(
+                                effectiveCustomerId,
+                                status,
+                                PageRequest.of(safePage, safeSize));
 
-        return new PageResponse<>(
-                content,
-                resultPage.getNumber(),
-                resultPage.getSize(),
-                resultPage.getTotalElements(),
-                resultPage.getTotalPages()
-        );
-    }
+                List<AppointmentResponse> content = resultPage.getContent().stream()
+                                .map(entity -> {
+                                        ZoneId zoneId = lifecycleService.resolveBusinessZone(entity.getBusinessId());
+                                        return appointmentMapper.toResponse(entity, zoneId);
+                                })
+                                .toList();
+
+                return new PageResponse<>(
+                                content,
+                                resultPage.getNumber(),
+                                resultPage.getSize(),
+                                resultPage.getTotalElements(),
+                                resultPage.getTotalPages());
+        }
 }
-

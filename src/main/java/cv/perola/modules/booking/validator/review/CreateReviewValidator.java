@@ -8,6 +8,7 @@ import cv.perola.modules.booking.domain.enums.AppointmentStatus;
 import cv.perola.modules.booking.dto.CreateReviewRequest;
 import cv.perola.modules.booking.repository.AppointmentRepository;
 import cv.perola.modules.booking.repository.ReviewRepository;
+import cv.perola.modules.identity.service.CustomerResolutionService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Component;
@@ -20,6 +21,7 @@ public class CreateReviewValidator {
 
     private final AppointmentRepository appointmentRepository;
     private final ReviewRepository reviewRepository;
+    private final CustomerResolutionService customerResolutionService;
 
     public AppointmentEntity validate(UUID appointmentId, UUID customerId, CreateReviewRequest request) {
         if (request.rating() == null || request.rating() < 1 || request.rating() > 5) {
@@ -29,14 +31,17 @@ public class CreateReviewValidator {
         AppointmentEntity appointment = appointmentRepository.findById(appointmentId)
                 .orElseThrow(() -> new ResourceNotFoundException("Agendamento não encontrado."));
 
-        if (!appointment.getCustomerId().equals(customerId)) {
+        boolean isCustomer = customerResolutionService.findByUserId(customerId)
+                .map(cust -> cust.getId().equals(appointment.getCustomerId()))
+                .orElse(appointment.getCustomerId().equals(customerId));
+
+        if (!isCustomer) {
             throw new AccessDeniedException("Apenas o cliente autor do agendamento pode submeter uma avaliação.");
         }
 
         if (appointment.getStatus() != AppointmentStatus.COMPLETED) {
             throw new ValidationException(
-                    "A avaliação só pode ser submetida após a conclusão do atendimento (COMPLETED)."
-            );
+                    "A avaliação só pode ser submetida após a conclusão do atendimento (COMPLETED).");
         }
 
         if (reviewRepository.existsByAppointmentId(appointmentId)) {

@@ -33,6 +33,9 @@ class ListMyAppointmentsUseCaseTest {
     private AppointmentRepository appointmentRepository;
 
     @Mock
+    private cv.perola.modules.identity.service.CustomerResolutionService customerResolutionService;
+
+    @Mock
     private AppointmentMapper appointmentMapper;
 
     @Mock

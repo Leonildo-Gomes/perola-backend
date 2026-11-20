@@ -18,6 +18,7 @@ import cv.perola.modules.business.dto.BusinessResponse;
 import cv.perola.modules.business.dto.EmployeeResponse;
 import cv.perola.modules.business.service.BusinessEmployeeQueryService;
 import cv.perola.modules.identity.domain.enums.UserRole;
+import cv.perola.modules.identity.service.CustomerResolutionService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.security.access.AccessDeniedException;
@@ -39,6 +40,7 @@ public class AppointmentLifecycleService {
     private final AppointmentRepository appointmentRepository;
     private final AppointmentHistoryRepository appointmentHistoryRepository;
     private final BusinessEmployeeQueryService businessEmployeeQueryService;
+    private final CustomerResolutionService customerResolutionService;
     private final AppointmentMapper appointmentMapper;
     private final ApplicationEventPublisher eventPublisher;
 
@@ -72,7 +74,11 @@ public class AppointmentLifecycleService {
             throw new AccessDeniedException("Autenticação necessária.");
         }
 
-        if (appointment.getCustomerId().equals(principal.getId())) {
+        boolean isCustomer = customerResolutionService.findByUserId(principal.getId())
+                .map(cust -> cust.getId().equals(appointment.getCustomerId()))
+                .orElse(appointment.getCustomerId().equals(principal.getId()));
+
+        if (isCustomer) {
             return;
         }
 
@@ -99,48 +105,60 @@ public class AppointmentLifecycleService {
                 .anyMatch(m -> businessId.equals(m.businessId()) && UserRole.OWNER.name().equalsIgnoreCase(m.role()));
     }
 
+    public ZoneId resolveBusinessZone(UUID businessId) {
+        return businessEmployeeQueryService.findBusinessById(businessId)
+                .map(BusinessResponse::timezone)
+                .map(tz -> {
+                    try {
+                        return ZoneId.of(tz);
+                    } catch (Exception ignored) {
+                        return ZoneId.of(AppConfig.CAPE_VERDE_TIMEZONE);
+                    }
+                })
+                .orElse(ZoneId.of(AppConfig.CAPE_VERDE_TIMEZONE));
+    }
+
     public AppointmentResponse recordTransitionAndBuildResponse(
-            AppointmentEntity savedAppointment,
+            AppointmentEntity appointment,
             UUID performedById,
             AppointmentAction action,
             AppointmentStatus fromStatus,
             AppointmentStatus toStatus,
-            Instant oldStartTime,
-            Instant oldEndTime,
-            Instant newStartTime,
-            Instant newEndTime,
-            String notes
-    ) {
-        AppointmentHistoryEntity historyEntry = appointmentMapper.toHistoryEntity(
-                savedAppointment.getId(),
+            Instant oldStart,
+            Instant oldEnd,
+            Instant newStart,
+            Instant newEnd,
+            String notes) {
+        AppointmentHistoryEntity history = appointmentMapper.toHistoryEntity(
+                appointment.getId(),
                 performedById,
                 action,
                 fromStatus,
                 toStatus,
-                oldStartTime,
-                oldEndTime,
-                newStartTime,
-                newEndTime,
+                oldStart,
+                oldEnd,
+                newStart,
+                newEnd,
                 notes
         );
-        appointmentHistoryRepository.save(historyEntry);
+        appointmentHistoryRepository.save(history);
 
         eventPublisher.publishEvent(new AppointmentLifecycleEvent(
-                savedAppointment.getId(),
-                savedAppointment.getBusinessId(),
-                savedAppointment.getCustomerId(),
-                savedAppointment.getEmployeeId(),
+                appointment.getId(),
+                appointment.getBusinessId(),
+                appointment.getCustomerId(),
+                appointment.getEmployeeId(),
                 performedById,
                 action.name(),
                 fromStatus != null ? fromStatus.name() : null,
                 toStatus.name(),
-                savedAppointment.getStartTime(),
-                savedAppointment.getEndTime(),
+                newStart != null ? newStart : appointment.getStartTime(),
+                newEnd != null ? newEnd : appointment.getEndTime(),
                 notes,
                 Instant.now()
         ));
 
-        return buildResponseWithHistory(savedAppointment);
+        return buildResponseWithHistory(appointment);
     }
 
     public AppointmentResponse buildResponseWithHistory(AppointmentEntity appointment) {
@@ -149,23 +167,4 @@ public class AppointmentLifecycleService {
                 .findAllByAppointmentIdOrderByCreatedAtAsc(appointment.getId());
         return appointmentMapper.toResponse(appointment, history, businessZone);
     }
-
-    public ZoneId resolveBusinessZone(UUID businessId) {
-        return businessEmployeeQueryService.findBusinessById(businessId)
-                .map(BusinessResponse::timezone)
-                .map(this::parseZoneId)
-                .orElse(ZoneId.of(AppConfig.CAPE_VERDE_TIMEZONE));
-    }
-
-    private ZoneId parseZoneId(String timezone) {
-        if (timezone == null || timezone.isBlank()) {
-            return ZoneId.of(AppConfig.CAPE_VERDE_TIMEZONE);
-        }
-        try {
-            return ZoneId.of(timezone.trim());
-        } catch (Exception ignored) {
-            return ZoneId.of(AppConfig.CAPE_VERDE_TIMEZONE);
-        }
-    }
 }
-

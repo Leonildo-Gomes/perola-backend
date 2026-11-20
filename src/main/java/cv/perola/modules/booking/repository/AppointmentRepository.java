@@ -22,6 +22,11 @@ public interface AppointmentRepository extends
         JpaRepository<AppointmentEntity, UUID>,
         JpaSpecificationExecutor<AppointmentEntity> {
 
+    long countByBusinessIdAndCustomerIdAndStatusIn(
+            UUID businessId,
+            UUID customerId,
+            java.util.Collection<AppointmentStatus> statuses);
+
     default Page<AppointmentEntity> findCustomerAppointments(
             UUID customerId,
             AppointmentStatus status,

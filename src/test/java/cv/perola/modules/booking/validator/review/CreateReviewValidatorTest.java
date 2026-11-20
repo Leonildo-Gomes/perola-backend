@@ -34,6 +34,9 @@ class CreateReviewValidatorTest {
     @Mock
     private ReviewRepository reviewRepository;
 
+    @Mock
+    private cv.perola.modules.identity.service.CustomerResolutionService customerResolutionService;
+
     @InjectMocks
     private CreateReviewValidator validator;
 
@@ -64,7 +67,8 @@ class CreateReviewValidatorTest {
     void shouldThrowWhenRatingIsInvalid() {
         CreateReviewRequest request = new CreateReviewRequest(6, "Excelente!");
 
-        assertThrows(ValidationException.class, () -> validator.validate(UUID.randomUUID(), UUID.randomUUID(), request));
+        assertThrows(ValidationException.class,
+                () -> validator.validate(UUID.randomUUID(), UUID.randomUUID(), request));
     }
 
     @Test
@@ -76,6 +80,7 @@ class CreateReviewValidatorTest {
         when(appointmentRepository.findById(appointmentId)).thenReturn(Optional.empty());
 
         assertThrows(ResourceNotFoundException.class, () -> validator.validate(appointmentId, UUID.randomUUID(), request));
+
     }
 
     @Test

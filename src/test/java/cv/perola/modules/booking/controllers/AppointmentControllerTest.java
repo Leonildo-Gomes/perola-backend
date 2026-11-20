@@ -92,7 +92,7 @@ class AppointmentControllerTest {
                 "Notas"
         );
         AppointmentResponse expected = createSampleResponse(userId, startTime, AppointmentStatus.PENDING);
-        when(createAppointmentUseCase.execute(userId, request)).thenReturn(expected);
+        when(createAppointmentUseCase.execute(principal, request)).thenReturn(expected);
 
         // Act
         ResponseEntity<AppointmentResponse> response = appointmentController.createAppointment(principal, request);
@@ -100,25 +100,34 @@ class AppointmentControllerTest {
         // Assert
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.CREATED);
         assertThat(response.getBody()).isEqualTo(expected);
-        verify(createAppointmentUseCase).execute(userId, request);
+        verify(createAppointmentUseCase).execute(principal, request);
     }
 
     @Test
-    @DisplayName("Deve lançar AuthenticationFailedException quando o principal for nulo")
-    void shouldThrowAuthenticationFailedExceptionWhenPrincipalIsNull() {
+    @DisplayName("Deve permitir agendamento anónimo (Guest Booking) quando o principal for nulo")
+    void shouldAllowGuestAppointmentWhenPrincipalIsNull() {
         // Arrange
+        OffsetDateTime startTime = OffsetDateTime.now(ZoneOffset.ofHours(-1));
         CreateAppointmentRequest request = new CreateAppointmentRequest(
                 UUID.randomUUID(),
                 UUID.randomUUID(),
                 UUID.randomUUID(),
-                OffsetDateTime.now(ZoneOffset.ofHours(-1)),
-                null
+                startTime,
+                "Guest booking",
+                "Ana Silva",
+                "ana@cv.com",
+                "+2389912345"
         );
+        AppointmentResponse expected = createSampleResponse(UUID.randomUUID(), startTime, AppointmentStatus.PENDING);
+        when(createAppointmentUseCase.execute((UserPrincipal) null, request)).thenReturn(expected);
 
-        // Act & Assert
-        assertThatThrownBy(() -> appointmentController.createAppointment(null, request))
-                .isInstanceOf(AuthenticationFailedException.class)
-                .hasMessage("Autenticação necessária.");
+        // Act
+        ResponseEntity<AppointmentResponse> response = appointmentController.createAppointment(null, request);
+
+        // Assert
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.CREATED);
+        assertThat(response.getBody()).isEqualTo(expected);
+        verify(createAppointmentUseCase).execute((UserPrincipal) null, request);
     }
 
     @Test

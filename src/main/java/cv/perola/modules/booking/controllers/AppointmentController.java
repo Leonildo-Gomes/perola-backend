@@ -74,13 +74,13 @@ public class AppointmentController {
                         @ApiResponse(responseCode = "400", description = "Dados de requisição inválidos ou regra de negócio violada", content = @Content(schema = @Schema(implementation = ProblemDetail.class))),
                         @ApiResponse(responseCode = "401", description = "Autenticação obrigatória", content = @Content(schema = @Schema(implementation = ProblemDetail.class))),
                         @ApiResponse(responseCode = "404", description = "Salão, profissional ou serviço não encontrado", content = @Content(schema = @Schema(implementation = ProblemDetail.class))),
-                        @ApiResponse(responseCode = "409", description = "Conflito de horário — o profissional já possui marcação ativa neste intervalo", content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
+                        @ApiResponse(responseCode = "409", description = "Conflito de horário — o profissional já possui marcação ativa neste intervalo", content = @Content(schema = @Schema(implementation = ProblemDetail.class))),
+                        @ApiResponse(responseCode = "429", description = "Limite de marcações pendentes excedido", content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
         })
         public ResponseEntity<AppointmentResponse> createAppointment(
                         @AuthenticationPrincipal UserPrincipal principal,
                         @Valid @RequestBody CreateAppointmentRequest request) {
-                requirePrincipal(principal);
-                AppointmentResponse response = createAppointmentUseCase.execute(principal.getId(), request);
+                AppointmentResponse response = createAppointmentUseCase.execute(principal, request);
                 return ResponseEntity.status(HttpStatus.CREATED).body(response);
         }
 

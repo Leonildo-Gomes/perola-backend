@@ -56,12 +56,15 @@ class CreateReviewUseCaseTest {
         @Mock
         private BusinessEmployeeQueryService businessEmployeeQueryService;
 
+        @Mock
+        private cv.perola.modules.identity.service.CustomerResolutionService customerResolutionService;
+
         private CreateReviewValidator createReviewValidator;
         private CreateReviewUseCase createReviewUseCase;
 
         @BeforeEach
         void setUp() {
-                createReviewValidator = new CreateReviewValidator(appointmentRepository, reviewRepository);
+                createReviewValidator = new CreateReviewValidator(appointmentRepository, reviewRepository, customerResolutionService);
                 createReviewUseCase = new CreateReviewUseCase(
                                 reviewRepository,
                                 reviewMapper,
