@@ -6,6 +6,7 @@ import cv.perola.core.exception.TenantAccessDeniedException;
 import cv.perola.core.security.TenantContext;
 import cv.perola.core.security.UserPrincipal;
 import cv.perola.core.shared.event.AppointmentLifecycleEvent;
+import cv.perola.core.shared.event.BookingEventAction;
 import cv.perola.modules.booking.domain.AppointmentEntity;
 import cv.perola.modules.booking.domain.AppointmentHistoryEntity;
 import cv.perola.modules.booking.domain.enums.AppointmentAction;
@@ -31,7 +32,8 @@ import java.util.UUID;
 
 /**
  * Serviço de suporte ao ciclo de vida de agendamentos: resolução de permissões,
- * registo de auditoria imutável (append-only) e publicação de eventos de domínio.
+ * registo de auditoria imutável (append-only) e publicação de eventos de
+ * domínio.
  */
 @Service
 @RequiredArgsConstructor
@@ -61,7 +63,8 @@ public class AppointmentLifecycleService {
 
         EmployeeResponse employee = businessEmployeeQueryService
                 .findEmployeeByIdAndBusinessId(appointment.getEmployeeId(), tenantId)
-                .orElseThrow(() -> new TenantAccessDeniedException("Profissional do agendamento não encontrado no salão ativo."));
+                .orElseThrow(() -> new TenantAccessDeniedException(
+                        "Profissional do agendamento não encontrado no salão ativo."));
 
         boolean isAssignedEmployee = employee.userId() != null && employee.userId().equals(principal.getId());
         if (!isAssignedEmployee) {
@@ -139,24 +142,35 @@ public class AppointmentLifecycleService {
                 oldEnd,
                 newStart,
                 newEnd,
-                notes
-        );
+                notes);
         appointmentHistoryRepository.save(history);
 
-        eventPublisher.publishEvent(new AppointmentLifecycleEvent(
-                appointment.getId(),
-                appointment.getBusinessId(),
-                appointment.getCustomerId(),
+        var customerOpt = customerResolutionService.findById(appointment.getCustomerId());
+        var businessOpt = businessEmployeeQueryService.findBusinessById(appointment.getBusinessId());
+        var employeeOpt = businessEmployeeQueryService.findEmployeeByIdAndBusinessId(
                 appointment.getEmployeeId(),
-                performedById,
-                action.name(),
-                fromStatus != null ? fromStatus.name() : null,
-                toStatus.name(),
-                newStart != null ? newStart : appointment.getStartTime(),
-                newEnd != null ? newEnd : appointment.getEndTime(),
-                notes,
-                Instant.now()
-        ));
+                appointment.getBusinessId());
+        eventPublisher.publishEvent(AppointmentLifecycleEvent.builder()
+                .appointmentId(appointment.getId())
+                .businessId(appointment.getBusinessId())
+                .customerId(appointment.getCustomerId())
+                .employeeId(appointment.getEmployeeId())
+                .performedById(performedById)
+                .action(BookingEventAction.valueOf(action.name()))
+                .fromStatus(fromStatus != null ? fromStatus.name() : null)
+                .toStatus(toStatus.name())
+                .startTime(newStart != null ? newStart : appointment.getStartTime())
+                .endTime(newEnd != null ? newEnd : appointment.getEndTime())
+                .notes(notes == null ? "" : notes)
+                .occurredAt(Instant.now())
+                .customerEmail(customerOpt.map(c -> c.getEmail()).orElse(""))
+                .customerName(customerOpt.map(c -> c.getName()).orElse(""))
+                .businessName(businessOpt.map(BusinessResponse::name).orElse(""))
+                .employeeName(employeeOpt.map(EmployeeResponse::displayName).orElse(""))
+                .serviceName(appointment.getServiceName() != null ? appointment.getServiceName() : "")
+                .servicePriceCve(appointment.getServicePrice() != null ? appointment.getServicePrice().toString() : "")
+                .businessTimeZone(businessOpt.map(BusinessResponse::timezone).orElse(AppConfig.CAPE_VERDE_TIMEZONE))
+                .build());
 
         return buildResponseWithHistory(appointment);
     }

@@ -25,7 +25,27 @@ spring:
     baseline-on-migrate: true
     baseline-version: 0
     locations: classpath:db/migration
-
+  mail:
+    host: ${MAIL_HOST:localhost}
+    port: ${MAIL_PORT:1025} # Ex: Mailpit/MailHog em dev, 587 em prod (Resend/SES/SMTP)
+    username: ${MAIL_USERNAME:}
+    password: ${MAIL_PASSWORD:}
+    default-encoding: UTF-8
+    properties:
+      mail:
+        smtp:
+          auth: ${MAIL_SMTP_AUTH:false}
+          starttls:
+            enable: ${MAIL_SMTP_STARTTLS:false}
+          connectiontimeout: 5000
+          timeout: 5000
+          writetimeout: 5000 
+  thymeleaf:
+    prefix: classpath:/templates/
+    suffix: .html
+    mode: HTML
+    encoding: UTF-8
+    cache: ${THYMELEAF_CACHE:false} # true em prod 
 perola:
   security:
     jwt:
@@ -34,6 +54,11 @@ perola:
       refresh-expiration-seconds: ${JWT_REFRESH_EXPIRATION_SECONDS:604800}
   business:
     default-timezone: ${APP_TIMEZONE:Atlantic/Cape_Verde}
+  mail:
+    enabled: ${MAIL_ENABLED:false} # false em dev/test faz apenas log sem falhar se não houver SMTP
+    from-address: ${MAIL_FROM_ADDRESS:no-reply@perola.cv}
+    from-name: ${MAIL_FROM_NAME:Pérola Cabo Verde}
+    frontend-base-url: ${FRONTEND_BASE_URL:http://localhost:3000}
 
 app:
   storage:

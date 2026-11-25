@@ -5,7 +5,8 @@ import java.util.UUID;
 
 /**
  * Interface selada para eventos de domínio do ciclo de vida de agendamentos.
- * Reside em core.shared para permitir desacoplamento estrito entre os módulos Booking e Notifications.
+ * Reside em core.shared para permitir desacoplamento estrito entre os módulos
+ * Booking e Notifications.
  */
 public sealed interface BookingDomainEvent permits AppointmentLifecycleEvent {
 
@@ -19,7 +20,7 @@ public sealed interface BookingDomainEvent permits AppointmentLifecycleEvent {
 
     UUID performedById();
 
-    String action();
+    BookingEventAction action();
 
     String fromStatus();
 
@@ -32,5 +33,19 @@ public sealed interface BookingDomainEvent permits AppointmentLifecycleEvent {
     String notes();
 
     Instant occurredAt();
-}
 
+    String customerEmail();
+
+    String customerName();
+
+    String businessName();
+
+    String employeeName();
+
+    String serviceName();
+
+    String servicePriceCve();
+
+    String businessTimeZone();
+
+}

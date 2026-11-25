@@ -4,6 +4,7 @@ import cv.perola.core.config.AppConfig;
 import cv.perola.core.exception.PendingAppointmentsLimitExceededException;
 import cv.perola.core.security.UserPrincipal;
 import cv.perola.core.shared.event.AppointmentLifecycleEvent;
+import cv.perola.core.shared.event.BookingEventAction;
 import cv.perola.modules.booking.domain.AppointmentEntity;
 import cv.perola.modules.booking.domain.AppointmentHistoryEntity;
 import cv.perola.modules.booking.domain.BusinessCustomerEntity;
@@ -35,11 +36,16 @@ import java.util.List;
 import java.util.UUID;
 
 /**
- * Caso de uso para criação transacional e atómica de um agendamento (BE-013, BE-014, BE-022),
- * com suporte a Guest Booking público e agendamento presencial por colaboradores (walk-in),
- * validação anti-spam de marcações pendentes, auto-registo CRM em business_customers,
- * blindado pela constraint física GiST ex_appointments_no_overlap no PostgreSQL,
- * com registo na trilha de auditoria append-only e publicação de evento de domínio.
+ * Caso de uso para criação transacional e atómica de um agendamento (BE-013,
+ * BE-014, BE-022),
+ * com suporte a Guest Booking público e agendamento presencial por
+ * colaboradores (walk-in),
+ * validação anti-spam de marcações pendentes, auto-registo CRM em
+ * business_customers,
+ * blindado pela constraint física GiST ex_appointments_no_overlap no
+ * PostgreSQL,
+ * com registo na trilha de auditoria append-only e publicação de evento de
+ * domínio.
  */
 @Service
 @RequiredArgsConstructor
@@ -65,18 +71,17 @@ public class CreateAppointmentUseCase {
                     request.customerName(),
                     request.customerEmail(),
                     request.customerPhone(),
-                    null
-            );
+                    null);
             createdById = null;
         } else if (request.customerEmail() != null && !request.customerEmail().isBlank()) {
-            // Utilizador autenticado (Staff/Proprietário) a criar agendamento presencial/telefone para um cliente
+            // Utilizador autenticado (Staff/Proprietário) a criar agendamento
+            // presencial/telefone para um cliente
             createAppointmentValidator.validateGuestContactDetails(request);
             customer = customerResolutionService.resolveForBooking(
                     request.customerName(),
                     request.customerEmail(),
                     request.customerPhone(),
-                    null
-            );
+                    null);
             createdById = principal.getId();
         } else {
             // Utilizador autenticado a agendar para si próprio
@@ -84,16 +89,15 @@ public class CreateAppointmentUseCase {
             createdById = principal.getId();
         }
 
-        // Anti-spam check: se o cliente já possui >= 3 marcações ativas (PENDING ou CONFIRMED) neste salão
+        // Anti-spam check: se o cliente já possui >= 3 marcações ativas (PENDING ou
+        // CONFIRMED) neste salão
         long activeCount = appointmentRepository.countByBusinessIdAndCustomerIdAndStatusIn(
                 request.businessId(),
                 customer.getId(),
-                List.of(AppointmentStatus.PENDING, AppointmentStatus.CONFIRMED)
-        );
+                List.of(AppointmentStatus.PENDING, AppointmentStatus.CONFIRMED));
         if (activeCount >= 3) {
             throw new PendingAppointmentsLimitExceededException(
-                    "O cliente já possui o limite máximo de 3 marcações ativas (pendentes ou confirmadas) neste salão."
-            );
+                    "O cliente já possui o limite máximo de 3 marcações ativas (pendentes ou confirmadas) neste salão.");
         }
 
         AppointmentValidationContext context = createAppointmentValidator.validate(request);
@@ -108,20 +112,17 @@ public class CreateAppointmentUseCase {
                         request.customerName() != null ? request.customerName() : "Cliente",
                         request.customerEmail() != null ? request.customerEmail() : customerId + "@perola.cv",
                         request.customerPhone() != null ? request.customerPhone() : "+2389999999",
-                        customerId
-                ));
+                        customerId));
 
         AppointmentValidationContext context = createAppointmentValidator.validate(customerId, request);
 
         long activeCount = appointmentRepository.countByBusinessIdAndCustomerIdAndStatusIn(
                 request.businessId(),
                 customer.getId(),
-                List.of(AppointmentStatus.PENDING, AppointmentStatus.CONFIRMED)
-        );
+                List.of(AppointmentStatus.PENDING, AppointmentStatus.CONFIRMED));
         if (activeCount >= 3) {
             throw new PendingAppointmentsLimitExceededException(
-                    "O cliente já possui o limite máximo de 3 marcações ativas (pendentes ou confirmadas) neste salão."
-            );
+                    "O cliente já possui o limite máximo de 3 marcações ativas (pendentes ou confirmadas) neste salão.");
         }
 
         return createAppointmentInternal(customer, customerId, request, context);
@@ -131,13 +132,13 @@ public class CreateAppointmentUseCase {
             CustomerEntity customer,
             UUID createdById,
             CreateAppointmentRequest request,
-            AppointmentValidationContext context
-    ) {
+            AppointmentValidationContext context) {
         BusinessResponse business = context.business();
         EmployeeResponse employee = context.employee();
         ServiceResponse service = context.service();
 
-        // Auto-registo em business_customers com tier = NEW se não existir relacionamento prévio
+        // Auto-registo em business_customers com tier = NEW se não existir
+        // relacionamento prévio
         if (!businessCustomerRepository.existsByBusinessIdAndCustomerId(request.businessId(), customer.getId())) {
             BusinessCustomerEntity businessCustomer = BusinessCustomerEntity.builder()
                     .businessId(request.businessId())
@@ -156,8 +157,7 @@ public class CreateAppointmentUseCase {
                 createdById,
                 service,
                 startTime,
-                endTime
-        );
+                endTime);
 
         AppointmentEntity saved = appointmentRepository.saveAndFlush(appointment);
 
@@ -171,24 +171,30 @@ public class CreateAppointmentUseCase {
                 null,
                 startTime,
                 endTime,
-                request.notes()
-        );
+                request.notes());
         AppointmentHistoryEntity savedHistory = appointmentHistoryRepository.save(historyEntry);
 
-        eventPublisher.publishEvent(new AppointmentLifecycleEvent(
-                saved.getId(),
-                saved.getBusinessId(),
-                saved.getCustomerId(),
-                saved.getEmployeeId(),
-                createdById,
-                AppointmentAction.CREATED.name(),
-                null,
-                AppointmentStatus.PENDING.name(),
-                startTime,
-                endTime,
-                request.notes(),
-                Instant.now()
-        ));
+        eventPublisher.publishEvent(AppointmentLifecycleEvent.builder()
+                .appointmentId(saved.getId())
+                .businessId(saved.getBusinessId())
+                .customerId(saved.getCustomerId())
+                .employeeId(saved.getEmployeeId())
+                .performedById(createdById)
+                .action(BookingEventAction.CREATED)
+                .fromStatus(null)
+                .toStatus(AppointmentStatus.PENDING.name())
+                .startTime(startTime)
+                .endTime(endTime)
+                .notes(request.notes() == null ? "" : request.notes())
+                .occurredAt(Instant.now())
+                .customerEmail(customer.getEmail())
+                .customerName(customer.getName())
+                .businessName(business.name())
+                .employeeName(employee.displayName())
+                .serviceName(service.name())
+                .servicePriceCve(service.price().toString())
+                .businessTimeZone(business.timezone())
+                .build());
 
         ZoneId businessZone = resolveZoneId(business.timezone());
         List<AppointmentHistoryEntity> historyList = savedHistory != null ? List.of(savedHistory) : List.of();
@@ -203,8 +209,7 @@ public class CreateAppointmentUseCase {
                 customer.getPhone(),
                 employee.displayName(),
                 null,
-                null
-        );
+                null);
     }
 
     private ZoneId resolveZoneId(String timezone) {

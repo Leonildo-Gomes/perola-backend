@@ -1,6 +1,7 @@
 package cv.perola.modules.notifications.listeners;
 
 import cv.perola.core.shared.event.AppointmentLifecycleEvent;
+import cv.perola.core.shared.event.BookingEventAction;
 import cv.perola.modules.notifications.usecase.notification.SendBookingNotificationUseCase;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -24,14 +25,22 @@ class BookingNotificationListenerTest {
     private BookingNotificationListener bookingNotificationListener;
 
     @Test
-    @DisplayName("Deve delegar evento recebido pelo @EventListener para SendBookingNotificationUseCase")
+    @DisplayName("Deve delegar evento recebido pelo listener para SendBookingNotificationUseCase")
     void shouldDelegateEventToSendBookingNotificationUseCase() {
         // Arrange
         Instant now = Instant.now();
-        AppointmentLifecycleEvent event = new AppointmentLifecycleEvent(
-                UUID.randomUUID(), UUID.randomUUID(), UUID.randomUUID(), UUID.randomUUID(),
-                UUID.randomUUID(), "COMPLETED", "CONFIRMED", "COMPLETED", now, now.plusSeconds(3600), null, now
-        );
+        AppointmentLifecycleEvent event = AppointmentLifecycleEvent.builder()
+                .appointmentId(UUID.randomUUID())
+                .businessId(UUID.randomUUID())
+                .customerId(UUID.randomUUID())
+                .employeeId(UUID.randomUUID())
+                .performedById(UUID.randomUUID())
+                .action(BookingEventAction.CREATED)
+                .toStatus("PENDING")
+                .startTime(now)
+                .endTime(now.plusSeconds(3600))
+                .occurredAt(now)
+                .build();
 
         // Act
         bookingNotificationListener.onBookingDomainEvent(event);
@@ -40,4 +49,3 @@ class BookingNotificationListenerTest {
         verify(sendBookingNotificationUseCase).execute(event);
     }
 }
-

@@ -14,8 +14,11 @@ public class SendNotificationValidator {
         if (event.appointmentId() == null) {
             throw new ValidationException("O identificador do agendamento é obrigatório para envio de notificação.");
         }
-        if (event.action() == null || event.action().isBlank()) {
+        if (event.action() == null) {
             throw new ValidationException("A ação do evento é obrigatória para envio de notificação.");
+        }
+        if (event.startTime() == null || event.endTime() == null) {
+            throw new ValidationException("Os horários de início e fim do agendamento são obrigatórios para envio de notificação.");
         }
     }
 }

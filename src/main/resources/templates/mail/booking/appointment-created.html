@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="pt" xmlns:th="http://www.thymeleaf.org">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Marcação Confirmada</title>
+</head>
+
+<body
+    style="margin:0; padding:0; background-color:#f8fafc; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif; color:#0f172a;">
+    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="padding:24px 12px;">
+        <tr>
+            <td align="center">
+                <table role="presentation" width="100%" cellspacing="0" cellpadding="0"
+                    style="max-width:480px; background:#ffffff; border-radius:12px; padding:28px 24px; border:1px solid #e2e8f0;">
+                    <tr>
+                        <td>
+                            <p
+                                style="margin:0 0 8px; font-size:13px; font-weight:600; color:#7c3aed; text-transform:uppercase; letter-spacing:0.05em;">
+                                Pérola • Agendamento Criado aguardando confirmação
+                            </p>
+                            <h1 style="margin:0 0 16px; font-size:20px; color:#0f172a;">
+                                Olá, <span th:text="${customerName}">Cliente</span>!
+                            </h1>
+                            <p style="margin:0 0 20px; font-size:15px; line-height:1.5; color:#475569;">
+                                A sua marcação em <strong th:text="${businessName}">Salão Exemplo</strong> foi criada e
+                                está aguardando confirmação.
+                            </p>
+
+                            <!-- Cartão de resumo da marcação -->
+                            <table role="presentation" width="100%" cellspacing="0" cellpadding="0"
+                                style="background:#f8fafc; border-radius:8px; padding:16px; margin-bottom:24px;">
+                                <tr>
+                                    <td style="padding:4px 0; font-size:14px; color:#64748b;">Serviço</td>
+                                    <td align="right"
+                                        style="padding:4px 0; font-size:14px; font-weight:600; color:#0f172a;"
+                                        th:text="${serviceName}">Corte</td>
+                                </tr>
+                                <tr>
+                                    <td style="padding:4px 0; font-size:14px; color:#64748b;">Profissional</td>
+                                    <td align="right"
+                                        style="padding:4px 0; font-size:14px; font-weight:600; color:#0f172a;"
+                                        th:text="${employeeName}">Profissional</td>
+                                </tr>
+                                <tr>
+                                    <td style="padding:4px 0; font-size:14px; color:#64748b;">Data</td>
+                                    <td align="right"
+                                        style="padding:4px 0; font-size:14px; font-weight:600; color:#0f172a;"
+                                        th:text="${appointmentDate}">25/11/2026</td>
+                                </tr>
+                                <tr>
+                                    <td style="padding:4px 0; font-size:14px; color:#64748b;">Horário (CV)</td>
+                                    <td align="right"
+                                        style="padding:4px 0; font-size:14px; font-weight:600; color:#0f172a;">
+                                        <span th:text="${startTime}">10:00</span> – <span
+                                            th:text="${endTime}">10:45</span>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td style="padding:4px 0; font-size:14px; color:#64748b;">Valor</td>
+                                    <td align="right"
+                                        style="padding:4px 0; font-size:14px; font-weight:700; color:#0f172a;">
+                                        <span th:text="${servicePriceCve}">1500</span> CVE
+                                    </td>
+                                </tr>
+                            </table>
+
+                            <div style="text-align:center; margin:24px 0 8px;">
+                                <a th:href="${myAppointmentsUrl}"
+                                    style="display:inline-block; background:#7c3aed; color:#ffffff; text-decoration:none; font-size:14px; font-weight:600; padding:12px 24px; border-radius:8px;">
+                                    Ver a Minha Marcação
+                                </a>
+                            </div>
+                        </td>
+                    </tr>
+                </table>
+
+                <p style="margin:16px 0 0; font-size:12px; color:#94a3b8;">
+                    © Pérola Cabo Verde — Plataforma de Beleza e Bem-Estar
+                </p>
+            </td>
+        </tr>
+    </table>
+</body>
+
+</html>
